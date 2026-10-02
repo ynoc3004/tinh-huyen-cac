@@ -3,254 +3,250 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b1210">
 <title>Tĩnh Huyền Các</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/fonts/titles.css">
 <style>
 :root {
-  --bg: #101816;
-  --bg-elev: #17211e;
-  --paper: #1c2625;
-  --ink: #e6eee8;
-  --muted: #9aada4;
-  --mist: #33443f;
-  --jade: #7fa396;
-  --seal: #a8322a;
-  --seal-ink: #fff8f4;
+  --bg: #0b1210;
+  --bg-deep: #070c0b;
+  --paper: #121c19;
+  --ink: #e8efe9;
+  --muted: #9db0a7;
+  --mist: #263832;
+  --jade: #8cc4ae;
+  --gold: #d2b97f;
+  --seal: #b3372e;
+  --seal-ink: #fff6ee;
+  --ridge-far: #15211e;
+  --ridge-mid: #101a17;
+  --ridge-near: #0a1110;
   --line: color-mix(in srgb, var(--ink) 14%, transparent);
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 24px;
-  --space-6: 32px;
-  --space-7: 48px;
   --font-body: "Noto Serif", "Times New Roman", Cambria, serif;
-  --title: "Noto Serif", serif;
-  --tw: 600;
-  --motion-fast: 250ms;
-  --motion-quick: 150ms;
+  --title: "Charm", "Noto Serif", serif;
+  --tw: 400;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #dfe8e2;
-    --bg-elev: #eef4f0;
-    --paper: #e4ebe6;
-    --ink: #1f2b2a;
-    --muted: #4f615b;
-    --mist: #c3d0c8;
-    --jade: #2f5c4e;
-    --line: color-mix(in srgb, var(--ink) 16%, transparent);
-  }
-  .ridge {
-    background:
-      linear-gradient(to top, color-mix(in srgb, var(--bg) 90%, transparent), transparent),
-      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 140' preserveAspectRatio='none'><path fill='%23b7c6be' d='M0 140 0 78 90 92 210 48 340 86 470 40 610 88 760 36 900 80 1040 50 1200 84 1200 140z'/><path fill='%23c9d6cf' d='M0 140 0 102 140 88 280 112 430 78 590 108 740 72 900 110 1060 86 1200 104 1200 140z'/></svg>")
-      bottom / 100% 88px no-repeat;
+    --bg: #e5ebe4;
+    --bg-deep: #d3ddd5;
+    --paper: #eef3ed;
+    --ink: #1c2926;
+    --muted: #4a5e57;
+    --mist: #c2cfc6;
+    --jade: #2b6a58;
+    --gold: #86682a;
+    --ridge-far: #c6d3ca;
+    --ridge-mid: #b4c4ba;
+    --ridge-near: #a2b5aa;
   }
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; }
+html, body { margin: 0; }
 body {
-  color: var(--ink);
-  font: 17px/1.65 var(--font-body);
-  background:
-    radial-gradient(1200px 520px at 50% -8%, color-mix(in srgb, var(--jade) 16%, transparent), transparent 70%),
-    radial-gradient(700px 340px at 80% 12%, color-mix(in srgb, var(--ink) 8%, transparent), transparent 62%),
-    var(--bg);
-  padding: clamp(1.25rem, 4vw, 3rem) 1.25rem 5.5rem;
-}
-.sky {
   position: relative;
-  max-width: 42rem;
-  margin: 0 auto;
+  min-height: 100vh;
+  color: var(--ink);
+  font: 17px/1.7 var(--font-body);
+  background:
+    radial-gradient(900px 520px at 28% 22%, color-mix(in srgb, var(--jade) 13%, transparent), transparent 70%),
+    linear-gradient(to bottom, var(--bg-deep), var(--bg) 46%);
+  padding: clamp(1.25rem, 4vw, 3rem) 1.25rem 11rem;
+  overflow-x: hidden;
 }
-.moon {
-  position: absolute;
-  top: -0.4rem;
-  right: 0.4rem;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--ink) 28%, transparent);
-  box-shadow: 0 0 40px color-mix(in srgb, var(--ink) 18%, transparent);
-  pointer-events: none;
-}
+.wrap { position: relative; z-index: 1; max-width: 64rem; margin: 0 auto; }
+
+/* Đầu trang */
+.head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; }
 h1 {
   font-family: var(--title);
   font-weight: var(--tw);
-  font-size: clamp(2.4rem, 6vw, 3.2rem);
-  line-height: 1.15;
-  letter-spacing: 0.04em;
-  margin: 0 0 0.35em;
+  font-size: clamp(2.6rem, 7vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: 0.02em;
+  margin: 0 0 0.4em;
 }
-.sub {
-  margin: 0 0 1.75rem;
-  color: var(--muted);
-  max-width: 34rem;
-}
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.85rem 1rem;
-  margin-bottom: 1.75rem;
-}
-button {
-  font: inherit;
-  cursor: pointer;
-}
-#sync {
-  min-height: 44px;
+.sub { margin: 0; color: var(--muted); max-width: 33rem; }
+.seal {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.6rem;
+  height: 4.4rem;
   background: var(--seal);
   color: var(--seal-ink);
-  border: 0;
-  padding: 0.55em 1.25em;
-  border-radius: var(--radius-sm);
+  font-family: var(--title);
+  font-size: 1.05rem;
+  line-height: 1.1;
+  text-align: center;
+  border-radius: 3px;
+  transform: rotate(-3deg);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--seal-ink) 55%, transparent), 0 6px 22px color-mix(in srgb, var(--seal) 35%, transparent);
 }
-#sync:active { transform: scale(0.98); }
-#sync:focus-visible, a:focus-visible, button:focus-visible {
-  outline: 3px solid var(--ink);
-  outline-offset: 2px;
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1rem; margin: 1.6rem 0 2.4rem; }
+button { font: inherit; cursor: pointer; }
+#sync {
+  min-height: 44px;
+  padding: 0.5em 1.4em;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--jade) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--jade) 60%, transparent);
+  border-radius: 999px;
+  transition: background 200ms var(--ease-out), transform 120ms var(--ease-out);
 }
-#msg { color: var(--muted); }
-.plaque {
+#sync:hover { background: color-mix(in srgb, var(--jade) 26%, transparent); }
+#sync:active { transform: scale(0.97); }
+#sync[disabled] { opacity: 0.6; cursor: progress; }
+#msg { color: var(--muted); font-size: 0.95rem; }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+/* Bố cục chính */
+#realms {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3rem;
+  align-items: start;
+}
+@media (min-width: 880px) {
+  #realms.has-data { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 4rem; }
+}
+
+/* Đan: vòng chín tầng quanh vầng trăng */
+.hero { text-align: center; }
+.dan {
   position: relative;
-  background: var(--bg-elev);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 1.35rem 1.35rem 1.2rem;
-  margin-bottom: 1.75rem;
-  overflow: hidden;
+  width: min(20rem, 82vw);
+  aspect-ratio: 1;
+  margin: 0 auto 1.4rem;
 }
-.plaque::before {
+.dan::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--seal);
+  inset: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--jade) 30%, transparent), color-mix(in srgb, var(--jade) 6%, transparent) 62%, transparent 72%);
+  box-shadow: 0 0 70px color-mix(in srgb, var(--jade) 18%, transparent);
 }
-.kicker {
-  margin: 0 0 0.45rem;
-  font-size: 0.78rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--muted);
+.dan svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.dan .seg { fill: none; stroke-width: 7; stroke-linecap: round; }
+.dan .off { stroke: var(--mist); }
+.dan .on { stroke: var(--jade); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--jade) 70%, transparent)); }
+.dan .halo { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 5; }
+.ignite .on { animation: ignite 700ms var(--ease-out) backwards; }
+@keyframes ignite { from { stroke-dashoffset: var(--len); } }
+.dan-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 0 18%;
 }
 .realm-name {
   font-family: var(--title);
   font-weight: var(--tw);
-  font-size: clamp(2rem, 5vw, 2.6rem);
-  line-height: 1.1;
-  margin: 0 0 0.35rem;
-}
-.meta, .koan {
+  font-size: clamp(2.1rem, 8vw, 2.7rem);
+  line-height: 1.05;
+  color: var(--gold);
   margin: 0;
+}
+.tier { margin: 0.3rem 0 0; font-size: 1.15rem; }
+.can-co-line { margin: 0 0 0.35rem; font-size: 1.05rem; }
+.next { margin: 0 0 1.5rem; color: var(--muted); }
+.koan {
+  position: relative;
+  margin: 0 auto;
+  max-width: 21rem;
+  padding-top: 1.1rem;
   color: var(--muted);
+  font-style: italic;
+  font-size: 0.95rem;
 }
-.meta { margin-bottom: 1rem; }
-.bar {
-  height: 7px;
-  background: var(--mist);
-  border-radius: 999px;
-  overflow: hidden;
-  margin: 0.85rem 0 0.7rem;
+.koan::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2.2rem;
+  height: 2px;
+  margin-left: -1.1rem;
+  background: var(--seal);
 }
-.bar i {
-  display: block;
-  height: 100%;
-  width: 0;
-  background: var(--jade);
-  border-radius: inherit;
-  transition: width var(--motion-fast) var(--ease-out);
-}
-.koan { font-size: 0.95rem; }
+
+/* Pháp mạch */
 h2 {
   font-family: var(--title);
   font-weight: var(--tw);
-  font-size: 1.15rem;
-  margin: 0 0 0.85rem;
+  font-size: 1.6rem;
+  line-height: 1.2;
+  margin: 0 0 0.7rem;
 }
-.mach {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--line);
-}
+.mach { list-style: none; margin: 0 0 3rem; padding: 0; border-top: 1px solid var(--line); }
 .mach li {
   display: grid;
-  grid-template-columns: minmax(7.5rem, 0.9fr) minmax(0, 1.4fr) 4.5rem;
-  gap: 0.65rem 1rem;
-  align-items: baseline;
-  padding: 0.85rem 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.1rem 1rem;
+  padding: 0.95rem 0 0.9rem;
   border-bottom: 1px solid var(--line);
 }
-.mach .name { font-size: 1.12rem; }
-.mach .src { color: var(--muted); font-size: 0.95rem; }
-.mach .elo {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
+.mach .name { font-size: 1.15rem; }
+.mach .elo { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.mach .src { color: var(--muted); font-size: 0.93rem; }
+.mach .pips { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 0.6rem; }
+.pips i { height: 4px; border-radius: 2px; background: var(--mist); overflow: hidden; }
+.pips i.on { background: var(--jade); }
+.pips i.part { background: linear-gradient(to right, var(--jade) calc(var(--f) * 100%), var(--mist) 0); }
+.mach li.ghost { opacity: 0.74; }
+.mach li.can-co .elo { color: var(--gold); }
+.tag { margin-left: 0.55rem; padding: 0.08em 0.6em; font-size: 0.78rem; border-radius: 3px; vertical-align: 0.1em; }
+.tag.root { background: var(--seal); color: var(--seal-ink); }
+.tag.shade { border: 1px solid var(--line); color: var(--muted); }
+
+/* Đăng thiên lộ */
+.path { list-style: none; margin: 0; padding: 0 0 0 1.5rem; position: relative; }
+.path::before { content: ""; position: absolute; left: 0.43rem; top: 0.7rem; bottom: 0.7rem; width: 1px; background: var(--line); }
+.path li { position: relative; display: flex; justify-content: space-between; gap: 1rem; padding: 0.3rem 0; color: var(--muted); }
+.path li::before {
+  content: "";
+  position: absolute;
+  left: -1.5rem;
+  top: 0.78rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--muted);
 }
-.mach .tiny {
-  grid-column: 1 / -1;
-  height: 4px;
-  background: var(--mist);
-  border-radius: 999px;
-  margin-top: -0.25rem;
-}
-.mach .tiny i {
-  display: block;
-  height: 100%;
-  background: color-mix(in srgb, var(--jade) 70%, var(--mist));
-  border-radius: inherit;
-}
-.mach li.can-co .name { color: var(--ink); }
-.mach li.ghost { opacity: 0.72; }
-.tag {
-  display: inline-block;
-  margin-left: 0.4rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  color: var(--seal);
-  vertical-align: middle;
-}
-.empty {
-  color: var(--muted);
-  border: 1px dashed var(--mist);
-  border-radius: var(--radius-md);
-  padding: 1.1rem 1.15rem;
-}
-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.35rem;
-  margin-top: 2rem;
-}
-a { color: var(--ink); }
-.ridge {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 88px;
-  pointer-events: none;
-  background:
-    linear-gradient(to top, color-mix(in srgb, var(--bg) 88%, transparent), transparent),
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 140' preserveAspectRatio='none'><path fill='%23141c1a' d='M0 140 0 78 90 92 210 48 340 86 470 40 610 88 760 36 900 80 1040 50 1200 84 1200 140z'/><path fill='%231a2421' d='M0 140 0 102 140 88 280 112 430 78 590 108 740 72 900 110 1060 86 1200 104 1200 140z'/></svg>")
-    bottom / 100% 88px no-repeat;
-}
+.path li.done { color: var(--ink); }
+.path li.done::before { background: var(--jade); border-color: var(--jade); }
+.path li.now { color: var(--gold); font-size: 1.1rem; }
+.path li.now::before { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 22%, transparent); }
+.path .from { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+
+.empty { color: var(--muted); border: 1px dashed var(--mist); border-radius: 12px; padding: 1.2rem 1.3rem; margin: 0; max-width: 34rem; }
+
+/* Lối đi */
+nav { margin-top: 4rem; padding-top: 1.6rem; border-top: 1px solid var(--line); display: grid; gap: 1.2rem 2.5rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
+nav a { color: var(--ink); text-decoration: none; }
+nav a b { display: block; font-family: var(--title); font-weight: var(--tw); font-size: 1.35rem; line-height: 1.3; border-bottom: 1px solid transparent; width: fit-content; transition: border-color 200ms var(--ease-out); }
+nav a:hover b { border-color: var(--gold); }
+nav a span { display: block; color: var(--muted); font-size: 0.92rem; }
+nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--muted); }
+
+/* Núi */
+.ridge { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 150px; pointer-events: none; }
+.ridge .far { fill: var(--ridge-far); }
+.ridge .mid { fill: var(--ridge-mid); }
+.ridge .near { fill: var(--ridge-near); }
+
 @media (max-width: 520px) {
-  .mach li { grid-template-columns: 1fr auto; }
-  .mach .src { grid-column: 1 / -1; }
-  .mach .elo { grid-column: 2; grid-row: 1; }
+  .seal { width: 3rem; height: 3.7rem; font-size: 0.9rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bar i, #sync { transition: none; }
-  #sync:active { transform: none; }
+  .ignite .on { animation: none; }
+  #sync { transition: none; }
 }
 </style>
 <script>
@@ -265,76 +261,156 @@ try {
 </script>
 </head>
 <body>
-<div class="sky">
-  <span class="moon" aria-hidden="true"></span>
-  <h1>Tĩnh Huyền Các</h1>
-  <p class="sub">Tu luyện cờ vua, mỗi ván là một lần bế quan. Tu vi lấy ELO ván cờ thấp nhất — vững căn cơ rồi mới cầu cảnh giới.</p>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <h1>Tĩnh Huyền Các</h1>
+      <p class="sub">Tu luyện cờ vua, mỗi ván là một lần bế quan. Tu vi lấy ELO ván cờ thấp nhất: vững căn cơ rồi mới cầu cảnh giới.</p>
+    </div>
+    <div class="seal" aria-hidden="true">Tĩnh<br>Huyền</div>
+  </header>
   <div class="toolbar">
     <button id="sync" type="button">Đồng bộ ván cờ</button>
     <span id="msg" role="status"></span>
   </div>
   <section id="realms" aria-live="polite">
-    <p class="empty">Chưa có dữ liệu. Đặt CHESSCOM_USER / LICHESS_USER rồi bấm Đồng bộ.</p>
+    <p class="empty">Chưa có rating. Thêm LICHESS_USER hoặc CHESSCOM_USER vào file backend/.env, chạy lại máy chủ, rồi bấm Đồng bộ ván cờ.</p>
   </section>
   <nav>
-    <a href="/fonts-preview.html">Đổi font tiêu đề</a>
-    <a href="/library.html">Tàng Kinh Các</a>
-    <a href="/arena.html">Đấu Trường</a>
-    <a href="/docs">Tàng Kinh Các và Đấu Trường (API)</a>
+    <a href="/library.html"><b>Tàng Kinh Các</b><span>Sách, tài liệu và ảnh cờ yêu thích</span></a>
+    <a href="/arena.html"><b>Đấu Trường</b><span>Bốc thăm và giải đấu cho học viên</span></a>
+    <a class="small" href="/fonts-preview.html"><b>Đổi font tiêu đề</b></a>
+    <a class="small" href="/docs"><b>Tài liệu API</b></a>
   </nav>
 </div>
-<div class="ridge" aria-hidden="true"></div>
+<svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true">
+  <path class="far" d="M0 150 0 70 80 86 190 36 300 80 430 28 560 84 690 40 820 88 950 32 1080 74 1200 50 1200 150z"/>
+  <path class="mid" d="M0 150 0 104 120 84 250 112 390 76 520 110 660 70 800 108 940 82 1080 112 1200 90 1200 150z"/>
+  <path class="near" d="M0 150 0 128 150 114 300 132 470 112 640 134 810 116 980 134 1100 120 1200 130 1200 150z"/>
+</svg>
 <script>
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => "&#" + c.charCodeAt(0) + ";");
+const REALMS = [[0, "Phàm Nhân"], [800, "Luyện Khí"], [1200, "Trúc Cơ"], [1500, "Kim Đan"], [1800, "Nguyên Anh"], [2000, "Hóa Thần"]];
 const PLATFORM = { chesscom: "Chess.com", lichess: "Lichess" };
 const SPEED = {
-  bullet: "đạn", ultrabullet: "siêu đạn", blitz: "chớp", rapid: "cờ nhanh",
-  classical: "cổ điển", daily: "hằng nhật", correspondence: "thư chiến",
-  puzzle: "thế cờ", standard: "tiêu chuẩn", chess960: "Chess960",
+  bullet: "cờ đạn", ultrabullet: "cờ siêu đạn", blitz: "cờ chớp", rapid: "cờ nhanh",
+  classical: "cờ cổ điển", daily: "cờ hằng nhật", correspondence: "cờ thư chiến",
+  puzzle: "thế cờ", standard: "cờ tiêu chuẩn", chess960: "Chess960",
 };
-const srcOf = x => `${PLATFORM[x.platform] || x.platform} · ${SPEED[x.time_class] || x.time_class}`;
-const pct = x => Math.max(0, Math.min(100, Number(x.progress) * 100 || 0));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => "&#" + c.charCodeAt(0) + ";");
+const platformOf = x => PLATFORM[x.platform] || x.platform;
+const speedOf = x => SPEED[String(x.time_class || "").toLowerCase()] || x.time_class;
+const tierPos = x => Math.max(0, Math.min(9, Number(x.progress) * 9 || 0)); // 0..9 trong cảnh giới
 
-function plaque(t) {
-  return `<article class="plaque">
-    <p class="kicker">Căn cơ</p>
-    <h2 class="realm-name">${esc(t.realm)} tầng ${esc(t.tier)}</h2>
-    <p class="meta">${esc(srcOf(t))} · ${esc(t.rating)}</p>
-    <div class="bar" aria-hidden="true"><i style="width:${pct(t)}%"></i></div>
+// Vòng chín tầng: mỗi cung là một tầng, cung hiện tại sáng theo phần đã đi
+function polar(a, r) {
+  const t = a * Math.PI / 180;
+  return [(120 + r * Math.cos(t)).toFixed(2), (120 + r * Math.sin(t)).toFixed(2)];
+}
+function danRing(t, ignite) {
+  const R = 102, step = 40, gap = 8;
+  const pos = tierPos(t), cur = Math.min(8, Math.floor(pos));
+  let off = "", on = "";
+  for (let i = 0; i < 9; i++) {
+    const a0 = -90 + i * step + gap / 2, a1 = a0 + step - gap;
+    const [x0, y0] = polar(a0, R), [x1, y1] = polar(a1, R);
+    const d = `M${x0} ${y0}A${R} ${R} 0 0 1 ${x1} ${y1}`;
+    off += `<path class="seg off" d="${d}"/>`;
+    const fill = i < cur ? 1 : (i === cur ? Math.max(0.06, pos - cur) : 0);
+    if (fill > 0) {
+      const len = Math.round(Math.min(1, fill) * 100);
+      on += `<path class="seg on" d="${d}" pathLength="100" style="--len:${len};stroke-dasharray:${len} 100;animation-delay:${i * 90}ms"/>`;
+    }
+  }
+  return `<svg viewBox="0 0 240 240" aria-hidden="true" class="${ignite ? "ignite" : ""}">
+    <circle class="halo" cx="120" cy="120" r="116"/>${off}${on}</svg>`;
+}
+function nextStep(t) {
+  const i = REALMS.findIndex(r => r[1] === t.realm);
+  const nxt = REALMS[i + 1];
+  if (i < 0 || !nxt) return "Đã đứng ở cảnh giới cao nhất.";
+  const gap = Math.max(0, nxt[0] - Number(t.rating));
+  return `Còn ${gap} điểm nữa là đột phá lên ${esc(nxt[1])}.`;
+}
+function hero(t, ignite) {
+  return `<article class="hero">
+    <div class="dan" role="img" aria-label="${esc(t.realm)} tầng ${esc(t.tier)}">
+      ${danRing(t, ignite)}
+      <div class="dan-text">
+        <h2 class="realm-name">${esc(t.realm)}</h2>
+        <p class="tier">tầng ${esc(t.tier)}</p>
+      </div>
+    </div>
+    <p class="can-co-line">Căn cơ là ${esc(speedOf(t))} trên ${esc(platformOf(t))}, ${esc(t.rating)} điểm.</p>
+    <p class="next">${nextStep(t)}</p>
     <p class="koan">Tu vi không ở chỗ cao nhất, mà ở mạch thấp nhất còn vững.</p>
   </article>`;
+}
+function pips(x) {
+  const pos = tierPos(x), cur = Math.min(8, Math.floor(pos));
+  let h = "";
+  for (let i = 0; i < 9; i++) {
+    if (i < cur) h += `<i class="on"></i>`;
+    else if (i === cur) h += `<i class="part" style="--f:${(pos - cur).toFixed(2)}"></i>`;
+    else h += `<i></i>`;
+  }
+  return `<div class="pips" aria-hidden="true">${h}</div>`;
 }
 function meridians(rows, tu) {
   if (!rows.length) return "";
   const items = rows.map(x => {
     const mine = x.is_can_co;
-    const tag = mine ? `<span class="tag">căn cơ</span>` : (tu && x.rating > tu.rating ? `<span class="tag">hư ảnh</span>` : "");
+    const tag = mine ? `<span class="tag root">căn cơ</span>` : (tu && x.rating > tu.rating ? `<span class="tag shade">hư ảnh</span>` : "");
     return `<li class="${mine ? "can-co" : "ghost"}">
-      <span class="name">${esc(x.realm)} ${esc(x.tier)}${tag}</span>
-      <span class="src">${esc(srcOf(x))}</span>
+      <span class="name">${esc(x.realm)} tầng ${esc(x.tier)}${tag}</span>
       <span class="elo">${esc(x.rating)}</span>
-      <span class="tiny" aria-hidden="true"><i style="width:${pct(x)}%"></i></span>
+      <span class="src">${esc(speedOf(x))} trên ${esc(platformOf(x))}</span>
+      ${pips(x)}
     </li>`;
   }).join("");
   return `<h2>Pháp mạch</h2><ul class="mach">${items}</ul>`;
 }
+function ladder(tu) {
+  const cur = REALMS.findIndex(r => r[1] === tu.realm);
+  const items = REALMS.map(([min, name], i) => {
+    const cls = i < cur ? "done" : (i === cur ? "now" : "");
+    return `<li class="${cls}"${i === cur ? ` aria-current="step"` : ""}><span>${esc(name)}</span><span class="from">${min ? "từ " + min + " điểm" : "khởi điểm"}</span></li>`;
+  }).join("");
+  return `<h2>Đăng thiên lộ</h2><ol class="path">${items}</ol>`;
+}
+let first = true;
 async function load() {
   const box = document.getElementById("realms");
-  const data = await (await fetch("/api/realm")).json();
-  const rows = Array.isArray(data) ? data : (data.mach || []);
-  const tu = Array.isArray(data) ? (data.slice().sort((a, b) => a.rating - b.rating)[0] || null) : data.tu_vi;
-  if (!tu) return;
-  box.innerHTML = plaque(tu) + meridians(rows, tu);
+  try {
+    const res = await fetch("/api/realm");
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    const rows = Array.isArray(data) ? data : (data.mach || []);
+    const tu = Array.isArray(data) ? (data.slice().sort((a, b) => a.rating - b.rating)[0] || null) : data.tu_vi;
+    if (!tu) return;
+    box.classList.add("has-data");
+    box.innerHTML = hero(tu, first) + `<div>${meridians(rows, tu)}${ladder(tu)}</div>`;
+    first = false;
+  } catch (e) {
+    box.classList.remove("has-data");
+    box.innerHTML = `<p class="empty">Không tải được rating từ máy chủ. Kiểm tra cửa sổ chạy uvicorn còn mở không, rồi tải lại trang.</p>`;
+  }
 }
-document.getElementById("sync").onclick = async () => {
-  const m = document.getElementById("msg");
+document.getElementById("sync").onclick = async function () {
+  const b = this, m = document.getElementById("msg");
+  b.disabled = true;
   m.textContent = "Đang đồng bộ...";
   try {
     const j = await (await fetch("/api/sync", { method: "POST" })).json();
-    m.textContent = "Ván mới: " + JSON.stringify(j.new_games);
-    load();
+    const r = j.new_games || {};
+    const notes = [];
+    for (const [k, v] of Object.entries(r.errors || {})) notes.push((PLATFORM[k] || k) + ": " + v);
+    for (const [k, v] of Object.entries(r.skipped || {})) notes.push((PLATFORM[k] || k) + ": " + v);
+    m.textContent = `Ván mới: Chess.com ${r.chesscom ?? 0}, Lichess ${r.lichess ?? 0}` + (notes.length ? ". " + notes.join(". ") : "");
+    await load();
   } catch (e) {
-    m.textContent = "Đồng bộ lỗi, kiểm tra mạng và username.";
+    m.textContent = "Đồng bộ lỗi. Kiểm tra máy chủ và mạng.";
+  } finally {
+    b.disabled = false;
   }
 };
 load();

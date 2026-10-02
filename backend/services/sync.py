@@ -17,6 +17,7 @@ async def sync_chesscom(c, cl):
         if k.startswith("chess_") and "last" in v:
             c.execute("INSERT OR REPLACE INTO rating_history(platform,time_class,day,rating) VALUES('chesscom',?,?,?)",
                       (k[6:], day, v["last"]["rating"]))
+    c.commit()  # chốt rating trước: lỗi khi tải ván cờ không được rollback rating
     archives = (await _get(cl, f"https://api.chess.com/pub/player/{u}/games/archives")).json().get("archives", [])[-2:]
     n = 0
     for url in archives:
@@ -35,6 +36,7 @@ async def sync_lichess(c, cl):
     for k, v in (await _get(cl, f"https://lichess.org/api/user/{u}")).json().get("perfs", {}).items():
         if v.get("games", 0) > 0 and "rating" in v:
             c.execute("INSERT OR REPLACE INTO rating_history(platform,time_class,day,rating) VALUES('lichess',?,?,?)", (k, day, v["rating"]))
+    c.commit()  # chốt rating trước: lỗi 429/dữ liệu ván cờ không được rollback rating
     r = await _get(cl, f"https://lichess.org/api/games/user/{u}", params={"max": 100, "pgnInJson": "true"},
                      headers={**UA, "Accept": "application/x-ndjson"})
     n = 0
@@ -53,16 +55,31 @@ async def sync_lichess(c, cl):
                        " VALUES('lichess',?,?,?,?,?,?,?,?,?)", (g["id"], g["createdAt"] // 1000, "white" if w else "black",
                        op.get("user", {}).get("name", "AI"), me.get("rating"), op.get("rating"), res, g["speed"], g.get("pgn"))).rowcount
     return n
+def _reason(e):
+    if isinstance(e, httpx.HTTPStatusError):
+        code = e.response.status_code
+        if code == 404: return "HTTP 404: sai username"
+        if code == 429: return "HTTP 429: bị giới hạn tốc độ, đợi vài phút rồi thử lại"
+        return f"HTTP {code}"
+    if isinstance(e, httpx.HTTPError): return f"Lỗi mạng: {type(e).__name__}"
+    return f"Dữ liệu bất thường ({type(e).__name__}: {e})"
+
+
 async def sync_all():
     async with httpx.AsyncClient(headers=UA, timeout=60, follow_redirects=True) as cl:
-        result, errors = {}, {}
+        result, errors, skipped = {}, {}, {}
+        users = {"chesscom": CHESSCOM_USER, "lichess": LICHESS_USER}
         for platform, fetch in (("chesscom", sync_chesscom), ("lichess", sync_lichess)):
+            if not users[platform]:
+                skipped[platform] = "Chưa đặt " + ("CHESSCOM_USER" if platform == "chesscom" else "LICHESS_USER")
             try:
                 with conn() as c:
                     result[platform] = await fetch(c, cl)
-            except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            except (httpx.HTTPError, ValueError, KeyError, TypeError) as e:
                 result[platform] = 0
-                errors[platform] = "Không thể đồng bộ nền tảng này; hãy kiểm tra username hoặc thử lại sau"
+                errors[platform] = _reason(e)
         if errors:
             result["errors"] = errors
+        if skipped:
+            result["skipped"] = skipped
         return result

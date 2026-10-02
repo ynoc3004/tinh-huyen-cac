@@ -1,0 +1,68 @@
+/* Lớp giao diện tu tiên dùng chung cho Tàng Kinh Các, Đấu Trường, điều hành giải.
+   Chỉ đổi màu, chữ và nền khi xem trên màn hình; bản in giữ nguyên như cũ. */
+@media screen {
+  :root {
+    --paper: #0b1210;
+    --surface: #121c19;
+    --ink: #e8efe9;
+    --muted: #9db0a7;
+    --mist: #2a3d37;
+    --line: #2f423b;
+    --seal: #b3372e;
+    --accent: #d2b97f;
+    --ok: #6fc79a;
+    --gold: #d2b97f;
+    --title: "Charm", "Noto Serif", serif;
+    --tw: 400;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --paper: #e5ebe4;
+      --surface: #eef3ed;
+      --ink: #1c2926;
+      --muted: #4a5e57;
+      --mist: #c2cfc6;
+      --line: #bccabf;
+      --seal: #a8322a;
+      --accent: #86682a;
+      --ok: #23694a;
+      --gold: #86682a;
+    }
+  }
+  body {
+    background:
+      radial-gradient(900px 480px at 20% -4%, color-mix(in srgb, #8cc4ae 12%, transparent), transparent 70%),
+      var(--paper);
+  }
+  h1 { font-size: clamp(2.2rem, 5vw, 3rem); letter-spacing: 0.02em; line-height: 1.1; }
+  h1, h2, h3 { font-family: var(--title); font-weight: var(--tw); }
+  table { font-variant-numeric: tabular-nums; }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+  button { transition: filter 160ms ease-out, transform 120ms ease-out; }
+  button:not(:disabled):hover { filter: brightness(1.12); }
+  button:not(:disabled):active { transform: scale(0.98); }
+  button.alt { border-color: color-mix(in srgb, var(--ink) 45%, transparent); }
+  dialog { border-color: var(--line); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4); }
+  dialog::backdrop { background: rgba(4, 8, 7, 0.7); }
+  ::selection { background: color-mix(in srgb, var(--gold) 35%, transparent); }
+
+  /* Núi mờ phía sau nội dung */
+  body::after {
+    content: "";
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    height: 120px;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.8;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 140' preserveAspectRatio='none'><path fill='%23121e1b' d='M0 140 0 78 90 92 210 48 340 86 470 40 610 88 760 36 900 80 1040 50 1200 84 1200 140z'/><path fill='%230f1916' d='M0 140 0 102 140 88 280 112 430 78 590 108 740 72 900 110 1060 86 1200 104 1200 140z'/></svg>") bottom / 100% 100% no-repeat;
+  }
+  @media (prefers-color-scheme: light) {
+    body::after {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 140' preserveAspectRatio='none'><path fill='%23c6d3ca' d='M0 140 0 78 90 92 210 48 340 86 470 40 610 88 760 36 900 80 1040 50 1200 84 1200 140z'/><path fill='%23b4c4ba' d='M0 140 0 102 140 88 280 112 430 78 590 108 740 72 900 110 1060 86 1200 104 1200 140z'/></svg>");
+    }
+  }
+}
+@media screen and (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+}

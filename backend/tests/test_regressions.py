@@ -215,6 +215,21 @@ class RegressionTests(unittest.TestCase):
                 with db.conn() as c:await sync.sync_lichess(c,cl)
         with patch.object(sync,'LICHESS_USER','me'),self.assertRaises(httpx.HTTPStatusError):asyncio.run(failing())
 
+    def test_rating_kept_when_games_fail(self):
+        import httpx
+        def handler(request):
+            if '/api/user/' in str(request.url):return httpx.Response(200,json={'perfs':{'bullet':{'games':5,'rating':777}}})
+            return httpx.Response(429,json={'error':'rate limit'})
+        async def run():
+            async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as cl:
+                try:
+                    with db.conn() as c:await sync.sync_lichess(c,cl)
+                except httpx.HTTPStatusError:pass
+        with patch.object(sync,'LICHESS_USER','me'):asyncio.run(run())
+        with db.conn() as c:
+            row=c.execute("SELECT rating FROM rating_history WHERE platform='lichess' AND time_class='bullet'").fetchone()
+        self.assertEqual(row['rating'],777)
+
     def test_delete_and_missing_admin_password(self):
         tid=self.new_arena()['tournament_id']
         with patch.object(arena,'ADMIN_PASSWORD',''):
