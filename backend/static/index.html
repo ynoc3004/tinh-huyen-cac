@@ -1,27 +1,343 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tĩnh Huyền Các</title><link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/fonts/titles.css"><style>
-:root{--paper:#e4ebe6;--ink:#1f2b2a;--seal:#a8322a;--mist:#c3d0c8}
-@media(prefers-color-scheme:dark){:root{--paper:#1c2625;--ink:#dfe8e2;--mist:#33443f}}
-body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.7 "Noto Serif","Times New Roman",Cambria,serif;padding:3rem 1.5rem;max-width:44rem;margin-inline:auto}
-h1{font-size:2.6rem;font-weight:600;margin:0 0 .2em;letter-spacing:.04em}
-p.sub{margin:0 0 2rem;opacity:.75}
-button{font:inherit;background:var(--seal);color:#fff;border:0;padding:.5em 1.2em;cursor:pointer}
-button:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
-.realm{display:flex;align-items:baseline;gap:1rem;border-bottom:1px solid var(--mist);padding:.8rem 0}
-.realm b{font-size:1.4rem;min-width:7.5rem}.bar{flex:1;height:6px;background:var(--mist)}.bar i{display:block;height:100%;background:var(--seal)}
-nav{margin-top:2rem;display:flex;gap:1.5rem}a{color:var(--ink)}
-code{font-family:inherit;background:var(--mist);padding:0 .25em}
-h1,h2,h3{font-family:var(--title,inherit);font-weight:var(--tw,600)}
-</style><script>try{const f=localStorage.getItem("titleFont");if(f){const r=document.documentElement.style;r.setProperty("--title",f);r.setProperty("--tw","400")}}catch(e){}</script></head><body>
-<h1>Tĩnh Huyền Các</h1><p class="sub">Tu luyện cờ vua, mỗi ván là một lần bế quan.</p>
-<button id="sync">Đồng bộ ván cờ</button> <span id="msg"></span>
-<section id="realms"><p>Chưa có dữ liệu. Đặt CHESSCOM_USER / LICHESS_USER rồi bấm Đồng bộ.</p></section>
-<nav><a href="/fonts-preview.html">Đổi font tiêu đề</a><a href="/library.html">Tàng Kinh Các</a><a href="/arena.html">Đấu Trường</a><a href="/docs">Tàng Kinh Các và Đấu Trường (API)</a></nav>
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tĩnh Huyền Các</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/fonts/titles.css">
+<style>
+:root {
+  --bg: #101816;
+  --bg-elev: #17211e;
+  --paper: #1c2625;
+  --ink: #e6eee8;
+  --muted: #9aada4;
+  --mist: #33443f;
+  --jade: #7fa396;
+  --seal: #a8322a;
+  --seal-ink: #fff8f4;
+  --line: color-mix(in srgb, var(--ink) 14%, transparent);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --font-body: "Noto Serif", "Times New Roman", Cambria, serif;
+  --title: "Noto Serif", serif;
+  --tw: 600;
+  --motion-fast: 250ms;
+  --motion-quick: 150ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #dfe8e2;
+    --bg-elev: #eef4f0;
+    --paper: #e4ebe6;
+    --ink: #1f2b2a;
+    --muted: #4f615b;
+    --mist: #c3d0c8;
+    --jade: #2f5c4e;
+    --line: color-mix(in srgb, var(--ink) 16%, transparent);
+  }
+  .ridge {
+    background:
+      linear-gradient(to top, color-mix(in srgb, var(--bg) 90%, transparent), transparent),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 140' preserveAspectRatio='none'><path fill='%23b7c6be' d='M0 140 0 78 90 92 210 48 340 86 470 40 610 88 760 36 900 80 1040 50 1200 84 1200 140z'/><path fill='%23c9d6cf' d='M0 140 0 102 140 88 280 112 430 78 590 108 740 72 900 110 1060 86 1200 104 1200 140z'/></svg>")
+      bottom / 100% 88px no-repeat;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  color: var(--ink);
+  font: 17px/1.65 var(--font-body);
+  background:
+    radial-gradient(1200px 520px at 50% -8%, color-mix(in srgb, var(--jade) 16%, transparent), transparent 70%),
+    radial-gradient(700px 340px at 80% 12%, color-mix(in srgb, var(--ink) 8%, transparent), transparent 62%),
+    var(--bg);
+  padding: clamp(1.25rem, 4vw, 3rem) 1.25rem 5.5rem;
+}
+.sky {
+  position: relative;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+.moon {
+  position: absolute;
+  top: -0.4rem;
+  right: 0.4rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ink) 28%, transparent);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--ink) 18%, transparent);
+  pointer-events: none;
+}
+h1 {
+  font-family: var(--title);
+  font-weight: var(--tw);
+  font-size: clamp(2.4rem, 6vw, 3.2rem);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.35em;
+}
+.sub {
+  margin: 0 0 1.75rem;
+  color: var(--muted);
+  max-width: 34rem;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem 1rem;
+  margin-bottom: 1.75rem;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+#sync {
+  min-height: 44px;
+  background: var(--seal);
+  color: var(--seal-ink);
+  border: 0;
+  padding: 0.55em 1.25em;
+  border-radius: var(--radius-sm);
+}
+#sync:active { transform: scale(0.98); }
+#sync:focus-visible, a:focus-visible, button:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+#msg { color: var(--muted); }
+.plaque {
+  position: relative;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 1.35rem 1.35rem 1.2rem;
+  margin-bottom: 1.75rem;
+  overflow: hidden;
+}
+.plaque::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--seal);
+}
+.kicker {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.realm-name {
+  font-family: var(--title);
+  font-weight: var(--tw);
+  font-size: clamp(2rem, 5vw, 2.6rem);
+  line-height: 1.1;
+  margin: 0 0 0.35rem;
+}
+.meta, .koan {
+  margin: 0;
+  color: var(--muted);
+}
+.meta { margin-bottom: 1rem; }
+.bar {
+  height: 7px;
+  background: var(--mist);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0.85rem 0 0.7rem;
+}
+.bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--jade);
+  border-radius: inherit;
+  transition: width var(--motion-fast) var(--ease-out);
+}
+.koan { font-size: 0.95rem; }
+h2 {
+  font-family: var(--title);
+  font-weight: var(--tw);
+  font-size: 1.15rem;
+  margin: 0 0 0.85rem;
+}
+.mach {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+.mach li {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 0.9fr) minmax(0, 1.4fr) 4.5rem;
+  gap: 0.65rem 1rem;
+  align-items: baseline;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.mach .name { font-size: 1.12rem; }
+.mach .src { color: var(--muted); font-size: 0.95rem; }
+.mach .elo {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.mach .tiny {
+  grid-column: 1 / -1;
+  height: 4px;
+  background: var(--mist);
+  border-radius: 999px;
+  margin-top: -0.25rem;
+}
+.mach .tiny i {
+  display: block;
+  height: 100%;
+  background: color-mix(in srgb, var(--jade) 70%, var(--mist));
+  border-radius: inherit;
+}
+.mach li.can-co .name { color: var(--ink); }
+.mach li.ghost { opacity: 0.72; }
+.tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--seal);
+  vertical-align: middle;
+}
+.empty {
+  color: var(--muted);
+  border: 1px dashed var(--mist);
+  border-radius: var(--radius-md);
+  padding: 1.1rem 1.15rem;
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.35rem;
+  margin-top: 2rem;
+}
+a { color: var(--ink); }
+.ridge {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 88px;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, color-mix(in srgb, var(--bg) 88%, transparent), transparent),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 140' preserveAspectRatio='none'><path fill='%23141c1a' d='M0 140 0 78 90 92 210 48 340 86 470 40 610 88 760 36 900 80 1040 50 1200 84 1200 140z'/><path fill='%231a2421' d='M0 140 0 102 140 88 280 112 430 78 590 108 740 72 900 110 1060 86 1200 104 1200 140z'/></svg>")
+    bottom / 100% 88px no-repeat;
+}
+@media (max-width: 520px) {
+  .mach li { grid-template-columns: 1fr auto; }
+  .mach .src { grid-column: 1 / -1; }
+  .mach .elo { grid-column: 2; grid-row: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar i, #sync { transition: none; }
+  #sync:active { transform: none; }
+}
+</style>
 <script>
-const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-async function load(){const r=await (await fetch('/api/realm')).json();if(!r.length)return;
-document.getElementById('realms').innerHTML=r.map(x=>`<div class="realm"><b>${esc(x.realm)} ${esc(x.tier)}</b><span>${esc(x.platform)} ${esc(x.time_class)} ${esc(x.rating)}</span><div class="bar"><i style="width:${Math.max(0,Math.min(100,Number(x.progress)*100||0))}%"></i></div></div>`).join('')}
-document.getElementById('sync').onclick=async()=>{const m=document.getElementById('msg');m.textContent='Đang đồng bộ...';
-try{const j=await (await fetch('/api/sync',{method:'POST'})).json();m.textContent='Ván mới: '+JSON.stringify(j.new_games);load()}catch(e){m.textContent='Đồng bộ lỗi, kiểm tra mạng và username.'}};
-load()
-</script></body></html>
+try {
+  const f = localStorage.getItem("titleFont");
+  if (f) {
+    const r = document.documentElement.style;
+    r.setProperty("--title", f);
+    r.setProperty("--tw", "400");
+  }
+} catch (e) {}
+</script>
+</head>
+<body>
+<div class="sky">
+  <span class="moon" aria-hidden="true"></span>
+  <h1>Tĩnh Huyền Các</h1>
+  <p class="sub">Tu luyện cờ vua, mỗi ván là một lần bế quan. Tu vi lấy ELO ván cờ thấp nhất — vững căn cơ rồi mới cầu cảnh giới.</p>
+  <div class="toolbar">
+    <button id="sync" type="button">Đồng bộ ván cờ</button>
+    <span id="msg" role="status"></span>
+  </div>
+  <section id="realms" aria-live="polite">
+    <p class="empty">Chưa có dữ liệu. Đặt CHESSCOM_USER / LICHESS_USER rồi bấm Đồng bộ.</p>
+  </section>
+  <nav>
+    <a href="/fonts-preview.html">Đổi font tiêu đề</a>
+    <a href="/library.html">Tàng Kinh Các</a>
+    <a href="/arena.html">Đấu Trường</a>
+    <a href="/docs">Tàng Kinh Các và Đấu Trường (API)</a>
+  </nav>
+</div>
+<div class="ridge" aria-hidden="true"></div>
+<script>
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => "&#" + c.charCodeAt(0) + ";");
+const PLATFORM = { chesscom: "Chess.com", lichess: "Lichess" };
+const SPEED = {
+  bullet: "đạn", ultrabullet: "siêu đạn", blitz: "chớp", rapid: "cờ nhanh",
+  classical: "cổ điển", daily: "hằng nhật", correspondence: "thư chiến",
+  puzzle: "thế cờ", standard: "tiêu chuẩn", chess960: "Chess960",
+};
+const srcOf = x => `${PLATFORM[x.platform] || x.platform} · ${SPEED[x.time_class] || x.time_class}`;
+const pct = x => Math.max(0, Math.min(100, Number(x.progress) * 100 || 0));
+
+function plaque(t) {
+  return `<article class="plaque">
+    <p class="kicker">Căn cơ</p>
+    <h2 class="realm-name">${esc(t.realm)} tầng ${esc(t.tier)}</h2>
+    <p class="meta">${esc(srcOf(t))} · ${esc(t.rating)}</p>
+    <div class="bar" aria-hidden="true"><i style="width:${pct(t)}%"></i></div>
+    <p class="koan">Tu vi không ở chỗ cao nhất, mà ở mạch thấp nhất còn vững.</p>
+  </article>`;
+}
+function meridians(rows, tu) {
+  if (!rows.length) return "";
+  const items = rows.map(x => {
+    const mine = x.is_can_co;
+    const tag = mine ? `<span class="tag">căn cơ</span>` : (tu && x.rating > tu.rating ? `<span class="tag">hư ảnh</span>` : "");
+    return `<li class="${mine ? "can-co" : "ghost"}">
+      <span class="name">${esc(x.realm)} ${esc(x.tier)}${tag}</span>
+      <span class="src">${esc(srcOf(x))}</span>
+      <span class="elo">${esc(x.rating)}</span>
+      <span class="tiny" aria-hidden="true"><i style="width:${pct(x)}%"></i></span>
+    </li>`;
+  }).join("");
+  return `<h2>Pháp mạch</h2><ul class="mach">${items}</ul>`;
+}
+async function load() {
+  const box = document.getElementById("realms");
+  const data = await (await fetch("/api/realm")).json();
+  const rows = Array.isArray(data) ? data : (data.mach || []);
+  const tu = Array.isArray(data) ? (data.slice().sort((a, b) => a.rating - b.rating)[0] || null) : data.tu_vi;
+  if (!tu) return;
+  box.innerHTML = plaque(tu) + meridians(rows, tu);
+}
+document.getElementById("sync").onclick = async () => {
+  const m = document.getElementById("msg");
+  m.textContent = "Đang đồng bộ...";
+  try {
+    const j = await (await fetch("/api/sync", { method: "POST" })).json();
+    m.textContent = "Ván mới: " + JSON.stringify(j.new_games);
+    load();
+  } catch (e) {
+    m.textContent = "Đồng bộ lỗi, kiểm tra mạng và username.";
+  }
+};
+load();
+</script>
+</body>
+</html>
