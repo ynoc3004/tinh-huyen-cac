@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+# dữ liệu cá nhân: học viên, ván cờ, sách, ảnh
+data/app.db
+data/app.db-wal
+data/app.db-shm
+data/library/*
+!data/library/.gitkeep

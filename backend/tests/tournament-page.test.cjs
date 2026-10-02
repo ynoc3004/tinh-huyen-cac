@@ -1,0 +1,18 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+const script=fs.readFileSync(path.join(__dirname,'../static/arena.js'),'utf8').replace(/_boot\(\);\s*$/,'');
+const html=fs.readFileSync(path.join(__dirname,'../static/tournament.html'),'utf8');
+const nodes=new Map(),events={},requests=[];
+for(const m of html.matchAll(/id="([^"]+)"/g))nodes.set('#'+m[1],{innerHTML:'',textContent:'',dataset:{},addEventListener(){},scrollIntoView(){},hidden:false});
+const tour={id:7,name:'U6 <giải>',status:'prepare',notes:'10 phút\n<ghi chú>',groups:[{id:11,name:'U6',ord:1,format:'round_robin',players:[{id:1,name:'An <A>',rating:1200},{id:2,name:'Bình'}]},{id:12,name:'U7',ord:1,format:'swiss',players:[{id:3,name:'Chi'},{id:4,name:'Dũng'}]}]};
+const ctx={console,URLSearchParams,location:{pathname:'/tournament.html',search:'?id=7',href:''},setTimeout,clearTimeout,setInterval:()=>1,clearInterval(){},addEventListener:(k,f)=>events[k]=f,print:()=>ctx.prints++,prints:0,matchMedia:()=>({matches:true}),document:{title:'',body:{dataset:{}},fonts:{ready:Promise.resolve()},querySelector:s=>nodes.get(s)||null,querySelectorAll:()=>[]},fetch:async(url,opt)=>{requests.push(url);let data;
+if(url==='/api/tournaments/7')data=tour;
+else if(url==='/api/tournaments/7/results')data={groups:tour.groups.map(g=>({group_id:g.id,standings:[{rank:1,name:g.players[0].name,points:1,sb:0}]}))};
+else if(url.endsWith('/pairings')){const g=tour.groups.find(g=>url.includes('/'+g.id+'/'));data=[{id:g.id,round:1,board:1,white_id:g.players[0].id,black_id:g.players[1].id,result:'1-0'}]}
+else if(url.endsWith('/standings'))data=[];
+else throw Error(url);
+return{ok:true,json:async()=>data}}};
+(async()=>{vm.createContext(ctx);vm.runInContext(script,ctx);await vm.runInContext('show(7)',ctx);assert.equal(ctx.document.title,'U6 <giải> · Tĩnh Huyền Các');assert(nodes.get('#view').innerHTML.includes('U6 &lt;giải&gt;'));assert(!html.includes('panel-create'));assert(nodes.get('#view').innerHTML.includes('data-save-pair'));
+await vm.runInContext("filterGroups('12');doPrint('roster')",ctx);assert.equal(ctx.prints,1);assert(nodes.get('#printSheet').innerHTML.includes('Chi'));assert(!nodes.get('#printSheet').innerHTML.includes('An &lt;A&gt;'));assert.equal(ctx.document.body.dataset.print,'sheet');events.afterprint();assert.equal(ctx.document.body.dataset.print,undefined);
+await vm.runInContext("filterGroups('all');doPrint('pairings')",ctx);assert.equal(ctx.prints,2);assert(nodes.get('#printSheet').innerHTML.includes('An &lt;A&gt;'));assert(nodes.get('#printSheet').innerHTML.includes('1-0'));events.afterprint();
+await vm.runInContext("doPrint('standings')",ctx);assert.equal(ctx.prints,3);assert(nodes.get('#printSheet').innerHTML.includes('An &lt;A&gt;'));assert(nodes.get('#printSheet').innerHTML.includes('Chi'));assert(nodes.get('#printSheet').innerHTML.includes('tạm thời'));assert(nodes.get('#printSheet').innerHTML.includes('&lt;ghi chú&gt;'));assert.equal(requests.filter(r=>r.endsWith('/results')).length,1);events.afterprint();
+console.log('PASS: standalone tournament page, escaped output, group-scoped roster, all-round print, standings mapping, print lifecycle');})().catch(e=>{console.error(e);process.exitCode=1});

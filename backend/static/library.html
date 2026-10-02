@@ -1,0 +1,187 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tàng Kinh Các · Tĩnh Huyền Các</title><link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/fonts/titles.css"><style>
+:root{--paper:#e4ebe6;--ink:#1f2b2a;--seal:#a8322a;--mist:#c3d0c8}
+@media(prefers-color-scheme:dark){:root{--paper:#1c2625;--ink:#dfe8e2;--mist:#33443f}}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 "Noto Serif","Times New Roman",Cambria,serif;padding:2rem 1.5rem;max-width:74rem;margin-inline:auto}
+h1{font-size:2.2rem;margin:0 0 .5rem}a{color:var(--ink)}button,input,select,textarea{font:inherit;color:inherit}
+button{background:var(--seal);color:#fff;border:0;padding:.4em 1em;cursor:pointer}button.alt{background:none;color:var(--ink);border:1px solid var(--ink)}
+input,select,textarea{background:transparent;border:1px solid var(--mist);padding:.3em .5em}:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:.6rem 0}
+#q{flex:1 1 16rem;min-width:12rem;max-width:30rem}
+#msg{min-height:1.6em;color:var(--seal)}#msg.ok{color:inherit;opacity:.85}
+#count{margin-left:auto;opacity:.75;font-size:.9rem}
+button:disabled{opacity:.5;cursor:progress}
+.empty{grid-column:1/-1;text-align:center;border:1px dashed var(--mist);padding:2.5rem 1rem;margin:0}
+.empty b{display:block;font-size:1.1rem;margin-bottom:.3rem}
+.t:hover{border-color:var(--ink)}.t .doc b{overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(11rem,1fr));gap:1rem;margin-top:1rem}
+.t{all:unset;cursor:pointer;display:block;border:1px solid var(--mist);aspect-ratio:1;position:relative;overflow:hidden}
+.t img{width:100%;height:100%;object-fit:cover;display:block}.t:focus-visible{outline:3px solid var(--ink)}
+.t .doc{padding:.8rem;height:100%;display:flex;flex-direction:column;justify-content:space-between}.t small{opacity:.7}
+.fav{position:absolute;top:.3rem;right:.4rem;color:var(--seal);font-size:1.2rem;text-shadow:0 0 3px var(--paper)}
+dialog{background:var(--paper);color:var(--ink);border:2px solid var(--ink);max-width:40rem;width:92vw;padding:1.2rem}dialog::backdrop{background:#0008}
+dialog img{max-width:100%;max-height:55vh;display:block;margin:0 auto .8rem}textarea{width:100%;min-height:4rem}
+.chip{border:1px solid var(--ink);padding:0 .5em;cursor:pointer;background:none}
+code{font-family:inherit;background:var(--mist);padding:0 .25em}
+h1,h2,h3{font-family:var(--title,inherit);font-weight:var(--tw,600)}
+[hidden]{display:none!important}
+.gate{max-width:34rem;margin:2.5rem auto;border:1px solid var(--mist);padding:1.6rem 1.8rem}
+.gate h2{margin:.2rem 0 .4rem}.gate label{display:block;margin:.8rem 0 .2rem;font-size:.9rem;font-weight:600}
+.gate input{width:100%}.gate .actions{margin-top:1.2rem;display:flex;gap:.6rem;flex-wrap:wrap}
+.warn{border-left:3px solid var(--seal);padding:.5rem .8rem;margin:1rem 0;font-size:.88rem;background:color-mix(in srgb,var(--seal) 8%,transparent)}
+.muted{opacity:.75;font-size:.88rem}.folder{font-family:Consolas,monospace;font-size:.85rem;overflow-wrap:anywhere}
+.tools{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin:.6rem 0;padding:.6rem .8rem;border:1px solid var(--mist)}
+.tools .grow{flex:1}.tools label.btn{background:var(--seal);color:#fff;padding:.4em 1em;cursor:pointer}
+.drop #grid{outline:3px dashed var(--seal);outline-offset:6px}
+details.settings{margin:.6rem 0}details.settings summary{cursor:pointer}details.settings .row{margin:.5rem 0}
+.t{touch-action:manipulation}.t.fold{border-style:solid;border-width:2px}.t .acts{position:absolute;top:.3rem;left:.3rem;display:flex;gap:.2rem;z-index:2}.t .acts button{padding:.05em .45em;background:var(--paper);font-size:.9rem;line-height:1.5}
+.t.sel{outline:3px solid var(--seal);outline-offset:-3px}.t.sel::after{content:"✓";position:absolute;bottom:.3rem;right:.4rem;background:var(--seal);color:#fff;width:1.5rem;height:1.5rem;text-align:center;line-height:1.5rem}
+.t.over,#crumbs a.over{outline:3px dashed var(--seal);outline-offset:2px}#crumbs{margin:.8rem 0 0;min-height:1.6em}.t.fold .doc{padding-top:2.2rem}.t .doc{padding-top:2.2rem}
+.btn,#reader a.btn{display:inline-block;background:none;border:1px solid var(--ink);color:var(--ink);padding:.4em 1em;text-decoration:none}
+#reader{position:fixed;inset:0;z-index:50;background:var(--paper);display:flex;flex-direction:column}#reader header{display:flex;gap:.5rem;align-items:center;padding:.5rem .8rem;border-bottom:1px solid var(--mist);flex-wrap:wrap}
+#reader .rt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw}.grow{flex:1}#rb{flex:1;min-height:0;overflow:auto;display:flex}
+#rb iframe{width:100%;height:100%;border:0;background:#fff}#rb img{max-width:100%;max-height:100%;object-fit:contain;margin:auto;cursor:zoom-in}#rb img.full{max-width:none;max-height:none;cursor:zoom-out}
+#rb pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:52rem;width:100%;margin:0 auto;padding:1rem 1.2rem;line-height:1.7;align-self:flex-start}
+</style><script>try{const f=localStorage.getItem("titleFont");if(f){const r=document.documentElement.style;r.setProperty("--title",f);r.setProperty("--tw","400")}}catch(e){}</script></head><body>
+<a href="/">← Tĩnh Huyền Các</a><h1>Tàng Kinh Các</h1><div id="msg" role="status"></div>
+<section id="gate" class="gate" hidden>
+ <h2 id="gtitle"></h2><p id="gdesc" class="muted"></p>
+ <form id="gform" autocomplete="off">
+  <label for="gfolder">Thư mục trên máy được liên kết</label><input id="gfolder" placeholder="Ví dụ: D:\TangKinhCac" spellcheck="false">
+  <div id="gnew" hidden><label for="gpw1">Mật khẩu mới (từ 8 ký tự)</label><input id="gpw1" type="password" autocomplete="new-password">
+   <label for="gpw2">Nhập lại mật khẩu</label><input id="gpw2" type="password" autocomplete="new-password">
+   <p class="warn"><b>Không có cách khôi phục mật khẩu.</b> File trong thư mục được mã hóa bằng mật khẩu này; quên mật khẩu là mất toàn bộ nội dung. Hãy ghi lại ở nơi an toàn.</p></div>
+  <div id="gold" hidden><label for="gpw">Mật khẩu</label><input id="gpw" type="password" autocomplete="current-password"></div>
+  <div class="actions"><button id="gsubmit" type="submit"></button></div>
+ </form>
+</section>
+<div id="app" hidden>
+<div class="tools" id="tools">
+ <label class="btn" for="upl">+ Thêm file</label><input id="upl" type="file" multiple hidden accept=".pdf,.epub,.png,.jpg,.jpeg,.webp,.pgn,.txt,.md,.docx">
+ <button class="alt" id="newfold">＋ Thư mục</button><button class="alt" id="selmode">Chọn nhiều</button>
+ <button class="alt" id="scan" title="Mã hóa các file thường đang nằm trong thư mục liên kết">Mã hóa file có sẵn trong thư mục</button>
+ <label class="muted"><input id="delorig" type="checkbox"> xóa bản gốc sau khi mã hóa</label>
+ <span class="grow"></span><button class="alt" id="lock">🔒 Khóa ngay</button>
+</div>
+<details class="settings"><summary>Cài đặt két</summary>
+ <p class="muted">Thư mục liên kết: <span class="folder" id="sfolder"></span></p>
+ <div class="row"><input id="newfolder" placeholder="Liên kết sang thư mục khác" style="flex:1;min-width:14rem"><button class="alt" id="relink">Đổi thư mục</button></div>
+ <div class="row"><input id="oldpw" type="password" placeholder="Mật khẩu hiện tại" autocomplete="current-password"><input id="newpw" type="password" placeholder="Mật khẩu mới (từ 8 ký tự)" autocomplete="new-password"><button class="alt" id="chpw">Đổi mật khẩu</button></div>
+ <p class="muted">Tự khóa sau <span id="idle"></span> phút không hoạt động. Chỉ mở được từ website chạy trên chính máy này.</p>
+</details>
+<div class="row"><input id="q" type="search" placeholder="Tìm theo tên hoặc ghi chú (không cần gõ dấu)"><select id="kind"><option value="">Tất cả</option><option value="book">Sách</option><option value="image">Ảnh</option><option value="doc">Tài liệu</option></select>
+<select id="sort" aria-label="Sắp xếp"><option value="new">Mới thêm</option><option value="old">Cũ nhất</option><option value="name">Tên A–Z</option></select>
+<select id="tag"><option value="">Mọi nhãn</option></select><label><input id="fav" type="checkbox"> Yêu thích</label><span id="count" aria-live="polite"></span></div>
+<nav id="crumbs" aria-label="Đường dẫn thư mục"></nav>
+<div id="bulk" class="tools" hidden><span id="bcount"></span><button class="alt" id="bmove">Chuyển vào…</button><button class="alt" id="bdel">Xóa</button><button class="alt" id="ball">Chọn tất cả</button></div>
+<div id="grid"></div><p id="more"></p>
+</div>
+<dialog id="dlg"><div id="dbody"></div></dialog>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const say=(t,ok)=>{$('#msg').textContent=t;$('#msg').className=ok?'ok':''};
+async function api(p,m='GET',b){const r=await fetch('/api/library'+p,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined});
+ if(!r.ok){const e=await r.json().catch(()=>({}));const msg=typeof e.detail==='string'?e.detail:('Lỗi '+r.status);if(r.status===401&&!p.startsWith('/vault/')){showGate('Tàng Kinh Các đã khóa. Nhập mật khẩu để tiếp tục.')}throw new Error(msg)}return r.json()}
+let ST={};
+async function showGate(note){$('#app').hidden=true;$('#grid').innerHTML='';$('#dlg').open&&$('#dlg').close();$('#gate').hidden=false;
+ try{ST=await api('/vault/status')}catch(e){say(e.message);return}
+ $('#gfolder').value=ST.folder;$('#gpw').value='';$('#gpw1').value='';$('#gpw2').value='';
+ $('#gnew').hidden=ST.initialized;$('#gold').hidden=!ST.initialized;
+ $('#gtitle').textContent=ST.initialized?'Tàng Kinh Các đang khóa':'Thiết lập Tàng Kinh Các';
+ $('#gdesc').textContent=ST.initialized?'Nhập mật khẩu để xem và quản lý kho tài liệu.':'Chọn thư mục trên laptop để làm kho lưu trữ và đặt mật khẩu. Nội dung file sẽ được mã hóa, mở thư mục bằng Explorer chỉ thấy dữ liệu không đọc được.';
+ $('#gsubmit').textContent=ST.initialized?'Mở khóa':'Tạo két và vào';
+ say(note||'',0);setTimeout(()=>(ST.initialized?$('#gpw'):$('#gpw1')).focus(),0)}
+async function enter(){const s=await api('/vault/status');ST=s;$('#gate').hidden=true;$('#app').hidden=false;$('#sfolder').textContent=s.folder;$('#idle').textContent=s.idle_min;say('');await load();tags()}
+$('#gform').onsubmit=async e=>{e.preventDefault();const b=$('#gsubmit');try{b.disabled=true;
+ const f=$('#gfolder').value.trim();if(f&&f!==ST.folder){const l=await api('/vault/link','POST',{path:f});ST.folder=l.folder;if(l.initialized!==ST.initialized){return showGate(l.initialized?'Thư mục này đã có két. Nhập mật khẩu của két để mở.':'Thư mục mới chưa có két. Hãy đặt mật khẩu.')}}
+ if(ST.initialized){await api('/vault/unlock','POST',{password:$('#gpw').value})}
+ else{if($('#gpw1').value!==$('#gpw2').value)throw new Error('Hai mật khẩu không giống nhau');await api('/vault/setup','POST',{password:$('#gpw1').value})}
+ $('#gpw').value=$('#gpw1').value=$('#gpw2').value='';await enter()}catch(err){say(err.message,0)}finally{b.disabled=false}};
+$('#lock').onclick=async()=>{await api('/vault/lock','POST').catch(()=>{});showGate('Đã khóa.')};
+$('#relink').onclick=async()=>{const v=$('#newfolder').value.trim();if(!v)return say('Nhập đường dẫn thư mục');if(!confirm('Đổi thư mục liên kết? Két sẽ khóa lại, nội dung ở thư mục cũ vẫn nguyên.'))return;try{await api('/vault/link','POST',{path:v});$('#newfolder').value='';showGate('Đã liên kết thư mục mới.')}catch(e){say(e.message)}};
+$('#chpw').onclick=async()=>{try{await api('/vault/password','POST',{old:$('#oldpw').value,new:$('#newpw').value});$('#oldpw').value=$('#newpw').value='';say('Đã đổi mật khẩu. Không cần mã hóa lại file.',1)}catch(e){say(e.message)}};
+async function sendFiles(list){const files=[...list];if(!files.length)return;let ok=0,dup=0,bad=[];for(let i=0;i<files.length;i++){const f=files[i];say(`Đang mã hóa ${i+1}/${files.length}: ${f.name}`,1);
+  try{const r=await fetch('/api/library/import?name='+encodeURIComponent(f.name)+'&folder='+cur,{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:f});
+   if(r.status===401){return showGate('Tàng Kinh Các đã khóa. Nhập mật khẩu để tiếp tục.')}
+   const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||('Lỗi '+r.status));j.result==='duplicate'?dup++:ok++}catch(e){bad.push(f.name+' ('+e.message+')')}}
+ say(`Đã thêm ${ok} file${dup?`, bỏ qua ${dup} file trùng`:''}${bad.length?`. Lỗi: ${bad.join('; ')}`:''}.`,!bad.length);await load();tags()}
+$('#upl').onchange=e=>{sendFiles(e.target.files);e.target.value=''};
+const hasFiles=e=>[...(e.dataTransfer?.types||[])].includes('Files');
+addEventListener('dragover',e=>{if(!$('#app').hidden&&hasFiles(e)){e.preventDefault();document.body.classList.add('drop')}});
+addEventListener('dragleave',e=>{if(!e.relatedTarget)document.body.classList.remove('drop')});
+addEventListener('drop',e=>{document.body.classList.remove('drop');if(!$('#app').hidden&&hasFiles(e)){e.preventDefault();sendFiles(e.dataTransfer.files)}});
+let lastPing=Date.now();['click','keydown'].forEach(ev=>addEventListener(ev,()=>{if(!$('#app').hidden&&Date.now()-lastPing>60000){lastPing=Date.now();api('/tags').catch(()=>{})}}));
+setInterval(async()=>{if($('#app').hidden)return;try{const s=await api('/vault/status');if(!s.unlocked)showGate('Đã tự khóa do không hoạt động.')}catch(e){}},15000);
+let items=[],LIM=300,cur=0,FOL={folders:[],root_files:0},sel=new Set(),selMode=false,drag=null;
+const fmap=()=>new Map(FOL.folders.map(f=>[f.id,f])),filtering=()=>!!($('#q').value||$('#kind').value||$('#tag').value||$('#fav').checked);
+function fpath(id){const m=fmap(),n=[];while(id&&m.has(id)){n.unshift(m.get(id).name);id=m.get(id).parent_id}return n.join(' / ')}
+function descendants(id){const o=new Set([id]);let g=true;while(g){g=false;for(const f of FOL.folders)if(o.has(f.parent_id)&&!o.has(f.id)){o.add(f.id);g=true}}return o}
+function folderOpts(skip,selected){let h=`<option value="0" ${selected===0?'selected':''}>(Thư mục gốc)</option>`;
+ const walk=(pid,d)=>FOL.folders.filter(f=>(f.parent_id||0)===pid).forEach(f=>{if(skip&&skip.has(f.id))return;h+=`<option value="${f.id}" ${f.id===selected?'selected':''}>${'\u00a0\u00a0'.repeat(d)}${esc(f.name)}</option>`;walk(f.id,d+1)});walk(0,0);return h}
+async function loadFolders(){FOL=await api('/folders');if(cur&&!FOL.folders.some(f=>f.id===cur))cur=0}
+function go(id){cur=id;sel.clear();load()}
+function renderCrumbs(){const m=fmap(),ch=[];let id=cur;while(id&&m.has(id)){ch.unshift(m.get(id));id=m.get(id).parent_id}
+ $('#crumbs').innerHTML=filtering()?'<span class="muted">Đang tìm trong toàn bộ két · <a href="#" id="clr">xóa bộ lọc</a></span>':
+ ['<a href="#" data-go="0" data-drop="0">Tất cả file</a>',...ch.map(f=>`<a href="#" data-go="${f.id}" data-drop="${f.id}">${esc(f.name)}</a>`)].join(' › ')}
+function updBulk(){$('#bulk').hidden=!selMode;$('#bcount').textContent=`Đã chọn ${sel.size} file`;$('#selmode').textContent=selMode?'Xong chọn':'Chọn nhiều';document.body.classList.toggle('selmode',selMode)}
+async function load(){try{await loadFolders()}catch(e){return say(e.message)}
+ const flt=filtering(),u=new URLSearchParams();if($('#q').value)u.set('q',$('#q').value);if($('#kind').value)u.set('kind',$('#kind').value);
+ if($('#tag').value)u.set('tag',$('#tag').value);if($('#fav').checked)u.set('favorite','true');if($('#sort').value)u.set('sort',$('#sort').value);if(!flt)u.set('folder',cur);
+ try{items=await api('?'+u)}catch(e){return say(e.message)}
+ const ids=new Set(items.map(i=>i.id));[...sel].forEach(x=>ids.has(x)||sel.delete(x));renderCrumbs();updBulk();
+ const subs=flt?[]:FOL.folders.filter(f=>(f.parent_id||0)===cur),tot=f=>[...descendants(f.id)].reduce((a,id)=>a+(fmap().get(id)?.files||0),0);
+ const fh=subs.map(f=>`<div class="t fold" tabindex="0" role="button" data-fid="${f.id}" data-drop="${f.id}" draggable="true" aria-label="Thư mục ${esc(f.name)}"><div class="doc"><b>📁 ${esc(f.name)}</b><small>${tot(f)} file</small></div><span class="acts"><button class="alt" data-ren="${f.id}" title="Đổi tên thư mục" aria-label="Đổi tên thư mục">✎</button><button class="alt" data-delf="${f.id}" title="Xóa thư mục" aria-label="Xóa thư mục">🗑</button></span></div>`).join('');
+ const ih=items.slice(0,LIM).map(i=>`<div class="t${sel.has(i.id)?' sel':''}" tabindex="0" role="button" data-id="${i.id}" draggable="true" aria-label="${esc(i.title)}">`+
+ (i.kind==='image'?`<img loading="lazy" src="/api/library/file/${i.id}" alt="" draggable="false">`:`<div class="doc"><b>${esc(i.title)}</b><small>${i.kind==='book'?'Sách':'Tài liệu'} ${esc(i.ext)}${flt&&i.folder_id?' · 📁 '+esc(fpath(i.folder_id)):''}</small></div>`)+
+ (i.favorite?'<span class="fav" aria-hidden="true">★</span>':'')+`<span class="acts"><button class="alt" data-info="${i.id}" title="Chi tiết · đổi tên · chuyển thư mục · xóa" aria-label="Chi tiết">⋯</button></span></div>`).join('');
+ $('#grid').innerHTML=fh+ih||emptyHtml();
+ $('#count').textContent=(subs.length?subs.length+' thư mục · ':'')+(items.length?items.length+' mục':'');
+ $('#more').textContent=items.length>LIM?`Đang hiện ${LIM}/${items.length}. Hãy lọc hoặc tìm để thu hẹp.`:''}
+function emptyHtml(){if(filtering())return '<div class="empty"><b>Không có mục nào khớp</b>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</div>';
+ if(cur)return '<div class="empty"><b>Thư mục trống</b>Bấm “+ Thêm file” hoặc kéo file vào trang để thêm vào thư mục này.</div>';
+ return '<div class="empty"><b>Tàng Kinh Các còn trống</b>Bấm “+ Thêm file” hoặc kéo thả file vào trang để mã hóa và lưu vào két. Nếu thư mục đã có sẵn file, bấm “Mã hóa file có sẵn trong thư mục”.</div>'}
+async function tags(){const t=await api('/tags'),cur=$('#tag').value;$('#tag').innerHTML='<option value="">Mọi nhãn</option>'+t.map(x=>`<option ${x===cur?'selected':''}>${esc(x)}</option>`).join('')}
+$('#scan').onclick=async()=>{const del=$('#delorig').checked;if(del&&!confirm('Bản gốc sẽ bị XÓA khỏi thư mục sau khi mã hóa thành công (đã kiểm tra giải mã khớp). Nếu quên mật khẩu, không thể khôi phục. Tiếp tục?'))return;const b=$('#scan');try{b.disabled=true;say('Đang mã hóa…',1);const j=await api('/scan','POST',{delete_original:del});
+ const parts=[`quét ${j.seen} file`];if(j.added)parts.push(`thêm ${j.added}`);if(j.converted)parts.push(`chuyển ${j.converted} mục cũ sang dạng mã hóa`);if(j.duplicate)parts.push(`${j.duplicate} trùng`);if(j.deleted)parts.push(`đã xóa ${j.deleted} bản gốc`);if(j.failed)parts.push(`${j.failed} lỗi`);
+ say(parts.join(', ')[0].toUpperCase()+parts.join(', ').slice(1)+'.',!j.failed);await load();tags()}catch(e){say(e.message)}finally{b.disabled=false}};
+let qt;$('#q').addEventListener('input',()=>{clearTimeout(qt);qt=setTimeout(load,200)});['kind','tag','fav','sort'].forEach(id=>$('#'+id).addEventListener('change',load));
+$('#crumbs').onclick=e=>{const a=e.target.closest('a');if(!a)return;e.preventDefault();if(a.id==='clr'){$('#q').value=$('#kind').value=$('#tag').value='';$('#fav').checked=false;return load()}go(+a.dataset.go)};
+$('#newfold').onclick=async()=>{const n=prompt('Tên thư mục mới'+(cur?` (trong “${fpath(cur)}”)`:'')+':');if(!n||!n.trim())return;try{await api('/folders','POST',{name:n,parent_id:cur||null});say('Đã tạo thư mục.',1);await load()}catch(e){say(e.message)}};
+$('#selmode').onclick=()=>{selMode=!selMode;if(!selMode)sel.clear();load()};
+$('#ball').onclick=()=>{items.slice(0,LIM).forEach(i=>sel.add(i.id));load()};
+$('#bmove').onclick=()=>sel.size?moveDlg([...sel]):say('Chưa chọn file nào');
+$('#bdel').onclick=async()=>{if(!sel.size||!confirm(`Xóa vĩnh viễn ${sel.size} file khỏi két? Không thể hoàn tác.`))return;try{const r=await api('/delete-many','POST',{item_ids:[...sel]});sel.clear();say(`Đã xóa ${r.deleted} file.`,1);await load();tags()}catch(e){say(e.message)}};
+$('#grid').onclick=e=>{const t=e.target;let b=t.closest('[data-ren]');if(b)return renameFolder(+b.dataset.ren);b=t.closest('[data-delf]');if(b)return delFolder(+b.dataset.delf);
+ b=t.closest('[data-info]');if(b)return open(+b.dataset.info);const c=t.closest('.t');if(!c)return;if(c.dataset.fid)return go(+c.dataset.fid);
+ const id=+c.dataset.id;if(selMode){sel.has(id)?sel.delete(id):sel.add(id);c.classList.toggle('sel');return updBulk()}reader(id)};
+$('#grid').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList.contains('t')){e.preventDefault();e.target.click()}};
+async function renameFolder(id){const f=fmap().get(id),n=prompt('Tên mới của thư mục:',f.name);if(n==null||!n.trim()||n.trim()===f.name)return;try{await api('/folders/'+id,'PATCH',{name:n});await load()}catch(e){say(e.message)}}
+function delFolder(id){const f=fmap().get(id),ds=descendants(id),tot=[...ds].reduce((a,x)=>a+(fmap().get(x)?.files||0),0);
+ $('#dbody').innerHTML=`<h3>Xóa thư mục “${esc(f.name)}”</h3><p>Bên trong có ${tot} file${ds.size>1?` và ${ds.size-1} thư mục con`:''}.</p><div class="row" style="flex-direction:column;align-items:stretch"><button class="alt" id="k1">Xóa thư mục, giữ lại file (chuyển lên cấp trên)</button><button id="k2">Xóa thư mục và TẤT CẢ file bên trong</button><button class="alt" id="k3">Hủy</button></div>`;$('#dlg').showModal();
+ const run=async m=>{try{const r=await api('/folders/'+id+'?contents='+m,'DELETE');$('#dlg').close();if(ds.has(cur))cur=f.parent_id||0;say(m==='delete'?`Đã xóa thư mục và ${r.deleted_files} file.`:'Đã xóa thư mục, file được giữ lại.',1);await load();tags()}catch(e){$('#dlg').close();say(e.message)}};
+ $('#k1').onclick=()=>run('keep');$('#k2').onclick=()=>{if(!tot||confirm(`Xóa vĩnh viễn ${tot} file? Không thể hoàn tác.`))run('delete')};$('#k3').onclick=()=>$('#dlg').close()}
+function moveDlg(ids){$('#dbody').innerHTML=`<h3>Chuyển ${ids.length} file vào…</h3><div class="row"><select id="mvsel" style="flex:1" aria-label="Thư mục đích">${folderOpts(null,cur)}</select></div><div class="row"><button id="mvok">Chuyển</button><button class="alt" id="mvx">Hủy</button></div>`;$('#dlg').showModal();
+ $('#mvx').onclick=()=>$('#dlg').close();$('#mvok').onclick=async()=>{try{await api('/move','POST',{item_ids:ids,folder_id:+$('#mvsel').value||null});$('#dlg').close();sel.clear();say('Đã chuyển file.',1);load()}catch(e){say(e.message)}}}
+document.addEventListener('dragstart',e=>{const c=e.target.closest?.('#grid .t');if(!c)return;drag=c.dataset.fid?{f:+c.dataset.fid}:{i:+c.dataset.id};e.dataTransfer.setData('text/plain','thc');e.dataTransfer.effectAllowed='move'});
+document.addEventListener('dragend',()=>{drag=null;document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'))});
+document.addEventListener('dragover',e=>{if(!drag)return;const t=e.target.closest?.('[data-drop]');document.querySelectorAll('.over').forEach(x=>x!==t&&x.classList.remove('over'));if(t){e.preventDefault();t.classList.add('over')}});
+document.addEventListener('drop',async e=>{if(!drag)return;const t=e.target.closest?.('[data-drop]');if(!t)return;e.preventDefault();t.classList.remove('over');const to=+t.dataset.drop,d=drag;drag=null;
+ try{if(d.f){if(d.f===to)return;await api('/folders/'+d.f,'PATCH',{parent_id:to||null})}else{await api('/move','POST',{item_ids:sel.has(d.i)?[...sel]:[d.i],folder_id:to||null});sel.clear()}say('Đã di chuyển.',1);await load()}catch(err){say(err.message)}});
+function open(id){const i=items.find(x=>x.id===id);if(!i)return;const tg=(i.tags||'').split(',').filter(Boolean),url='/api/library/file/'+id;
+ $('#dbody').innerHTML=`<p class="row"><button id="dread">Đọc</button><a class="btn" href="${url}?download=true">Tải về</a><a class="btn" href="${url}" target="_blank" rel="noopener">Mở tab mới</a></p>
+ <div class="row"><input id="dt" value="${esc(i.title)}" style="flex:1" aria-label="Tên file"><span class="muted">${esc(i.ext)}</span><label><input id="df" type="checkbox" ${i.favorite?'checked':''}> Yêu thích</label></div>
+ <div class="row"><label for="dfold">Thư mục:</label><select id="dfold" style="flex:1">${folderOpts(null,i.folder_id||0)}</select></div>
+ <textarea id="dn" placeholder="Ghi chú" aria-label="Ghi chú">${esc(i.note)}</textarea>
+ <div class="row">${tg.map(t=>`<button class="chip" data-rm="${esc(t)}" title="Bỏ nhãn">${esc(t)} ×</button>`).join('')}<input id="da" placeholder="Thêm nhãn" size="12"><button class="alt" id="dadd">Thêm</button></div>
+ <div class="row"><button id="dsave">Lưu</button><button class="alt" id="dclose">Đóng</button><button class="alt" id="ddel" style="margin-left:auto">Xóa khỏi két</button></div>`;
+ $('#dlg').showModal();
+ const patch=async b=>{await api('/'+id,'PATCH',b);await load();await tags();if($('#dlg').open)open(id)};
+ $('#dread').onclick=()=>{$('#dlg').close();reader(id)};
+ $('#dsave').onclick=async()=>{try{await api('/'+id,'PATCH',{title:$('#dt').value,note:$('#dn').value,favorite:$('#df').checked,folder_id:+$('#dfold').value||null});$('#dlg').close();load()}catch(e){say(e.message)}};
+ $('#dadd').onclick=()=>$('#da').value.trim()&&patch({add_tag:$('#da').value.trim()}).catch(e=>say(e.message));
+ $('#dbody').querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>patch({remove_tag:b.dataset.rm}).catch(e=>say(e.message)));
+ $('#dclose').onclick=()=>$('#dlg').close();
+ $('#ddel').onclick=async()=>{if(!confirm('Xóa vĩnh viễn "'+i.title+'" khỏi két? Không thể hoàn tác.'))return;try{await api('/'+id,'DELETE');$('#dlg').close();await load();tags()}catch(e){say(e.message)}}}
+function reader(id){if(!window.open('/reader.html?id='+id,'_blank'))say('Trình duyệt đã chặn tab mới. Hãy cho phép cửa sổ bật lên cho trang này.')}
+(async()=>{try{const st=await api('/vault/status');ST=st;st.unlocked?enter():showGate()}catch(e){say(e.message)}})();
+</script></body></html>

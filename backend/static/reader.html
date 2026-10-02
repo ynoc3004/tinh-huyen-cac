@@ -1,0 +1,37 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Đọc · Tàng Kinh Các</title><link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/fonts/titles.css"><style>
+:root{--paper:#e4ebe6;--ink:#1f2b2a;--seal:#a8322a;--mist:#c3d0c8}
+@media(prefers-color-scheme:dark){:root{--paper:#1c2625;--ink:#dfe8e2;--mist:#33443f}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}body{background:var(--paper);color:var(--ink);font:16px/1.6 "Noto Serif","Times New Roman",Cambria,serif;display:flex;flex-direction:column}
+a,button{font:inherit;color:var(--ink)}header{display:flex;gap:.5rem;align-items:center;padding:.5rem .8rem;border-bottom:1px solid var(--mist);flex-wrap:wrap}
+.btn,button{background:none;border:1px solid var(--ink);padding:.3em .9em;cursor:pointer;text-decoration:none}.t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:8rem}
+#b{flex:1;min-height:0;overflow:auto;display:flex}iframe{width:100%;height:100%;border:0;background:#fff}
+img{max-width:100%;max-height:100%;object-fit:contain;margin:auto;cursor:zoom-in}img.full{max-width:none;max-height:none;cursor:zoom-out}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:52rem;width:100%;margin:0 auto;padding:1.2rem;line-height:1.8;align-self:flex-start}
+.msg{margin:auto;text-align:center;padding:2rem;max-width:30rem}[hidden]{display:none!important}
+</style></head><body>
+<header><a class="btn" href="/library.html">← Tàng Kinh Các</a><span class="t" id="t">Đang tải…</span>
+<span id="fs" hidden><button id="m" aria-label="Chữ nhỏ hơn">A−</button> <button id="l" aria-label="Chữ lớn hơn">A+</button></span><a class="btn" id="dl" href="#" hidden>Tải về</a></header>
+<div id="b"></div>
+<script>
+const $=s=>document.querySelector(s),B=$('#b'),id=+new URLSearchParams(location.search).get('id'),url='/api/library/file/'+id;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const msg=h=>B.innerHTML='<div class="msg">'+h+'</div>';
+const K={'.pdf':'pdf','.png':'img','.jpg':'img','.jpeg':'img','.webp':'img','.txt':'txt','.md':'txt','.pgn':'txt'};
+(async()=>{
+ if(!id)return msg('Thiếu mã tài liệu.');
+ const r=await fetch('/api/library/item/'+id).catch(()=>null);
+ if(!r)return msg('Không kết nối được máy chủ.');
+ if(r.status===401)return msg('Tàng Kinh Các đang khóa.<p><a class="btn" href="/library.html">Mở khóa</a></p>Mở khóa xong, tải lại trang này.');
+ if(!r.ok)return msg('Không tìm thấy tài liệu (có thể đã bị xóa hoặc chuyển đi).');
+ const i=await r.json(),k=K[(i.ext||'').toLowerCase()];
+ document.title=i.title+' · Tàng Kinh Các';$('#t').textContent=i.title;$('#dl').href=url+'?download=true';$('#dl').hidden=false;
+ setInterval(()=>fetch('/api/library/item/'+id).then(x=>{if(x.status===401)location.reload()}).catch(()=>{}),30000); // giữ két không tự khóa khi đang đọc
+ if(k==='pdf')B.innerHTML=`<iframe src="${url}" title="${esc(i.title)}"></iframe>`;
+ else if(k==='img'){B.innerHTML=`<img src="${url}" alt="${esc(i.title)}">`;B.firstChild.onclick=e=>e.target.classList.toggle('full')}
+ else if(k==='txt'){let fs=+localStorage.getItem('rfs')||17;B.innerHTML='<pre id="x">Đang tải…</pre>';const x=$('#x'),z=d=>{fs=Math.min(40,Math.max(11,fs+d));x.style.fontSize=fs+'px';try{localStorage.setItem('rfs',fs)}catch(e){}};z(0);
+  $('#fs').hidden=false;$('#m').onclick=()=>z(-2);$('#l').onclick=()=>z(2);
+  try{const t=await fetch(url);if(!t.ok)throw new Error('Lỗi '+t.status);x.textContent=new TextDecoder().decode(await t.arrayBuffer())||'(File trống)'}catch(e){x.textContent=e.message}}
+ else msg(`Định dạng ${esc(i.ext)} chưa đọc trực tiếp được trong trình duyệt. Bấm “Tải về” để mở bằng ứng dụng khác.`);
+})();
+</script></body></html>

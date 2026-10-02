@@ -1,0 +1,27 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tĩnh Huyền Các</title><link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/fonts/titles.css"><style>
+:root{--paper:#e4ebe6;--ink:#1f2b2a;--seal:#a8322a;--mist:#c3d0c8}
+@media(prefers-color-scheme:dark){:root{--paper:#1c2625;--ink:#dfe8e2;--mist:#33443f}}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.7 "Noto Serif","Times New Roman",Cambria,serif;padding:3rem 1.5rem;max-width:44rem;margin-inline:auto}
+h1{font-size:2.6rem;font-weight:600;margin:0 0 .2em;letter-spacing:.04em}
+p.sub{margin:0 0 2rem;opacity:.75}
+button{font:inherit;background:var(--seal);color:#fff;border:0;padding:.5em 1.2em;cursor:pointer}
+button:focus-visible,a:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.realm{display:flex;align-items:baseline;gap:1rem;border-bottom:1px solid var(--mist);padding:.8rem 0}
+.realm b{font-size:1.4rem;min-width:7.5rem}.bar{flex:1;height:6px;background:var(--mist)}.bar i{display:block;height:100%;background:var(--seal)}
+nav{margin-top:2rem;display:flex;gap:1.5rem}a{color:var(--ink)}
+code{font-family:inherit;background:var(--mist);padding:0 .25em}
+h1,h2,h3{font-family:var(--title,inherit);font-weight:var(--tw,600)}
+</style><script>try{const f=localStorage.getItem("titleFont");if(f){const r=document.documentElement.style;r.setProperty("--title",f);r.setProperty("--tw","400")}}catch(e){}</script></head><body>
+<h1>Tĩnh Huyền Các</h1><p class="sub">Tu luyện cờ vua, mỗi ván là một lần bế quan.</p>
+<button id="sync">Đồng bộ ván cờ</button> <span id="msg"></span>
+<section id="realms"><p>Chưa có dữ liệu. Đặt CHESSCOM_USER / LICHESS_USER rồi bấm Đồng bộ.</p></section>
+<nav><a href="/fonts-preview.html">Đổi font tiêu đề</a><a href="/library.html">Tàng Kinh Các</a><a href="/arena.html">Đấu Trường</a><a href="/docs">Tàng Kinh Các và Đấu Trường (API)</a></nav>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function load(){const r=await (await fetch('/api/realm')).json();if(!r.length)return;
+document.getElementById('realms').innerHTML=r.map(x=>`<div class="realm"><b>${esc(x.realm)} ${esc(x.tier)}</b><span>${esc(x.platform)} ${esc(x.time_class)} ${esc(x.rating)}</span><div class="bar"><i style="width:${Math.max(0,Math.min(100,Number(x.progress)*100||0))}%"></i></div></div>`).join('')}
+document.getElementById('sync').onclick=async()=>{const m=document.getElementById('msg');m.textContent='Đang đồng bộ...';
+try{const j=await (await fetch('/api/sync',{method:'POST'})).json();m.textContent='Ván mới: '+JSON.stringify(j.new_games);load()}catch(e){m.textContent='Đồng bộ lỗi, kiểm tra mạng và username.'}};
+load()
+</script></body></html>
