@@ -8,8 +8,8 @@ async def do_sync(): return {"new_games": await sync.sync_all()}
 def get_realm():
     with conn() as c:
         rows = c.execute("""SELECT platform,time_class,rating,day FROM rating_history h WHERE day=(SELECT MAX(day) FROM rating_history
-            WHERE platform=h.platform AND time_class=h.time_class) ORDER BY rating DESC""").fetchall()
-    return [{**dict(r), **realm.realm(r["rating"])} for r in rows]
+            WHERE platform=h.platform AND time_class=h.time_class) ORDER BY rating ASC""").fetchall()
+    return realm.summary([dict(r) for r in rows])
 @router.get("/games")
 def games(limit: int = 50):
     with conn() as c:
