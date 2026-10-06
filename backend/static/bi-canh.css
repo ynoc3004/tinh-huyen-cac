@@ -194,3 +194,6 @@ details.more .movebox { margin-bottom: 0.8rem; }
 #pz-theme { background:var(--paper); color:var(--ink); border-color:var(--jade); }
 #pz-theme option, #pz-theme optgroup { background:var(--paper); color:var(--ink); }
 @media(max-width:520px) { .tech-group { padding:.8rem; } .techs { grid-template-columns:minmax(0,1fr); } }
+
+/* Preserve chess identities under forced colors and automatic darkening. */
+.board,.board-box,.promo svg{color-scheme:only light!important;forced-color-adjust:none!important;filter:none!important}
