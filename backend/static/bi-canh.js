@@ -396,7 +396,7 @@ function renderTechs() {
       <button type="button" class="act${n ? " main" : ""}" data-t="${t.key}"${n ? "" : " disabled"}>Luyện công pháp này</button></article>`;
   }).join("");
   $("tech-grid").innerHTML = `<section class="tech-group novice"><header><h2>♧ Đệ tử tạp dịch</h2><p>Nhập môn: bàn cờ, cách đi quân và luật chơi.</p></header>
-    <a class="learn-link" href="https://lichess.org/learn" target="_blank" rel="noopener noreferrer">Học cờ vua bằng cách chơi · Lichess ↗</a></section>` +
+    <a class="learn-link" href="/learn.html">Học cờ vua · 12 bài thực hành →</a></section>` +
     TECH_GROUPS.map(g => `<section class="tech-group ${g.key}"><header><h2>${g.icon} ${esc(g.name)}</h2><p>${esc(g.note)}</p></header><div class="techs">${cards(g.key)}</div></section>`).join("") +
     `<section class="tech-group lineage"><header><h2>✦ Công pháp chân truyền</h2><span class="coming">Sắp khai mở</span></header><p>Nơi lưu giữ công pháp chuyên sâu, sẽ được bổ sung sau.</p></section>`;
 }
