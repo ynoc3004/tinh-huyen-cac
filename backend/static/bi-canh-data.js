@@ -21,7 +21,7 @@ export const TECHS = [
   { key: "exposedKing", name: "Thiên Môn Đại Khai", plain: "Vua hở", essence: "Vua mất lớp bảo vệ, mọi đòn công đều có sức nặng. Hãy tìm đường chiếu liên tục." },
   { key: "promotion", name: "Phi Thăng", plain: "Phong cấp", essence: "Đưa tốt xuống cuối bàn để hóa thành quân mạnh, thường là Hậu." },
   { key: "zugzwang", name: "Tiến Thoái Lưỡng Nan", plain: "Zugzwang", essence: "Đến lượt đi lại là thiệt. Mọi nước của địch đều làm thế cờ xấu đi." },
-  { key: "endgame", name: "Tàn Cục Ngộ Đạo", plain: "Tàn cuộc", essence: "Ít quân, nên từng nước đều quyết định. Vua cũng là một quân chiến đấu." },,
+  { key: "endgame", name: "Tàn Cục Ngộ Đạo", plain: "Tàn cuộc", essence: "Ít quân, nên từng nước đều quyết định. Vua cũng là một quân chiến đấu." },
   { key: "clearance", name: "Khai Lộ Quyết", plain: "Dọn đường", essence: "Dời quân để mở đường, giải phóng ô hoặc đường tấn công cho quân khác." },
   { key: "interference", name: "Đoạn Mạch Chú", plain: "Can thiệp", essence: "Đặt quân vào giữa để cắt đường liên lạc hoặc bảo vệ của đối phương." },
   { key: "xRayAttack", name: "Xuyên Ảnh Quyết", plain: "Đòn Tia X", essence: "Tấn công hoặc bảo vệ xuyên qua một quân đang chắn trên cùng đường." }
