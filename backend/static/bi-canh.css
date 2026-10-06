@@ -174,3 +174,23 @@ details.more .movebox { margin-bottom: 0.8rem; }
 .stage { grid-template-columns: minmax(0, min(34rem, max(18rem, calc(100vh - 340px)))) minmax(0, 1fr); }
 @media (max-width: 880px) { .stage { grid-template-columns: minmax(0, 1fr); } }
 .tabs { margin-bottom: 1rem; }
+
+/* Phân môn công pháp */
+#tech-grid { display:block; }
+.tech-group { --accent:var(--jade); margin-bottom:1.5rem; padding:1.1rem; border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line)); border-radius:16px; background:color-mix(in srgb,var(--accent) 5%,var(--paper)); }
+.tech-group header { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.4rem 1rem; margin-bottom:1rem; }
+.tech-group h2 { color:var(--accent); font-size:1.6rem; }
+.tech-group header p, .lineage p { color:var(--muted); margin:0; font-size:.9rem; }
+.tech-group.novice { --accent:#a9c990; }
+.tech-group.inner { --accent:#c4aff0; }
+.tech-group.lineage { --accent:var(--gold); }
+:root[data-theme="light"] .novice { --accent:#456b2d; }
+:root[data-theme="light"] .inner { --accent:#72519c; }
+.tech-group .tech h3 { color:var(--accent); }
+.tech-group .tech { border-top:3px solid var(--accent); }
+.learn-link { display:inline-flex; align-items:center; min-height:44px; padding:.45rem .9rem; color:var(--accent); border:1px solid var(--accent); border-radius:10px; text-decoration:none; }
+.learn-link:hover { background:color-mix(in srgb,var(--accent) 12%,transparent); }
+.coming { padding:.15rem .65rem; border:1px solid var(--accent); border-radius:999px; color:var(--accent); font-size:.8rem; }
+#pz-theme { background:var(--paper); color:var(--ink); border-color:var(--jade); }
+#pz-theme option, #pz-theme optgroup { background:var(--paper); color:var(--ink); }
+@media(max-width:520px) { .tech-group { padding:.8rem; } .techs { grid-template-columns:minmax(0,1fr); } }

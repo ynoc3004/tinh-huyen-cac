@@ -1,6 +1,6 @@
 import { Chess } from "/vendor/chess.js";
 import { PIECE_DEFS } from "/vendor/pieces.js";
-import { TECHS, TECH_BY_KEY, PLAIN, BOTS, SPEECH } from "/bi-canh-data.js";
+import { TECHS, TECH_GROUPS, TECH_BY_KEY, PLAIN, BOTS, SPEECH } from "/bi-canh-data.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => "&#" + c.charCodeAt(0) + ";");
@@ -373,8 +373,9 @@ async function initPuzzleTab() {
   $("pz-note").innerHTML = st.sample
     ? `<p class="note">Đang dùng bộ mẫu ${esc(st.count)} câu chiếu hết do chương trình sinh sẵn. Để có kho câu đố thật của Lichess (đủ mọi công pháp, mọi cảnh giới), chạy trong thư mục backend: <code>python import_puzzles.py --download</code></p>`
     : "";
-  $("pz-theme").innerHTML = `<option value="">Tất cả công pháp</option>` + TECHS.filter(t => (pz.avail[t.key] || 0) > 0)
-    .map(t => `<option value="${t.key}">${esc(t.name)} (${esc(t.plain)})</option>`).join("");
+  $("pz-theme").innerHTML = '<option value="">Tất cả công pháp</option>' + TECH_GROUPS.map(g =>
+    '<optgroup label="' + esc(g.name) + '">' + TECHS.filter(t => t.group === g.key && (pz.avail[t.key] || 0) > 0)
+      .map(t => '<option value="' + t.key + '">' + esc(t.name) + ' (' + esc(t.plain) + ')</option>').join("") + '</optgroup>').join("");
   $("pz-theme").onchange = () => { setTheme($("pz-theme").value); loadPuzzle(); };
   renderTechs();
   try { renderStats(await (await fetch("/api/bi-canh/stats")).json()); } catch (e) { renderGoal(); }
@@ -388,12 +389,16 @@ $("pz-auto").onchange = () => store.set("bicanh.auto", $("pz-auto").checked ? 1 
 
 // ===== Công pháp các =====
 function renderTechs() {
-  $("tech-grid").innerHTML = TECHS.map(t => {
+  const cards = group => TECHS.filter(t => t.group === group).map(t => {
     const n = pz.avail[t.key] || 0;
     return `<article class="tech${n ? "" : " off"}"><h3>${esc(t.name)}</h3><span class="plain">${esc(t.plain)}</span><p>${esc(t.essence)}</p>
       <span class="count">${n ? (pz.sample ? "Có trong bộ mẫu" : n.toLocaleString("vi-VN") + " câu trong kho") : "Cần nạp kho Lichess để luyện"}</span>
       <button type="button" class="act${n ? " main" : ""}" data-t="${t.key}"${n ? "" : " disabled"}>Luyện công pháp này</button></article>`;
   }).join("");
+  $("tech-grid").innerHTML = `<section class="tech-group novice"><header><h2>♧ Đệ tử tạp dịch</h2><p>Nhập môn: bàn cờ, cách đi quân và luật chơi.</p></header>
+    <a class="learn-link" href="https://lichess.org/learn" target="_blank" rel="noopener noreferrer">Học cờ vua bằng cách chơi · Lichess ↗</a></section>` +
+    TECH_GROUPS.map(g => `<section class="tech-group ${g.key}"><header><h2>${g.icon} ${esc(g.name)}</h2><p>${esc(g.note)}</p></header><div class="techs">${cards(g.key)}</div></section>`).join("") +
+    `<section class="tech-group lineage"><header><h2>✦ Công pháp chân truyền</h2><span class="coming">Sắp khai mở</span></header><p>Nơi lưu giữ công pháp chuyên sâu, sẽ được bổ sung sau.</p></section>`;
 }
 $("tech-grid").onclick = e => {
   const b = e.target.closest("button[data-t]");

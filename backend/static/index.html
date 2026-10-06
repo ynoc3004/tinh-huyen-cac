@@ -320,6 +320,11 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
   .brush { animation: none; clip-path: none; }
   #sync { transition: none; }
 }
+.footer-nav { display:flex; flex-wrap:wrap; align-items:center; gap:.45rem; margin-top:2.5rem; padding-top:1rem; }
+.footer-nav a { display:inline-flex; align-items:center; gap:.45rem; min-height:44px; padding:.3rem .8rem; border:1px solid var(--line); border-radius:999px; font-size:.92rem; background:color-mix(in srgb,var(--paper) 60%,transparent); }
+.footer-nav a:hover { border-color:var(--gold); background:color-mix(in srgb,var(--gold) 10%,transparent); }
+.footer-nav i { font-style:normal; color:var(--gold); }
+.footer-nav .utility { color:var(--muted); font-size:.82rem; }
 </style>
 <script src="/thien-co.js"></script>
 <script>
@@ -367,12 +372,12 @@ try {
   <section id="realms" aria-live="polite">
     <p class="empty">Chưa có rating. Thêm LICHESS_USER hoặc CHESSCOM_USER vào file backend/.env, chạy lại máy chủ, rồi bấm Đồng bộ ván cờ.</p>
   </section>
-  <nav>
-    <a href="/library.html"><b>Tàng Kinh Các</b><span>Sách, tài liệu và ảnh cờ yêu thích</span></a>
-    <a href="/bi-canh.html"><b>Bí Cảnh</b><span>Giải câu đố theo cảnh giới và đấu với bot</span></a>
-    <a href="/arena.html"><b>Đấu Trường</b><span>Bốc thăm và giải đấu cho học viên</span></a>
-    <a class="small" href="/fonts-preview.html"><b>Đổi font tiêu đề</b></a>
-    <a class="small" href="/docs"><b>Tài liệu API</b></a>
+  <nav class="footer-nav" aria-label="Lối đi">
+    <a href="/library.html"><i aria-hidden="true">▤</i> Tàng Kinh Các</a>
+    <a href="/bi-canh.html"><i aria-hidden="true">☯</i> Bí Cảnh</a>
+    <a href="/arena.html"><i aria-hidden="true">♜</i> Đấu Trường</a>
+    <a class="utility" href="/fonts-preview.html"><i aria-hidden="true">Aa</i> Font chữ</a>
+    <a class="utility" href="/docs"><i aria-hidden="true">⌘</i> API</a>
   </nav>
 </div>
 <div class="mist-box" aria-hidden="true"><div class="mist"></div><div class="mist b"></div></div>
