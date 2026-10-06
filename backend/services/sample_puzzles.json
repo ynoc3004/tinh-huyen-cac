@@ -1,0 +1,378 @@
+[
+{
+"id": "S001",
+"fen": "8/8/2p5/2p4k/5K2/8/5p2/1Q6 b - - 0 1",
+"moves": [
+"f2f1b",
+"b1h7"
+],
+"rating": 480,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S002",
+"fen": "8/8/5p2/6p1/4Q3/k7/4p3/2K5 b - - 0 1",
+"moves": [
+"a3a2",
+"e4a4"
+],
+"rating": 564,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S003",
+"fen": "k1K5/8/8/8/1p1p1Q2/4p3/8/8 b - - 0 1",
+"moves": [
+"b4b3",
+"f4b8"
+],
+"rating": 648,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S004",
+"fen": "8/7p/7p/2Q5/1p6/3K4/8/3k4 b - - 0 1",
+"moves": [
+"b4b3",
+"c5g1"
+],
+"rating": 732,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S007",
+"fen": "k7/6R1/8/1p6/5p1R/8/4K3/8 b - - 0 1",
+"moves": [
+"a8b8",
+"h4h8"
+],
+"rating": 800,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S005",
+"fen": "8/4pp2/6Q1/2p5/8/5K2/7k/8 b - - 0 1",
+"moves": [
+"e7e5",
+"g6g2"
+],
+"rating": 816,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S008",
+"fen": "3R4/K5p1/8/6R1/7k/3p4/8/8 b - - 0 1",
+"moves": [
+"h4h3",
+"d8h8"
+],
+"rating": 870,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S006",
+"fen": "k7/8/K7/1pp5/8/Q7/4p3/8 b - - 0 1",
+"moves": [
+"c5c4",
+"a3f8"
+],
+"rating": 900,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S009",
+"fen": "1R6/k6p/8/4p3/7R/5K2/8/8 b - - 0 1",
+"moves": [
+"a7a6",
+"h4a4"
+],
+"rating": 940,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S010",
+"fen": "8/8/4p3/k7/8/1R4p1/6R1/1K6 b - - 0 1",
+"moves": [
+"e6e5",
+"g2a2"
+],
+"rating": 1010,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S011",
+"fen": "4R3/5K2/6pk/4R2p/8/8/8/8 b - - 0 1",
+"moves": [
+"g6g5",
+"e8h8"
+],
+"rating": 1080,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S013",
+"fen": "1R6/8/7k/8/8/5R2/2K5/8 b - - 0 1",
+"moves": [
+"h6h7",
+"f3g3",
+"h7h6",
+"b8h8"
+],
+"rating": 1100,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S012",
+"fen": "1K5k/R7/8/2p5/8/1p2R3/8/8 b - - 0 1",
+"moves": [
+"b3b2",
+"e3e8"
+],
+"rating": 1150,
+"themes": "mate mateIn1 short",
+"popularity": 0
+},
+{
+"id": "S014",
+"fen": "8/8/8/1K4k1/5R2/8/3R4/8 b - - 0 1",
+"moves": [
+"g5h5",
+"d2g2",
+"h5h6",
+"f4h4"
+],
+"rating": 1180,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S015",
+"fen": "8/8/5K2/1k6/5R2/6R1/8/8 b - - 0 1",
+"moves": [
+"b5a5",
+"g3b3",
+"a5a6",
+"f4a4"
+],
+"rating": 1260,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S016",
+"fen": "8/3KR3/8/8/8/6k1/5R2/8 b - - 0 1",
+"moves": [
+"g3h3",
+"e7g7",
+"h3h4",
+"f2h2"
+],
+"rating": 1340,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S019",
+"fen": "8/8/8/1KQ3p1/4B3/8/1k6/8 b - - 0 1",
+"moves": [
+"g5g4",
+"b5a4",
+"b2a2",
+"c5a3"
+],
+"rating": 1400,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S017",
+"fen": "3K4/8/6k1/5R2/8/8/8/R7 b - - 0 1",
+"moves": [
+"g6h6",
+"a1g1",
+"h6h7",
+"f5h5"
+],
+"rating": 1420,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S020",
+"fen": "3K4/5Q2/8/8/5B2/8/2p5/k7 b - - 0 1",
+"moves": [
+"a1b1",
+"f7b3",
+"b1a1",
+"f4e5"
+],
+"rating": 1480,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S018",
+"fen": "8/6R1/8/3R4/2K5/4k3/8/8 b - - 0 1",
+"moves": [
+"e3f4",
+"c4d3",
+"f4f3",
+"d5f5"
+],
+"rating": 1500,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S021",
+"fen": "8/6k1/8/8/2p5/8/K6B/1Q6 b - - 0 1",
+"moves": [
+"g7h8",
+"b1g6",
+"c4c3",
+"h2e5"
+],
+"rating": 1560,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S022",
+"fen": "8/5k2/3B4/3K4/8/7p/8/2Q5 b - - 0 1",
+"moves": [
+"f7e8",
+"c1c7",
+"h3h2",
+"c7e7"
+],
+"rating": 1640,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S023",
+"fen": "7k/8/1B6/6p1/8/8/8/1K3Q2 b - - 0 1",
+"moves": [
+"g5g4",
+"f1f7",
+"g4g3",
+"b6d4"
+],
+"rating": 1720,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S024",
+"fen": "8/8/8/1p2K1k1/8/3Q3B/8/8 b - - 0 1",
+"moves": [
+"g5h4",
+"e5f4",
+"h4h5",
+"d3h7"
+],
+"rating": 1800,
+"themes": "mate mateIn2 short",
+"popularity": 0
+},
+{
+"id": "S025",
+"fen": "8/4N3/6B1/6R1/1K6/8/8/3k4 b - - 0 1",
+"moves": [
+"d1c1",
+"b4c3",
+"c1d1",
+"g5e5",
+"d1c1",
+"e5e1"
+],
+"rating": 1850,
+"themes": "mate mateIn3 long",
+"popularity": 0
+},
+{
+"id": "S026",
+"fen": "3KR3/8/8/1B6/8/8/7k/6N1 b - - 0 1",
+"moves": [
+"h2h1",
+"e8g8",
+"h1h2",
+"g1f3",
+"h2h3",
+"b5d7"
+],
+"rating": 1980,
+"themes": "mate mateIn3 long",
+"popularity": 0
+},
+{
+"id": "S027",
+"fen": "4K3/3B1N2/5k2/8/8/8/8/2R5 b - - 0 1",
+"moves": [
+"f6g6",
+"e8f8",
+"g6h7",
+"d7f5"
+],
+"rating": 2110,
+"themes": "mate mateIn3 long",
+"popularity": 0
+},
+{
+"id": "S028",
+"fen": "8/8/k7/8/3K4/8/6B1/N2R4 b - - 0 1",
+"moves": [
+"a6a5",
+"d4c5",
+"a5a6",
+"d1d8",
+"a6a7",
+"d8a8"
+],
+"rating": 2240,
+"themes": "mate mateIn3 long",
+"popularity": 0
+},
+{
+"id": "S029",
+"fen": "8/8/8/kN6/8/3K3R/5B2/8 b - - 0 1",
+"moves": [
+"a5a4",
+"d3c4",
+"a4a5",
+"h3h7",
+"a5a6",
+"h7a7"
+],
+"rating": 2370,
+"themes": "mate mateIn3 long",
+"popularity": 0
+},
+{
+"id": "S030",
+"fen": "8/8/Nk1K4/8/8/2R5/7B/8 b - - 0 1",
+"moves": [
+"b6a5",
+"d6c6",
+"a5a6",
+"c3c5",
+"a6a7",
+"c5a5"
+],
+"rating": 2500,
+"themes": "mate mateIn3 long",
+"popularity": 0
+}
+]

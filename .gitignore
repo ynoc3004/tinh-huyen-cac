@@ -8,3 +8,5 @@ data/app.db-wal
 data/app.db-shm
 data/library/*
 !data/library/.gitkeep
+data/lichess_db_puzzle.csv.zst
+data/puzzles.db

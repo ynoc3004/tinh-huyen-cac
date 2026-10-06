@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
+PUZZLE_DB = DATA / "puzzles.db"  # kho câu đố Lichess đã lọc (tạo bằng import_puzzles.py)
 
 
 def _load_env():
@@ -27,3 +28,16 @@ MASTER_URL = os.getenv("MASTER_URL", "")  # chatbot sư phụ, gắn sau
 UA = {"User-Agent": "tinh-huyen-cac/0.1 (personal use)"}
 DATA.mkdir(exist_ok=True); LIBRARY_DIR.mkdir(parents=True, exist_ok=True)
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")  # mật khẩu xóa giải
+
+
+def _float(name, default):
+    try:
+        return float(os.getenv(name, default))
+    except ValueError:
+        return float(default)
+
+
+# Nơi bạn ở, dùng cho giờ mặt trời mọc/lặn và thời tiết trên trang chủ (mặc định: TP. Hồ Chí Minh)
+HOME_NAME = os.getenv("HOME_NAME", "TP. Hồ Chí Minh")
+HOME_LAT = _float("HOME_LAT", "10.7769")
+HOME_LON = _float("HOME_LON", "106.7009")

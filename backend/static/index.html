@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0b1210">
+<meta id="meta-theme" name="theme-color" content="#0b1210">
 <title>Tĩnh Huyền Các</title>
 <link rel="stylesheet" href="/fonts/fonts.css">
 <link rel="stylesheet" href="/fonts/titles.css">
@@ -19,6 +19,7 @@
   --gold: #d2b97f;
   --seal: #b3372e;
   --seal-ink: #fff6ee;
+  --mist-col: color-mix(in srgb, #cfe6dc 10%, transparent);
   --ridge-far: #15211e;
   --ridge-mid: #101a17;
   --ridge-near: #0a1110;
@@ -28,20 +29,38 @@
   --tw: 400;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #e5ebe4;
-    --bg-deep: #d3ddd5;
-    --paper: #eef3ed;
-    --ink: #1c2926;
-    --muted: #4a5e57;
-    --mist: #c2cfc6;
-    --jade: #2b6a58;
-    --gold: #86682a;
-    --ridge-far: #c6d3ca;
-    --ridge-mid: #b4c4ba;
-    --ridge-near: #a2b5aa;
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #e5ebe4;
+  --bg-deep: #d3ddd5;
+  --paper: #eef3ed;
+  --ink: #1c2926;
+  --muted: #4a5e57;
+  --mist: #c2cfc6;
+  --jade: #2b6a58;
+  --gold: #86682a;
+  --mist-col: rgba(255, 255, 255, 0.5);
+  --ridge-far: #c6d3ca;
+  --ridge-mid: #b4c4ba;
+  --ridge-near: #a2b5aa;
+}
+:root[data-theme="dark"] { color-scheme: dark; }
+/* Đổi màu êm khi trời sáng lên hoặc tối đi */
+@property --bg { syntax: "<color>"; inherits: true; initial-value: #0b1210; }
+@property --bg-deep { syntax: "<color>"; inherits: true; initial-value: #070c0b; }
+@property --paper { syntax: "<color>"; inherits: true; initial-value: #121c19; }
+@property --ink { syntax: "<color>"; inherits: true; initial-value: #e8efe9; }
+@property --muted { syntax: "<color>"; inherits: true; initial-value: #9db0a7; }
+@property --mist { syntax: "<color>"; inherits: true; initial-value: #263832; }
+@property --jade { syntax: "<color>"; inherits: true; initial-value: #8cc4ae; }
+@property --gold { syntax: "<color>"; inherits: true; initial-value: #d2b97f; }
+@property --mist-col { syntax: "<color>"; inherits: true; initial-value: rgba(207, 230, 220, 0.1); }
+@property --ridge-far { syntax: "<color>"; inherits: true; initial-value: #15211e; }
+@property --ridge-mid { syntax: "<color>"; inherits: true; initial-value: #101a17; }
+@property --ridge-near { syntax: "<color>"; inherits: true; initial-value: #0a1110; }
+:root {
+  transition: --bg 1.8s ease, --bg-deep 1.8s ease, --paper 1.8s ease, --ink 1.8s ease, --muted 1.8s ease, --mist 1.8s ease,
+    --jade 1.8s ease, --gold 1.8s ease, --mist-col 1.8s ease, --ridge-far 1.8s ease, --ridge-mid 1.8s ease, --ridge-near 1.8s ease;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -103,76 +122,38 @@ button { font: inherit; cursor: pointer; }
 a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 
 /* Bố cục chính */
-#realms {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 3rem;
-  align-items: start;
-}
+#realms { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 4rem; align-items: start; }
 @media (min-width: 880px) {
-  #realms.has-data { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); gap: 4rem; }
+  #realms.has-data { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Đan: vòng chín tầng quanh vầng trăng */
-.hero { text-align: center; }
-.dan {
-  position: relative;
-  width: min(20rem, 82vw);
-  aspect-ratio: 1;
-  margin: 0 auto 1.4rem;
-}
-.dan::before {
+/* Đan bàn: vòng chín tầng của cảnh giới nằm ở tâm bàn thiên cơ */
+.tc-left { text-align: center; }
+.tc-dial::before {
   content: "";
   position: absolute;
-  inset: 14%;
+  inset: 24%;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--jade) 30%, transparent), color-mix(in srgb, var(--jade) 6%, transparent) 62%, transparent 72%);
-  box-shadow: 0 0 70px color-mix(in srgb, var(--jade) 18%, transparent);
+  background: radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--jade) 30%, transparent), color-mix(in srgb, var(--jade) 6%, transparent) 62%, transparent 74%);
+  box-shadow: 0 0 70px color-mix(in srgb, var(--jade) 16%, transparent);
+  animation: breathe 7s ease-in-out infinite;
 }
-.dan svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.dan .seg { fill: none; stroke-width: 7; stroke-linecap: round; }
-.dan .off { stroke: var(--mist); }
-.dan .on { stroke: var(--jade); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--jade) 70%, transparent)); }
-.dan .halo { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 5; }
+.tc-dial .seg { fill: none; stroke-width: 6; stroke-linecap: round; }
+.tc-dial .off { stroke: var(--mist); }
+.tc-dial .on { stroke: var(--jade); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--jade) 70%, transparent)); }
 .ignite .on { animation: ignite 700ms var(--ease-out) backwards; }
 @keyframes ignite { from { stroke-dashoffset: var(--len); } }
-.dan-text {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-content: center;
-  padding: 0 18%;
-}
-.realm-name {
-  font-family: var(--title);
-  font-weight: var(--tw);
-  font-size: clamp(2.1rem, 8vw, 2.7rem);
-  line-height: 1.05;
-  color: var(--gold);
-  margin: 0;
-}
-.tier { margin: 0.3rem 0 0; font-size: 1.15rem; }
+.halo-spin { transform-origin: 180px 180px; animation: turn 240s linear infinite; }
+.tc-dial .halo { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 5; }
+.tc-center { position: absolute; inset: 0; display: grid; place-content: center; padding: 0 30%; transform: translateY(8%); pointer-events: none; }
+.realm-name { font-family: var(--title); font-weight: var(--tw); font-size: clamp(1.4rem, 8cqi, 2.4rem); line-height: 1.05; color: var(--gold); margin: 0; }
+.tier { margin: 0.25rem 0 0; font-size: clamp(0.9rem, 3.7cqi, 1.15rem); }
+.muted { color: var(--muted); }
+.hero-text { margin-top: 1.4rem; }
 .can-co-line { margin: 0 0 0.35rem; font-size: 1.05rem; }
 .next { margin: 0 0 1.5rem; color: var(--muted); }
-.koan {
-  position: relative;
-  margin: 0 auto;
-  max-width: 21rem;
-  padding-top: 1.1rem;
-  color: var(--muted);
-  font-style: italic;
-  font-size: 0.95rem;
-}
-.koan::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 2.2rem;
-  height: 2px;
-  margin-left: -1.1rem;
-  background: var(--seal);
-}
+.koan { position: relative; margin: 0 auto; max-width: 21rem; padding-top: 1.1rem; color: var(--muted); font-style: italic; font-size: 0.95rem; }
+.koan::before { content: ""; position: absolute; top: 0; left: 50%; width: 2.2rem; height: 2px; margin-left: -1.1rem; background: var(--seal); }
 
 /* Pháp mạch */
 h2 {
@@ -182,26 +163,21 @@ h2 {
   line-height: 1.2;
   margin: 0 0 0.7rem;
 }
-.mach { list-style: none; margin: 0 0 3rem; padding: 0; border-top: 1px solid var(--line); }
-.mach li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.1rem 1rem;
-  padding: 0.95rem 0 0.9rem;
-  border-bottom: 1px solid var(--line);
-}
-.mach .name { font-size: 1.15rem; }
-.mach .elo { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
-.mach .src { color: var(--muted); font-size: 0.93rem; }
-.mach .pips { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; margin-top: 0.6rem; }
-.pips i { height: 4px; border-radius: 2px; background: var(--mist); overflow: hidden; }
-.pips i.on { background: var(--jade); }
-.pips i.part { background: linear-gradient(to right, var(--jade) calc(var(--f) * 100%), var(--mist) 0); }
-.mach li.ghost { opacity: 0.74; }
-.mach li.can-co .elo { color: var(--gold); }
-.tag { margin-left: 0.55rem; padding: 0.08em 0.6em; font-size: 0.78rem; border-radius: 3px; vertical-align: 0.1em; }
-.tag.root { background: var(--seal); color: var(--seal-ink); }
-.tag.shade { border: 1px solid var(--line); color: var(--muted); }
+.grid { width: 100%; border-collapse: collapse; margin: 0 0 2.6rem; border-top: 1px solid var(--line); }
+.grid th { padding: 0.55rem 0; text-align: left; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
+.grid th:not(:first-child), .grid td:not(:first-child) { text-align: right; }
+.grid td, .grid tbody th { padding: 0.6rem 0; border-top: 1px solid var(--line); vertical-align: middle; }
+.grid tbody th { color: var(--ink); font-size: 1.02rem; }
+.grid td b { display: block; font-weight: 400; font-size: 1.3rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.grid td small { display: block; color: var(--muted); font-size: 0.8rem; line-height: 1.3; }
+.grid td.none { color: var(--muted); }
+.grid td.can-co b { color: var(--gold); }
+.grid td.can-co small { color: var(--ink); }
+.root { display: inline-block; margin-right: 0.4rem; padding: 0 0.5em; background: var(--seal); color: var(--seal-ink); font-size: 0.72rem; line-height: 1.5; border-radius: 3px; vertical-align: 0.1em; }
+.more { margin: -1.6rem 0 2.6rem; }
+.more summary { cursor: pointer; color: var(--muted); font-size: 0.92rem; min-height: 44px; display: flex; align-items: center; }
+.more[open] summary { color: var(--ink); }
+.more .grid { margin: 0; }
 
 /* Đăng thiên lộ */
 .path { list-style: none; margin: 0; padding: 0 0 0 1.5rem; position: relative; }
@@ -225,6 +201,7 @@ h2 {
 .path li.now::before { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 22%, transparent); }
 .path .from { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
 
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .empty { color: var(--muted); border: 1px dashed var(--mist); border-radius: 12px; padding: 1.2rem 1.3rem; margin: 0; max-width: 34rem; }
 
 /* Lối đi */
@@ -241,15 +218,117 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
 .ridge .mid { fill: var(--ridge-mid); }
 .ridge .near { fill: var(--ridge-near); }
 
+
+/* Huyền cảnh: bát quái, linh khí, sương, trăng, nét cọ */
+.qi { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.moon {
+  position: absolute; z-index: 0; top: 3.6rem; right: max(17vw, calc(50% - 25rem));
+  width: clamp(5rem, 14vw, 9rem); aspect-ratio: 1; border-radius: 50%; pointer-events: none; opacity: 0.55;
+  background: radial-gradient(circle at 36% 34%, color-mix(in srgb, var(--ink) 36%, transparent), color-mix(in srgb, var(--ink) 10%, transparent) 72%);
+  box-shadow: 0 0 80px 18px color-mix(in srgb, var(--jade) 16%, transparent);
+}
+.mist-box { position: absolute; left: 0; right: 0; bottom: 0; height: 230px; overflow: hidden; pointer-events: none; }
+.mist {
+  position: absolute; left: -50%; width: 200%; height: 170px; bottom: 44px; pointer-events: none; opacity: 0.9;
+  background:
+    radial-gradient(ellipse 22% 50% at 20% 60%, var(--mist-col), transparent),
+    radial-gradient(ellipse 26% 45% at 62% 50%, var(--mist-col), transparent),
+    radial-gradient(ellipse 20% 55% at 88% 65%, var(--mist-col), transparent);
+  filter: blur(14px);
+  animation: drift 70s ease-in-out infinite alternate;
+}
+.mist.b { bottom: 8px; height: 130px; opacity: 0.7; animation-duration: 95s; animation-direction: alternate-reverse; }
+@keyframes drift { to { transform: translateX(18%); } }
+.brush {
+  display: block; height: 14px; width: min(19rem, 70%); margin: -0.1rem 0 1.1rem; opacity: 0.9;
+  background: no-repeat left center / 100% 100% url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 14' preserveAspectRatio='none'><path fill='%23b3372e' d='M0 8C30 3 70 2 120 4 180 6 240 3 300 6 250 9 200 8 150 10 90 12 40 11 0 8z'/></svg>");
+  clip-path: inset(0 100% 0 0);
+  animation: wipe 900ms 250ms var(--ease-out) forwards;
+}
+@keyframes wipe { to { clip-path: inset(0); } }
+@keyframes turn { to { transform: rotate(360deg); } }
+@keyframes breathe { 50% { transform: scale(1.04); opacity: 0.8; } }
+.ripple { position: absolute; inset: 29%; border-radius: 50%; border: 1px solid var(--jade); pointer-events: none; animation: ripple 1300ms var(--ease-out) forwards; }
+@keyframes ripple { from { opacity: 0.8; transform: scale(0.9); } to { opacity: 0; transform: scale(1.4); } }
+
+/* Thiên cơ: bàn bát quái, giờ, lịch âm, mặt trời, thời tiết */
+.sky { position: fixed; inset: 0; z-index: 0; pointer-events: none; transition: opacity 1.5s; }
+.clouds { position: fixed; left: 0; right: 0; top: 0; height: 46vh; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 2.5s; }
+.cl { position: absolute; width: 55vw; height: 16vh; border-radius: 50%; filter: blur(28px); background: color-mix(in srgb, var(--ink) 15%, transparent); animation: cloud 120s linear infinite alternate; }
+.cl:nth-child(1) { top: 6vh; left: -10vw; }
+.cl:nth-child(2) { top: 20vh; left: 40vw; width: 48vw; animation-duration: 160s; animation-direction: alternate-reverse; }
+.cl:nth-child(3) { top: 2vh; left: 75vw; width: 38vw; animation-duration: 200s; }
+@keyframes cloud { from { transform: translateX(-12vw); } to { transform: translateX(22vw); } }
+.wx-partly .clouds { opacity: 0.45; }
+.wx-cloudy .clouds { opacity: 0.8; }
+.wx-rain .clouds, .wx-snow .clouds { opacity: 0.9; }
+.wx-storm .clouds { opacity: 1; }
+.wx-storm .cl { background: rgba(14, 18, 24, 0.6); }
+.wx-fog .clouds { opacity: 0.5; }
+.wx-fog .mist, .wx-rain .mist { opacity: 1; }
+.wx-fog .mist { height: 340px; filter: blur(26px); }
+.moon.sun {
+  opacity: 0.7;
+  background: radial-gradient(circle at 40% 36%, #fff3c4, #f2c46b 62%, #e0a24a);
+  box-shadow: 0 0 90px 26px rgba(244, 190, 100, 0.32);
+}
+#thien-co {
+  display: grid;
+  grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+  gap: 2rem 3rem;
+  align-items: center;
+  margin: 0 0 3.2rem;
+  padding-bottom: 2.8rem;
+  border-bottom: 1px solid var(--line);
+}
+.tc-dial { position: relative; container-type: inline-size; width: min(26rem, 100%); aspect-ratio: 1; margin: 0 auto; }
+.tc-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+.tc-dial text { font-family: var(--title); font-size: 14px; fill: var(--muted); text-anchor: middle; dominant-baseline: central; }
+.tc-dial text.now { fill: var(--gold); font-size: 17px; }
+.tc-dial .hair { fill: none; stroke: var(--line); stroke-width: 1; }
+.tc-dial .night { fill: none; stroke: color-mix(in srgb, var(--ink) 11%, transparent); stroke-width: 9; }
+.tc-dial .dayarc { fill: none; stroke: var(--gold); stroke-width: 9; stroke-linecap: round; opacity: 0.88; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold) 55%, transparent)); }
+.tc-dial .yao { stroke: color-mix(in srgb, var(--gold) 82%, transparent); stroke-width: 2.6; stroke-linecap: round; }
+.tc-dial .spoke { stroke: var(--line); stroke-width: 1; }
+.tc-dial .hand { stroke: var(--gold); stroke-width: 1; opacity: 0.4; }
+.tc-dial .canhhl { fill: none; stroke: var(--gold); stroke-width: 3; stroke-linecap: round; }
+.tc-info h2 { margin-bottom: 0.1rem; }
+.tc-where { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; }
+.tc-clock { font-family: var(--title); font-size: clamp(3rem, 9vw, 4.4rem); line-height: 1; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.tc-clock small { margin-left: 0.15em; font-size: 0.38em; color: var(--muted); }
+.tc-canh { margin: 0.45rem 0 1.4rem; color: var(--gold); font-size: 1.15rem; }
+.tc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1.1rem 2rem; }
+.tc-item { border-top: 1px solid var(--line); padding-top: 0.6rem; }
+.tc-item .k { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.tc-item .v { margin: 0.1rem 0 0; font-size: 1.05rem; line-height: 1.45; }
+.tc-item .s { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.tc-item.wide { grid-column: 1 / -1; }
+.tc-row { display: flex; gap: 0.9rem; align-items: center; }
+.wxi { width: 2.6rem; height: 2.6rem; flex: none; color: var(--gold); fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tc-moon { width: 2.2rem; height: 2.2rem; flex: none; }
+.tc-note { margin: 1rem 0 0; color: var(--muted); font-size: 0.88rem; }
+.tc-note a { color: var(--gold); }
+@media (max-width: 820px) { #thien-co { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 520px) {
+  .moon { top: 5.2rem; right: 4vw; opacity: 0.4; }
   .seal { width: 3rem; height: 3.7rem; font-size: 0.9rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ignite .on { animation: none; }
+  .ignite .on, .mist, .halo-spin, .tc-dial::before, .ripple, .cl { animation: none; }
+  .tc-dial #tc-tc { transition: none; }
+  :root { transition: none; }
+  .brush { animation: none; clip-path: none; }
   #sync { transition: none; }
 }
 </style>
+<script src="/thien-co.js"></script>
 <script>
+// Chủ đề theo mặt trời: sáng từ lúc mọc đến lúc lặn, tối vào ban đêm (ước lượng cho TP. Hồ Chí Minh, được tinh chỉnh sau khi tải trang)
+try {
+  const n = new Date(), s = window.ThienCo.sunTimes(n, 10.7769, 106.7009);
+  const q = new URLSearchParams(location.search).get("theme");
+  document.documentElement.dataset.theme = q === "light" || q === "dark" ? q : (s && n >= s.sunrise && n < s.sunset ? "light" : "dark");
+} catch (e) { document.documentElement.dataset.theme = "dark"; }
 try {
   const f = localStorage.getItem("titleFont");
   if (f) {
@@ -261,10 +340,15 @@ try {
 </script>
 </head>
 <body>
+<div class="sky" id="sky" aria-hidden="true"></div>
+<div class="clouds" aria-hidden="true"><div class="cl"></div><div class="cl"></div><div class="cl"></div></div>
+<canvas id="qi" class="qi" aria-hidden="true"></canvas>
+<span class="moon" aria-hidden="true"></span>
 <div class="wrap">
   <header class="head">
     <div>
       <h1>Tĩnh Huyền Các</h1>
+      <span class="brush" aria-hidden="true"></span>
       <p class="sub">Tu luyện cờ vua, mỗi ván là một lần bế quan. Tu vi lấy ELO ván cờ thấp nhất: vững căn cơ rồi mới cầu cảnh giới.</p>
     </div>
     <div class="seal" aria-hidden="true">Tĩnh<br>Huyền</div>
@@ -273,16 +357,25 @@ try {
     <button id="sync" type="button">Đồng bộ ván cờ</button>
     <span id="msg" role="status"></span>
   </div>
+  <section id="thien-co" aria-label="Thiên cơ">
+    <div class="tc-left">
+      <div class="tc-dial" id="tc-dial"></div>
+      <div class="hero-text" id="tc-realm-text"></div>
+    </div>
+    <div class="tc-info" id="tc-info"></div>
+  </section>
   <section id="realms" aria-live="polite">
     <p class="empty">Chưa có rating. Thêm LICHESS_USER hoặc CHESSCOM_USER vào file backend/.env, chạy lại máy chủ, rồi bấm Đồng bộ ván cờ.</p>
   </section>
   <nav>
     <a href="/library.html"><b>Tàng Kinh Các</b><span>Sách, tài liệu và ảnh cờ yêu thích</span></a>
+    <a href="/bi-canh.html"><b>Bí Cảnh</b><span>Giải câu đố theo cảnh giới và đấu với bot</span></a>
     <a href="/arena.html"><b>Đấu Trường</b><span>Bốc thăm và giải đấu cho học viên</span></a>
     <a class="small" href="/fonts-preview.html"><b>Đổi font tiêu đề</b></a>
     <a class="small" href="/docs"><b>Tài liệu API</b></a>
   </nav>
 </div>
+<div class="mist-box" aria-hidden="true"><div class="mist"></div><div class="mist b"></div></div>
 <svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true">
   <path class="far" d="M0 150 0 70 80 86 190 36 300 80 430 28 560 84 690 40 820 88 950 32 1080 74 1200 50 1200 150z"/>
   <path class="mid" d="M0 150 0 104 120 84 250 112 390 76 520 110 660 70 800 108 940 82 1080 112 1200 90 1200 150z"/>
@@ -301,29 +394,7 @@ const platformOf = x => PLATFORM[x.platform] || x.platform;
 const speedOf = x => SPEED[String(x.time_class || "").toLowerCase()] || x.time_class;
 const tierPos = x => Math.max(0, Math.min(9, Number(x.progress) * 9 || 0)); // 0..9 trong cảnh giới
 
-// Vòng chín tầng: mỗi cung là một tầng, cung hiện tại sáng theo phần đã đi
-function polar(a, r) {
-  const t = a * Math.PI / 180;
-  return [(120 + r * Math.cos(t)).toFixed(2), (120 + r * Math.sin(t)).toFixed(2)];
-}
-function danRing(t, ignite) {
-  const R = 102, step = 40, gap = 8;
-  const pos = tierPos(t), cur = Math.min(8, Math.floor(pos));
-  let off = "", on = "";
-  for (let i = 0; i < 9; i++) {
-    const a0 = -90 + i * step + gap / 2, a1 = a0 + step - gap;
-    const [x0, y0] = polar(a0, R), [x1, y1] = polar(a1, R);
-    const d = `M${x0} ${y0}A${R} ${R} 0 0 1 ${x1} ${y1}`;
-    off += `<path class="seg off" d="${d}"/>`;
-    const fill = i < cur ? 1 : (i === cur ? Math.max(0.06, pos - cur) : 0);
-    if (fill > 0) {
-      const len = Math.round(Math.min(1, fill) * 100);
-      on += `<path class="seg on" d="${d}" pathLength="100" style="--len:${len};stroke-dasharray:${len} 100;animation-delay:${i * 90}ms"/>`;
-    }
-  }
-  return `<svg viewBox="0 0 240 240" aria-hidden="true" class="${ignite ? "ignite" : ""}">
-    <circle class="halo" cx="120" cy="120" r="116"/>${off}${on}</svg>`;
-}
+const QUE = [[1, 1, 1], [0, 1, 1], [0, 1, 0], [0, 0, 1], [0, 0, 0], [1, 0, 0], [1, 0, 1], [1, 1, 0]];
 function nextStep(t) {
   const i = REALMS.findIndex(r => r[1] === t.realm);
   const nxt = REALMS[i + 1];
@@ -331,43 +402,47 @@ function nextStep(t) {
   const gap = Math.max(0, nxt[0] - Number(t.rating));
   return `Còn ${gap} điểm nữa là đột phá lên ${esc(nxt[1])}.`;
 }
-function hero(t, ignite) {
-  return `<article class="hero">
-    <div class="dan" role="img" aria-label="${esc(t.realm)} tầng ${esc(t.tier)}">
-      ${danRing(t, ignite)}
-      <div class="dan-text">
-        <h2 class="realm-name">${esc(t.realm)}</h2>
-        <p class="tier">tầng ${esc(t.tier)}</p>
-      </div>
-    </div>
-    <p class="can-co-line">Căn cơ là ${esc(speedOf(t))} trên ${esc(platformOf(t))}, ${esc(t.rating)} điểm.</p>
+function realmText(t) {
+  return `<p class="can-co-line">Căn cơ là ${esc(speedOf(t))} trên ${esc(platformOf(t))}, ${esc(t.rating)} điểm.</p>
     <p class="next">${nextStep(t)}</p>
-    <p class="koan">Tu vi không ở chỗ cao nhất, mà ở mạch thấp nhất còn vững.</p>
-  </article>`;
+    <p class="koan">Tu vi không ở chỗ cao nhất, mà ở mạch thấp nhất còn vững.</p>`;
 }
-function pips(x) {
-  const pos = tierPos(x), cur = Math.min(8, Math.floor(pos));
-  let h = "";
-  for (let i = 0; i < 9; i++) {
-    if (i < cur) h += `<i class="on"></i>`;
-    else if (i === cur) h += `<i class="part" style="--f:${(pos - cur).toFixed(2)}"></i>`;
-    else h += `<i></i>`;
+const MODE_ORDER = ["bullet", "blitz", "rapid", "daily", "classical", "correspondence"];
+const MAIN_MODES = 3; // đạn, chớp, nhanh luôn hiện; các mode còn lại nằm trong "xem thêm"
+function gridTable(modes, byKey, cols) {
+  const cell = (plat, mode) => {
+    const x = byKey[plat + "/" + mode];
+    if (!x) return `<td class="none">–</td>`;
+    const root = x.is_can_co ? `<span class="root">căn cơ</span>` : "";
+    return `<td class="${x.is_can_co ? "can-co" : ""}"><b>${esc(x.rating)}</b><small>${root}${esc(x.realm)} tầng ${esc(x.tier)}</small></td>`;
+  };
+  const head = `<tr><th scope="col"><span class="sr">Chế độ</span></th>${cols.map(c => `<th scope="col">${esc(PLATFORM[c])}</th>`).join("")}</tr>`;
+  const body = modes.map(m => `<tr><th scope="row">${esc(SPEED[m] || m)}</th>${cols.map(c => cell(c, m)).join("")}</tr>`).join("");
+  return `<table class="grid"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+}
+function meridians(rows) {
+  // Thế cờ (puzzle) không phải mạch đấu cờ nên không đưa vào bảng này.
+  const games = rows.filter(x => String(x.time_class).toLowerCase() !== "puzzle");
+  if (!games.length) return "";
+  const byKey = {}, plats = new Set(), modes = new Set();
+  for (const x of games) {
+    const m = String(x.time_class).toLowerCase();
+    byKey[x.platform + "/" + m] = x;
+    plats.add(x.platform);
+    modes.add(m);
   }
-  return `<div class="pips" aria-hidden="true">${h}</div>`;
-}
-function meridians(rows, tu) {
-  if (!rows.length) return "";
-  const items = rows.map(x => {
-    const mine = x.is_can_co;
-    const tag = mine ? `<span class="tag root">căn cơ</span>` : (tu && x.rating > tu.rating ? `<span class="tag shade">hư ảnh</span>` : "");
-    return `<li class="${mine ? "can-co" : "ghost"}">
-      <span class="name">${esc(x.realm)} tầng ${esc(x.tier)}${tag}</span>
-      <span class="elo">${esc(x.rating)}</span>
-      <span class="src">${esc(speedOf(x))} trên ${esc(platformOf(x))}</span>
-      ${pips(x)}
-    </li>`;
-  }).join("");
-  return `<h2>Pháp mạch</h2><ul class="mach">${items}</ul>`;
+  const rank = m => (MODE_ORDER.includes(m) ? MODE_ORDER.indexOf(m) : 99);
+  const all = [...modes].sort((a, b) => rank(a) - rank(b));
+  // Chế độ chính: đạn, chớp, nhanh nếu có dữ liệu; luôn giữ mạch căn cơ trong bảng chính
+  const rootMode = (games.find(x => x.is_can_co) || {}).time_class;
+  const main = all.filter((m, i) => i < MAIN_MODES || m === String(rootMode).toLowerCase());
+  const rest = all.filter(m => !main.includes(m));
+  const cols = ["lichess", "chesscom"].filter(c => plats.has(c)).concat([...plats].filter(c => !PLATFORM[c]));
+  const t = gridTable(main, byKey, cols);
+  const extra = rest.length
+    ? `<details class="more"><summary>Xem thêm ${rest.length} chế độ</summary>${gridTable(rest, byKey, cols)}</details>`
+    : "";
+  return `<h2>Pháp mạch</h2>${t}${extra}`;
 }
 function ladder(tu) {
   const cur = REALMS.findIndex(r => r[1] === tu.realm);
@@ -377,6 +452,331 @@ function ladder(tu) {
   }).join("");
   return `<h2>Đăng thiên lộ</h2><ol class="path">${items}</ol>`;
 }
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+function ripple() {
+  const d = document.getElementById("tc-dial");
+  if (!d || reduceMotion.matches) return;
+  const s = document.createElement("span");
+  s.className = "ripple";
+  d.appendChild(s);
+  s.addEventListener("animationend", () => s.remove());
+}
+// ===== Thiên cơ: giờ, lịch âm, mặt trời, thời tiết, bàn bát quái =====
+const TC = window.ThienCo;
+const WX_KINDS = ["clear", "partly", "cloudy", "fog", "rain", "storm", "snow"];
+const WX_CODE = { clear: 0, partly: 2, cloudy: 3, fog: 45, rain: 63, storm: 95, snow: 73 };
+const QUE_TEN = ["Càn", "Tốn", "Khảm", "Cấn", "Khôn", "Chấn", "Ly", "Đoài"];
+const fx = { kind: "clear", night: false, light: document.documentElement.dataset.theme === "light", refreshPalette: null };
+const world = { home: { lat: 10.7769, lon: 106.7009, name: "TP. Hồ Chí Minh" }, wx: null, wxErr: "" };
+// Xem thử: /?t=18:25&w=rain (giờ) (loại thời tiết: clear, partly, cloudy, fog, rain, storm, snow), thêm &d=2026-12-21 để đổi ngày
+const demo = (() => {
+  const q = new URLSearchParams(location.search), t = q.get("t"), d = q.get("d"), w = q.get("w"), th = q.get("theme");
+  if (!t && !d && !w && !th) return null;
+  const at = new Date();
+  if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) { const [y, m, dd] = d.split("-").map(Number); at.setFullYear(y, m - 1, dd); }
+  if (t && /^\d{1,2}:\d{2}$/.test(t)) { const [h, mi] = t.split(":").map(Number); at.setHours(h, mi, 0, 0); }
+  return { at, fixed: !!(t || d), kind: WX_KINDS.includes(w) ? w : null, theme: th === "light" || th === "dark" ? th : null };
+})();
+const nowDate = () => (demo && demo.fixed ? new Date(demo.at) : new Date());
+const p2 = n => String(n).padStart(2, "0");
+const hm = d => p2(d.getHours()) + ":" + p2(d.getMinutes());
+const SKY = {
+  "binh-minh": "radial-gradient(ellipse 110% 55% at 50% 100%, rgba(244,166,118,.30), rgba(214,120,130,.12) 45%, transparent 72%)",
+  ngay: "radial-gradient(ellipse 130% 55% at 50% -12%, rgba(150,198,232,.40), transparent 70%), radial-gradient(ellipse 70% 38% at 84% 4%, rgba(255,226,150,.30), transparent 70%)",
+  "hoang-hon": "radial-gradient(ellipse 110% 55% at 50% 100%, rgba(232,110,84,.34), rgba(150,70,120,.14) 48%, transparent 74%)",
+  dem: "radial-gradient(ellipse 100% 50% at 50% -10%, rgba(120,150,230,.10), transparent 70%)",
+};
+
+// Mặt trăng theo pha: phần sáng vẽ bằng một cung ngoài và một cung elip (đường phân sáng tối)
+function moonMarkup(phase, r) {
+  const k = Math.cos(2 * Math.PI * phase), rx = (Math.abs(k) * r).toFixed(2), waxing = phase < 0.5;
+  const d = waxing
+    ? `M0 ${-r}A${r} ${r} 0 0 1 0 ${r}A${rx} ${r} 0 0 ${k > 0 ? 0 : 1} 0 ${-r}Z`
+    : `M0 ${-r}A${r} ${r} 0 0 0 0 ${r}A${rx} ${r} 0 0 ${k > 0 ? 1 : 0} 0 ${-r}Z`;
+  return `<circle r="${r}" fill="var(--bg-deep)" stroke="color-mix(in srgb, var(--ink) 40%, transparent)" stroke-width="0.8"/><path d="${d}" fill="var(--ink)"/>`;
+}
+function sunMarkup(r) {
+  let rays = "";
+  for (let i = 0; i < 8; i++) {
+    const a = i * 45 * Math.PI / 180, c = Math.cos(a), s2 = Math.sin(a);
+    rays += `<line x1="${((r + 3) * c).toFixed(1)}" y1="${((r + 3) * s2).toFixed(1)}" x2="${((r + 7) * c).toFixed(1)}" y2="${((r + 7) * s2).toFixed(1)}" stroke="var(--gold)" stroke-width="1.6" stroke-linecap="round"/>`;
+  }
+  return `${rays}<circle r="${r}" fill="var(--gold)"/>`;
+}
+const tcPt = (th, r) => { const t = th * Math.PI / 180; return [180 + r * Math.sin(t), 180 - r * Math.cos(t)]; };
+const tcArc = (a0, a1, r) => {
+  const [x0, y0] = tcPt(a0, r), [x1, y1] = tcPt(a1, r);
+  const large = ((a1 - a0) % 360 + 360) % 360 > 180 ? 1 : 0;
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+};
+const hourAngle = d => (d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600 - 12) * 15; // trưa ở đỉnh, nửa đêm ở đáy
+
+// Bàn Thiên cơ: 12 canh giờ ngoài cùng, dải 24 giờ (vàng là ban ngày), vòng bát quái Tiên Thiên (Càn ở đỉnh), Thái cực ở tâm
+function realmArcs(t) {
+  const pos = t ? tierPos(t) : 0, cur = Math.min(8, Math.floor(pos));
+  let off = "", on = "";
+  for (let i = 0; i < 9; i++) {
+    const d = tcArc(i * 40 + 4, i * 40 + 36, 74);
+    off += `<path class="seg off" d="${d}"/>`;
+    const fill = !t ? 0 : (i < cur ? 1 : (i === cur ? Math.max(0.06, pos - cur) : 0));
+    if (fill > 0) {
+      const len = Math.round(Math.min(1, fill) * 100);
+      on += `<path class="seg on" d="${d}" pathLength="100" style="--len:${len};stroke-dasharray:${len} 100;animation-delay:${i * 90}ms"/>`;
+    }
+  }
+  return off + on;
+}
+function setRealm(t, ignite) {
+  document.getElementById("tc-realm").setAttribute("class", ignite ? "ignite" : "");
+  document.getElementById("tc-realm").innerHTML = realmArcs(t);
+  document.getElementById("tc-center").innerHTML = t
+    ? `<h2 class="realm-name">${esc(t.realm)}</h2><p class="tier">tầng ${esc(t.tier)}</p>`
+    : `<p class="tier muted">Chưa có căn cơ</p>`;
+  document.getElementById("tc-realm-text").innerHTML = t ? realmText(t) : "";
+}
+function taiji(cx, cy, r) {
+  const r2 = r / 2;
+  return `<g id="tc-tc" style="transform-origin:${cx}px ${cy}px;transition:transform 1.2s var(--ease-out)">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--bg-deep)" stroke="color-mix(in srgb, var(--gold) 70%, transparent)" stroke-width="1"/>
+    <path d="M${cx} ${cy - r}A${r} ${r} 0 0 1 ${cx} ${cy + r}Z" fill="var(--ink)"/>
+    <circle cx="${cx}" cy="${cy - r2}" r="${r2}" fill="var(--ink)"/><circle cx="${cx}" cy="${cy + r2}" r="${r2}" fill="var(--bg-deep)"/>
+    <circle cx="${cx}" cy="${cy - r2}" r="${(r / 7).toFixed(1)}" fill="var(--bg-deep)"/><circle cx="${cx}" cy="${cy + r2}" r="${(r / 7).toFixed(1)}" fill="var(--ink)"/></g>`;
+}
+// Bàn hợp nhất, từ tâm ra ngoài: cảnh giới (chín cung), bát quái Tiên Thiên (Càn ở đỉnh), dải 24 giờ, mười hai canh giờ
+function buildDial() {
+  let h = `<svg viewBox="0 0 360 360" role="img" aria-label="Bàn thiên cơ: cảnh giới ở tâm, tám quẻ bát quái, vị trí mặt trời và mặt trăng theo giờ, mười hai canh giờ">`;
+  h += `<g class="halo-spin"><circle class="halo" cx="180" cy="180" r="174"/></g>`;
+  h += `<circle class="hair" cx="180" cy="180" r="166"/><circle class="hair" cx="180" cy="180" r="110"/><circle class="hair" cx="180" cy="180" r="84"/>`;
+  h += `<circle class="night" cx="180" cy="180" r="124"/><path id="tc-day" class="dayarc" d=""/>`;
+  for (let i = 0; i < 12; i++) {
+    const th = 30 * i - 180, [x, y] = tcPt(th, 151), [a1, b1] = tcPt(th + 15, 143), [a2, b2] = tcPt(th + 15, 161);
+    h += `<text id="tc-chi-${i}" x="${x.toFixed(1)}" y="${y.toFixed(1)}">${TC.CHI[i]}</text>`;
+    h += `<line class="spoke" x1="${a1.toFixed(1)}" y1="${b1.toFixed(1)}" x2="${a2.toFixed(1)}" y2="${b2.toFixed(1)}"/>`;
+  }
+  h += `<path id="tc-canh-hl" class="canhhl" d=""/>`;
+  for (let k = 0; k < 8; k++) {
+    const th = 22.5 + 45 * k, [a, b] = tcPt(th, 85), [c, d] = tcPt(th, 109);
+    h += `<line class="spoke" x1="${a.toFixed(1)}" y1="${b.toFixed(1)}" x2="${c.toFixed(1)}" y2="${d.toFixed(1)}"/>`;
+  }
+  QUE.forEach((hao, k) => {
+    let g = `<g transform="rotate(${45 * k} 180 180)"><title>Quẻ ${QUE_TEN[k]}</title>`;
+    hao.forEach((duong, j) => {
+      const y = (180 - (90 + j * 5.5)).toFixed(1);
+      g += duong ? `<line class="yao" x1="168" x2="192" y1="${y}" y2="${y}"/>`
+        : `<line class="yao" x1="168" x2="177" y1="${y}" y2="${y}"/><line class="yao" x1="183" x2="192" y1="${y}" y2="${y}"/>`;
+    });
+    h += g + "</g>";
+  });
+  h += `<g id="tc-realm"></g>${taiji(180, 131, 9)}`;
+  h += `<line id="tc-hand" class="hand" x1="180" y1="180" x2="180" y2="180"/><g id="tc-mk"></g></svg><div class="tc-center" id="tc-center"></div>`;
+  return h;
+}
+function wxIcon(kind, night) {
+  const cloud = `<path d="M11 27h17a6 6 0 0 0 .8-11.9A8.5 8.5 0 0 0 12.6 17 5.3 5.3 0 0 0 11 27z"/>`;
+  const sun = (cx, cy, r) => { let o = `<circle cx="${cx}" cy="${cy}" r="${r}"/>`; for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; o += `<line x1="${(cx + (r + 3) * Math.cos(a)).toFixed(1)}" y1="${(cy + (r + 3) * Math.sin(a)).toFixed(1)}" x2="${(cx + (r + 6) * Math.cos(a)).toFixed(1)}" y2="${(cy + (r + 6) * Math.sin(a)).toFixed(1)}"/>`; } return o; };
+  const g = {
+    clear: night ? `<path d="M26 8a12 12 0 1 0 8 20A10 10 0 0 1 26 8z"/>` : sun(20, 20, 6),
+    partly: sun(14, 14, 4.5) + `<path d="M13 31h16a5.5 5.5 0 0 0 .7-11 8 8 0 0 0-15.3 1.4A4.8 4.8 0 0 0 13 31z"/>`,
+    cloudy: cloud,
+    fog: `<path d="M11 20h17a6 6 0 0 0 .8-11.9A8.5 8.5 0 0 0 12.6 10 5.3 5.3 0 0 0 11 20z"/><line x1="8" y1="26" x2="32" y2="26"/><line x1="12" y1="31" x2="30" y2="31"/>`,
+    rain: `<path d="M11 22h17a6 6 0 0 0 .8-11.9A8.5 8.5 0 0 0 12.6 12 5.3 5.3 0 0 0 11 22z"/><line x1="14" y1="27" x2="12" y2="33"/><line x1="21" y1="27" x2="19" y2="33"/><line x1="28" y1="27" x2="26" y2="33"/>`,
+    storm: `<path d="M11 22h17a6 6 0 0 0 .8-11.9A8.5 8.5 0 0 0 12.6 12 5.3 5.3 0 0 0 11 22z"/><polyline points="21,23 17,30 22,30 18,36"/>`,
+    snow: `<path d="M11 22h17a6 6 0 0 0 .8-11.9A8.5 8.5 0 0 0 12.6 12 5.3 5.3 0 0 0 11 22z"/><circle cx="14" cy="29" r="1"/><circle cx="21" cy="31" r="1"/><circle cx="28" cy="29" r="1"/>`,
+  };
+  return `<svg class="wxi" viewBox="0 0 40 40" aria-hidden="true">${g[kind] || g.cloudy}</svg>`;
+}
+function currentWx() {
+  if (demo && demo.kind) {
+    return { kind: demo.kind, text: TC.weatherInfo(WX_CODE[demo.kind]).text, data: { temp: 29, feels: 34, humidity: 80, wind: 12 } };
+  }
+  if (!world.wx) return null;
+  const i = TC.weatherInfo(world.wx.code);
+  return { kind: i.kind, text: i.text, data: world.wx };
+}
+let lastMinute = -1;
+function refreshWorld() {
+  const now = nowDate(), sun = TC.sunTimes(now, world.home.lat, world.home.lon);
+  const ph = TC.phase(now, sun), L = TC.lunar(now), canh = TC.canhGio(now), wx = currentWx();
+  const kind = wx ? wx.kind : "clear";
+  fx.kind = kind; fx.night = ph === "dem";
+  // Ban ngày (từ lúc mặt trời mọc đến lúc lặn) nền sáng, ban đêm nền tối
+  const isDay = sun ? (now >= sun.sunrise && now < sun.sunset) : ph !== "dem"; // mặt trời đang ở trên đường chân trời
+  const theme = demo && demo.theme ? demo.theme : (sun ? (now >= sun.sunrise && now < sun.sunset ? "light" : "dark") : (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
+  if (document.documentElement.dataset.theme !== theme) {
+    document.documentElement.dataset.theme = theme;
+    document.getElementById("meta-theme").setAttribute("content", theme === "light" ? "#e5ebe4" : "#0b1210");
+    fx.light = theme === "light";
+    if (fx.refreshPalette) { fx.refreshPalette(); setTimeout(fx.refreshPalette, 1900); }
+  }
+  fx.light = theme === "light";
+  [...document.body.classList].filter(c => c.startsWith("wx-") || c.startsWith("ph-")).forEach(c => document.body.classList.remove(c));
+  document.body.classList.add("wx-" + kind, "ph-" + ph);
+  document.getElementById("sky").style.background = SKY[ph];
+  const orb = document.querySelector(".moon");
+  if (orb) orb.classList.toggle("sun", isDay);
+
+  // Bàn thiên cơ
+  const th = hourAngle(now), day = document.getElementById("tc-day");
+  if (sun) { day.setAttribute("d", tcArc(hourAngle(sun.sunrise), hourAngle(sun.sunset), 124)); day.style.display = ""; } else day.style.display = "none";
+  const c0 = 30 * canh.index - 180;
+  document.getElementById("tc-canh-hl").setAttribute("d", tcArc(c0 - 13, c0 + 13, 138));
+  for (let i = 0; i < 12; i++) document.getElementById("tc-chi-" + i).classList.toggle("now", i === canh.index);
+  const [mx, my] = tcPt(th, 124), [h0x, h0y] = tcPt(th, 86), [hx, hy] = tcPt(th, 116);
+  const hand = document.getElementById("tc-hand");
+  hand.setAttribute("x1", h0x.toFixed(1)); hand.setAttribute("y1", h0y.toFixed(1));
+  hand.setAttribute("x2", hx.toFixed(1)); hand.setAttribute("y2", hy.toFixed(1));
+  const mk = document.getElementById("tc-mk");
+  mk.setAttribute("transform", `translate(${mx.toFixed(1)} ${my.toFixed(1)})`);
+  mk.innerHTML = isDay ? sunMarkup(7) : moonMarkup(TC.moonPhase(L.day), 8);
+  document.getElementById("tc-tc").style.transform = `rotate(${th.toFixed(1)}deg)`;
+
+  // Cột thông tin
+  const len = sun ? Math.round((sun.sunset - sun.sunrise) / 60000) : 0;
+  const nhuan = L.leap ? " nhuận" : "";
+  const moon = `<svg class="tc-moon" viewBox="-12 -12 24 24" aria-hidden="true">${moonMarkup(TC.moonPhase(L.day), 10)}</svg>`;
+  const wxHtml = wx
+    ? `<div class="tc-row">${wxIcon(kind, !isDay)}<div><p class="v">${esc(wx.text)}, ${esc(wx.data.temp)}°C</p>
+       <p class="s">Cảm giác như ${esc(wx.data.feels)}°C, ẩm ${esc(wx.data.humidity)}%, gió ${esc(wx.data.wind)} km/h</p></div></div>`
+    : `<p class="v">Chưa lấy được thời tiết</p><p class="s">${esc(world.wxErr || "Đang tải...")}</p>`;
+  document.getElementById("tc-info").innerHTML = `
+    <h2>Thiên cơ</h2>
+    <p class="tc-where">${esc(world.home.name)}, ${esc(TC.PHASE_NAME[ph].toLowerCase())}</p>
+    <div class="tc-clock" aria-label="${hm(now)}"><span id="tc-time">${hm(now)}</span><small id="tc-sec">:${p2(now.getSeconds())}</small></div>
+    <p class="tc-canh">Giờ ${esc(canh.name)}, từ ${canh.from}h đến ${canh.to}h</p>
+    <div class="tc-grid">
+      <div class="tc-item"><p class="k">Dương lịch</p><p class="v">${esc(L.weekday)}, ${now.getDate()} tháng ${now.getMonth() + 1}, ${now.getFullYear()}</p></div>
+      <div class="tc-item"><p class="k">Âm lịch</p><p class="v">${L.day} tháng ${L.month}${nhuan} năm ${esc(L.yearName)}</p>
+        <p class="s">Ngày ${esc(L.dayName)}, tháng ${esc(L.monthName)}. Tiết ${esc(L.tietKhi)}</p></div>
+      <div class="tc-item"><p class="k">Mặt trời</p>${sun
+        ? `<p class="v">Mọc ${hm(sun.sunrise)}, lặn ${hm(sun.sunset)}</p><p class="s">Ngày dài ${Math.floor(len / 60)} giờ ${p2(len % 60)} phút</p>`
+        : `<p class="v">Không có giờ mọc lặn hôm nay</p>`}</div>
+      <div class="tc-item"><p class="k">Mặt trăng</p><div class="tc-row">${moon}<p class="v">${esc(TC.moonName(L.day))}</p></div></div>
+      <div class="tc-item wide"><p class="k">Thiên tượng</p>${wxHtml}</div>
+    </div>
+    ${demo ? `<p class="tc-note">Đang xem thử${demo.fixed ? " lúc " + hm(now) : ""}${demo.kind ? ", " + esc(TC.weatherInfo(WX_CODE[demo.kind]).text.toLowerCase()) : ""}. <a href="/">Quay về giờ thật</a></p>` : ""}`;
+  lastMinute = now.getMinutes();
+}
+function tickClock() {
+  const now = nowDate();
+  if (demo && demo.fixed) return;
+  if (now.getMinutes() !== lastMinute) { refreshWorld(); return; }
+  const sec = document.getElementById("tc-sec");
+  if (sec) sec.textContent = ":" + p2(now.getSeconds());
+}
+async function loadThienCo() {
+  try {
+    const r = await fetch("/api/thien-co");
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    if (typeof j.lat === "number" && typeof j.lon === "number") world.home = { lat: j.lat, lon: j.lon, name: j.name || world.home.name };
+    world.wx = j.weather; world.wxErr = j.error || "";
+  } catch (e) {
+    world.wx = null; world.wxErr = "Không tải được thời tiết từ máy chủ.";
+  }
+  refreshWorld();
+}
+document.getElementById("tc-dial").innerHTML = buildDial();
+refreshWorld();
+loadThienCo();
+setInterval(tickClock, 1000);
+setInterval(loadThienCo, 10 * 60 * 1000);
+
+// ===== Linh khí, sao, mưa, tuyết, sét: vẽ trên một canvas; tắt khi chọn giảm chuyển động hoặc khi tab bị ẩn =====
+(function linhKhi() {
+  const cv = document.getElementById("qi");
+  if (!cv || reduceMotion.matches) return;
+  const ctx = cv.getContext("2d");
+  let w = 0, h = 0, last = 0, raf = 0, cols = ["#8cc4ae", "#d2b97f"], flash = 0, nextFlash = 6;
+  const parts = [], drops = [], stars = [];
+  const palette = () => {
+    const st = getComputedStyle(document.documentElement);
+    cols = [st.getPropertyValue("--jade").trim() || cols[0], st.getPropertyValue("--gold").trim() || cols[1]];
+  };
+  const spawn = any => ({
+    x: Math.random() * w, y: any ? Math.random() * h : h + 10, r: 0.6 + Math.random() * 1.7,
+    v: 6 + Math.random() * 14, ph: Math.random() * 6.28, sw: 8 + Math.random() * 22,
+    c: Math.random() < 0.7 ? 0 : 1, a: 0.25 + Math.random() * 0.5,
+  });
+  const dropAt = any => ({ x: Math.random() * (w + 200) - 100, y: any ? Math.random() * h : -20, l: 10 + Math.random() * 16, v: 520 + Math.random() * 380, ph: Math.random() * 6.28 });
+  const size = () => {
+    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    w = innerWidth; h = innerHeight;
+    cv.width = w * dpr; cv.height = h * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = w < 600 ? 22 : 46;
+    while (parts.length < n) parts.push(spawn(true));
+    parts.length = n;
+    const nd = w < 600 ? 60 : 130;
+    while (drops.length < nd) drops.push(dropAt(true));
+    drops.length = nd;
+    stars.length = 0;
+    for (let i = 0; i < (w < 600 ? 40 : 80); i++) stars.push({ x: Math.random() * w, y: Math.random() * h * 0.55, r: 0.4 + Math.random() * 1.1, ph: Math.random() * 6.28 });
+  };
+  const frame = t => {
+    raf = requestAnimationFrame(frame);
+    const dt = Math.min(0.05, (t - last) / 1000 || 0);
+    last = t;
+    ctx.clearRect(0, 0, w, h);
+    const wet = fx.kind === "rain" || fx.kind === "storm", snow = fx.kind === "snow";
+    // Sao trên trời đêm quang
+    if (fx.night && !fx.light && (fx.kind === "clear" || fx.kind === "partly")) {
+      ctx.shadowBlur = 0; ctx.fillStyle = "#e8efe9";
+      for (const s of stars) {
+        s.ph += dt * 1.1;
+        ctx.globalAlpha = 0.18 + 0.5 * (0.5 + 0.5 * Math.sin(s.ph));
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+      }
+    }
+    // Linh khí
+    for (const p of parts) {
+      p.y -= p.v * dt; p.ph += dt * 0.8;
+      if (p.y < -10) Object.assign(p, spawn(false));
+      const fade = Math.min(1, (h - p.y) / 80, (p.y + 10) / 120);
+      ctx.globalAlpha = Math.max(0, p.a * fade * (0.6 + 0.4 * Math.sin(p.ph * 2))) * (wet ? 0.4 : 1);
+      ctx.fillStyle = ctx.shadowColor = cols[p.c];
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.arc(p.x + Math.sin(p.ph) * p.sw, p.y, p.r, 0, 6.283);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    // Mưa
+    if (wet) {
+      ctx.strokeStyle = fx.light ? "rgba(50,80,100,.4)" : "rgba(175,208,228,.38)";
+      ctx.lineWidth = 1; ctx.globalAlpha = 1;
+      ctx.beginPath();
+      for (const d of drops) {
+        d.y += d.v * dt; d.x += d.v * 0.16 * dt;
+        if (d.y > h + 20) Object.assign(d, dropAt(false));
+        ctx.moveTo(d.x, d.y); ctx.lineTo(d.x - d.l * 0.16, d.y - d.l);
+      }
+      ctx.stroke();
+    }
+    // Tuyết
+    if (snow) {
+      ctx.fillStyle = fx.light ? "rgba(90,110,130,.55)" : "rgba(240,246,250,.7)"; ctx.globalAlpha = 1;
+      for (const d of drops) {
+        d.y += (40 + d.l * 3) * dt; d.ph += dt;
+        if (d.y > h + 10) Object.assign(d, dropAt(false));
+        ctx.beginPath(); ctx.arc(d.x + Math.sin(d.ph) * 14, d.y, 1 + d.l / 14, 0, 6.283); ctx.fill();
+      }
+    }
+    // Chớp sáng nhẹ khi dông (rất mờ, thưa)
+    if (fx.kind === "storm") {
+      nextFlash -= dt;
+      if (nextFlash <= 0) { flash = 0.07; nextFlash = 7 + Math.random() * 9; }
+      if (flash > 0) { ctx.globalAlpha = flash; ctx.fillStyle = "#dfe9ff"; ctx.fillRect(0, 0, w, h); flash = Math.max(0, flash - dt * 0.25); }
+    }
+    ctx.globalAlpha = 1;
+  };
+  const start = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } };
+  const stop = () => { cancelAnimationFrame(raf); raf = 0; };
+  size(); palette(); start();
+  fx.refreshPalette = palette;
+  addEventListener("resize", size);
+  document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
+  reduceMotion.addEventListener("change", e => { if (e.matches) { stop(); ctx.clearRect(0, 0, w, h); } else start(); });
+})();
 let first = true;
 async function load() {
   const box = document.getElementById("realms");
@@ -386,11 +786,13 @@ async function load() {
     const data = await res.json();
     const rows = Array.isArray(data) ? data : (data.mach || []);
     const tu = Array.isArray(data) ? (data.slice().sort((a, b) => a.rating - b.rating)[0] || null) : data.tu_vi;
-    if (!tu) return;
+    if (!tu) { setRealm(null, false); box.classList.remove("has-data"); return; }
+    setRealm(tu, first);
     box.classList.add("has-data");
-    box.innerHTML = hero(tu, first) + `<div>${meridians(rows, tu)}${ladder(tu)}</div>`;
+    box.innerHTML = `<div>${meridians(rows)}</div><div>${ladder(tu)}</div>`;
     first = false;
   } catch (e) {
+    setRealm(null, false);
     box.classList.remove("has-data");
     box.innerHTML = `<p class="empty">Không tải được rating từ máy chủ. Kiểm tra cửa sổ chạy uvicorn còn mở không, rồi tải lại trang.</p>`;
   }
@@ -406,7 +808,9 @@ document.getElementById("sync").onclick = async function () {
     for (const [k, v] of Object.entries(r.errors || {})) notes.push((PLATFORM[k] || k) + ": " + v);
     for (const [k, v] of Object.entries(r.skipped || {})) notes.push((PLATFORM[k] || k) + ": " + v);
     m.textContent = `Ván mới: Chess.com ${r.chesscom ?? 0}, Lichess ${r.lichess ?? 0}` + (notes.length ? ". " + notes.join(". ") : "");
+    first = true;
     await load();
+    ripple();
   } catch (e) {
     m.textContent = "Đồng bộ lỗi. Kiểm tra máy chủ và mạng.";
   } finally {

@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bí Cảnh · Tĩnh Huyền Các</title>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<link rel="stylesheet" href="/fonts/titles.css">
+<script src="/thien-co.js"></script>
+<script>
+try {
+  const n = new Date(), s = window.ThienCo.sunTimes(n, 10.7769, 106.7009), q = new URLSearchParams(location.search).get("theme");
+  document.documentElement.dataset.theme = q === "light" || q === "dark" ? q : (s && n >= s.sunrise && n < s.sunset ? "light" : "dark");
+} catch (e) { document.documentElement.dataset.theme = "dark"; }
+try { const f = localStorage.getItem("titleFont"); if (f) { document.documentElement.style.setProperty("--title", f); document.documentElement.style.setProperty("--tw", "400"); } } catch (e) {}
+</script>
+<link rel="stylesheet" href="/bi-canh.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <a class="back" href="/">← Tĩnh Huyền Các</a>
+      <h1>Bí Cảnh</h1>
+      <span class="brush" aria-hidden="true"></span>
+    </div>
+    <div class="realm-bar" id="realm-bar"><b>Đang xem cảnh giới...</b></div>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Chế độ luyện">
+    <button role="tab" id="tab-puzzle" aria-controls="pane-puzzle" aria-selected="true"><b>Tham ngộ</b><small>Giải câu đố</small></button>
+    <button role="tab" id="tab-bot" aria-controls="pane-bot" aria-selected="false"><b>Luận kiếm</b><small>Đấu với bot</small></button>
+    <button role="tab" id="tab-tech" aria-controls="pane-tech" aria-selected="false"><b>Công pháp các</b><small>Các đòn chiến thuật</small></button>
+    <button class="link sound" id="sound-toggle" type="button" aria-pressed="false">Âm thanh: tắt</button>
+  </div>
+
+  <section id="pane-puzzle" role="tabpanel" aria-labelledby="tab-puzzle" class="stage">
+    <div class="board-col">
+      <div class="strip" id="pz-top"></div>
+      <div class="frame"><div class="board-box" id="pz-board"></div></div>
+      <div class="strip" id="pz-bottom"></div>
+      <p class="help">Kéo quân tới ô đến, hoặc bấm quân rồi bấm ô đến. Phím tắt: <kbd>H</kbd> gợi ý, <kbd>N</kbd> câu khác.</p>
+    </div>
+    <div class="panel">
+      <div id="pz-note"></div>
+      <div class="goal" id="pz-goal"></div>
+      <p class="focus" id="pz-focus" hidden></p>
+      <p class="status" id="pz-status" role="status" aria-live="polite">Đang chọn câu đố...</p>
+      <p class="meta" id="pz-meta"></p>
+      <div id="pz-teach"></div>
+      <div class="btns">
+        <button class="act" id="pz-hint" type="button" disabled>Gợi ý</button>
+        <button class="act" id="pz-solution" type="button" disabled>Xem đáp án</button>
+        <button class="act main" id="pz-next" type="button">Câu khác</button>
+      </div>
+      <div class="field"><label for="pz-theme">Công pháp muốn luyện</label><select id="pz-theme"><option value="">Tất cả công pháp</option></select></div>
+      <label class="check"><input type="checkbox" id="pz-auto"> Tự chuyển sang câu sau khi giải xong</label>
+      <details class="more"><summary>Gõ nước đi bằng chữ</summary>
+        <form class="movebox" id="pz-form" autocomplete="off">
+          <input type="text" id="pz-input" aria-label="Nhập nước đi, ví dụ Nf3 hoặc e4" placeholder="Nf3, e4, O-O..." spellcheck="false">
+          <button class="act" type="submit">Đi</button>
+        </form>
+      </details>
+      <details class="more"><summary>Độ khó đang nhắm tới</summary><div class="gauge" id="pz-gauge"><p>Chưa có câu đố.</p></div></details>
+      <div class="stats" id="pz-stats"></div>
+    </div>
+  </section>
+
+  <section id="pane-bot" role="tabpanel" aria-labelledby="tab-bot" class="stage" hidden>
+    <div class="board-col">
+      <div class="strip" id="bot-top"></div>
+      <div class="frame"><div class="board-box" id="bot-board"></div></div>
+      <div class="strip" id="bot-bottom"></div>
+      <p class="help">Kéo quân tới ô đến, hoặc bấm quân rồi bấm ô đến. Có thể đi lại nước vừa rồi bất cứ lúc nào.</p>
+    </div>
+    <div class="panel">
+      <p class="speech" id="bot-speech"></p>
+      <h2 class="h2s">Chọn đối thủ</h2>
+      <div class="opps" id="bot-opps" role="radiogroup" aria-label="Chọn đối thủ luận kiếm"></div>
+      <h2 class="h2s">Bạn cầm quân</h2>
+      <div class="seg" id="bot-colors" role="radiogroup" aria-label="Chọn màu quân">
+        <button type="button" role="radio" aria-checked="true" data-c="w">Trắng</button>
+        <button type="button" role="radio" aria-checked="false" data-c="b">Đen</button>
+        <button type="button" role="radio" aria-checked="false" data-c="r">Ngẫu nhiên</button>
+      </div>
+      <div class="btns start"><button class="act main" id="bot-new" type="button">Bắt đầu luận kiếm</button></div>
+      <p class="status" id="bot-status" role="status" aria-live="polite">Chọn đối thủ rồi bấm Bắt đầu.</p>
+      <p class="meta" id="bot-meta"></p>
+      <div class="moves" id="bot-moves" aria-label="Danh sách nước đi">Chưa có nước đi.</div>
+      <div class="btns">
+        <button class="act" id="bot-undo" type="button" disabled>Đi lại</button>
+        <button class="act" id="bot-hint" type="button" disabled>Gợi ý</button>
+        <button class="act" id="bot-resign" type="button" disabled>Chấp thua</button>
+        <button class="act" id="bot-pgn" type="button" disabled>Chép PGN</button>
+      </div>
+      <details class="more"><summary>Gõ nước đi bằng chữ</summary>
+        <form class="movebox" id="bot-form" autocomplete="off">
+          <input type="text" id="bot-input" aria-label="Nhập nước đi, ví dụ Nf3 hoặc e4" placeholder="Nf3, e4, O-O..." spellcheck="false">
+          <button class="act" type="submit">Đi</button>
+        </form>
+      </details>
+    </div>
+  </section>
+
+  <section id="pane-tech" role="tabpanel" aria-labelledby="tab-tech" hidden>
+    <p class="sub">Mỗi công pháp là một đòn chiến thuật có thật trong cờ vua, đặt tên theo huyền môn để dễ nhớ. Chọn một công pháp để luyện liên tục các câu đố cùng loại. Khi giải xong một câu, tên công pháp của câu đó sẽ hiện ra.</p>
+    <div class="techs" id="tech-grid"></div>
+  </section>
+</div>
+<svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true">
+  <path class="far" d="M0 150 0 70 80 86 190 36 300 80 430 28 560 84 690 40 820 88 950 32 1080 74 1200 50 1200 150z"/>
+  <path class="mid" d="M0 150 0 104 120 84 250 112 390 76 520 110 660 70 800 108 940 82 1080 112 1200 90 1200 150z"/>
+  <path class="near" d="M0 150 0 128 150 114 300 132 470 112 640 134 810 116 980 134 1100 120 1200 130 1200 150z"/>
+</svg>
+<script type="module" src="/bi-canh.js"></script>
+</body>
+</html>

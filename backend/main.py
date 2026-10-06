@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import db
 import os, secrets, base64
 from starlette.responses import Response
-from routers import core, library, master, arena
+from routers import core, library, master, arena, thien_co, bi_canh
 db.init()
 app = FastAPI(title="Tĩnh Huyền Các")
 ACCESS_PASSWORD = os.getenv("ACCESS_PASSWORD", "")
@@ -23,5 +23,5 @@ async def access_control(request, call_next):
             return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="Tinh Huyen Cac", charset="UTF-8"'})
     return await call_next(request)
 
-for r in (core, library, master, arena): app.include_router(r.router)
+for r in (core, library, master, arena, thien_co, bi_canh): app.include_router(r.router)
 app.mount("/", StaticFiles(directory=Path(__file__).parent / "static", html=True))

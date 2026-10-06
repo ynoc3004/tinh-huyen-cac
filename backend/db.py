@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS pairings(id INTEGER PRIMARY KEY, group_id INT REFEREN
   round INT, board INT, white_id INT, black_id INT, result TEXT,
   white_technical_errors INT DEFAULT 0, black_technical_errors INT DEFAULT 0,
   white_tactics_created INT DEFAULT 0, black_tactics_created INT DEFAULT 0);
+CREATE TABLE IF NOT EXISTS puzzle_log(id INTEGER PRIMARY KEY, puzzle_id TEXT, rating INT, realm TEXT, solved INT,
+  mistakes INT DEFAULT 0, hints INT DEFAULT 0, seconds REAL DEFAULT 0, at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS arena_players(tournament_id INT REFERENCES tournaments(id) ON DELETE CASCADE,
   student_id INT REFERENCES students(id), status TEXT DEFAULT 'waiting',
   PRIMARY KEY(tournament_id, student_id));
