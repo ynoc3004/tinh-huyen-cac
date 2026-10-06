@@ -1,6 +1,6 @@
 import { Chess } from "/vendor/chess.js";
 import { PIECE_DEFS } from "/vendor/pieces.js";
-import { TECHS, TECH_GROUPS, TECH_BY_KEY, PLAIN, BOTS, SPEECH } from "/bi-canh-data.js?v=20261006-2";
+import { TECHS, TECH_GROUPS, TECH_BY_KEY, PLAIN, BOTS, SPEECH } from "/bi-canh-data.js?v=20261006-3";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => "&#" + c.charCodeAt(0) + ";");
