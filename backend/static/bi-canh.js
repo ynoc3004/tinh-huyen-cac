@@ -388,22 +388,29 @@ $("pz-auto").checked = store.get("bicanh.auto", 0) === 1;
 $("pz-auto").onchange = () => store.set("bicanh.auto", $("pz-auto").checked ? 1 : 0);
 
 // ===== Công pháp các =====
+
+let techSection = "outer", techPage = 0;
+const TECH_PAGE_SIZE = 6;
 function renderTechs() {
-  const cards = group => TECHS.filter(t => t.group === group).map(t => {
-    const n = pz.avail[t.key] || 0;
-    return `<article class="tech${n ? "" : " off"}"><h3>${esc(t.name)}</h3><span class="plain">${esc(t.plain)}</span><p>${esc(t.essence)}</p>
-      <span class="count">${n ? (pz.sample ? "Có trong bộ mẫu" : n.toLocaleString("vi-VN") + " câu trong kho") : "Cần nạp kho Lichess để luyện"}</span>
-      <button type="button" class="act${n ? " main" : ""}" data-t="${t.key}"${n ? "" : " disabled"}>Luyện công pháp này</button></article>`;
+  const groups = [{key:"novice",name:"Đệ tử tạp dịch",icon:"☯",note:"Nhập môn: bàn cờ, cách đi quân và luật chơi."},...TECH_GROUPS,{key:"lineage",name:"Công pháp chân truyền",icon:"✦",note:"Công pháp chuyên sâu · Sắp khai mở"}];
+  const group = groups.find(g=>g.key===techSection)||groups[0];
+  const items = TECHS.filter(t=>t.group===group.key);
+  const pages = Math.max(1,Math.ceil(items.length/TECH_PAGE_SIZE));
+  techPage = Math.min(techPage,pages-1);
+  const cards = items.slice(techPage*TECH_PAGE_SIZE,(techPage+1)*TECH_PAGE_SIZE).map(t=>{
+    const n=pz.avail[t.key]||0;
+    return `<article class="tech"><h3>${esc(t.name)}</h3><span class="plain">${esc(t.plain)}</span><details><summary>Tham ngộ khẩu quyết</summary><p>${esc(t.essence)}</p></details><span class="count">${n?(pz.sample?"Có trong bộ mẫu":n.toLocaleString("vi-VN")+" câu trong kho"):"Cần nạp kho Lichess để luyện"}</span><button type="button" class="act${n?" main":""}" data-t="${t.key}"${n?"":" disabled"}>Luyện công pháp này</button></article>`;
   }).join("");
-  $("tech-grid").innerHTML = `<section class="tech-group novice"><header><h2>♧ Đệ tử tạp dịch</h2><p>Nhập môn: bàn cờ, cách đi quân và luật chơi.</p></header>
-    <a class="learn-link" href="/learn.html?v=20">Học cờ vua · Bài học và thực hành →</a></section>` +
-    TECH_GROUPS.map(g => `<section class="tech-group ${g.key}"><header><h2>${g.icon} ${esc(g.name)}</h2><p>${esc(g.note)}</p></header><div class="techs">${cards(g.key)}</div></section>`).join("") +
-    `<section class="tech-group lineage"><header><h2>✦ Công pháp chân truyền</h2><span class="coming">Sắp khai mở</span></header><p>Nơi lưu giữ công pháp chuyên sâu, sẽ được bổ sung sau.</p></section>`;
+  $("tech-grid").innerHTML = `<nav class="tech-nav" aria-label="Cấp công pháp">${groups.map(g=>`<button type="button" class="${g.key}" data-section="${g.key}" aria-pressed="${g.key===techSection}"><span aria-hidden="true">${g.icon}</span> ${esc(g.name)}</button>`).join("")}</nav><section class="tech-group ${group.key}"><header><h2>${esc(group.name)}</h2><p>${esc(group.note)}${items.length?" · "+items.length+" công pháp":""}</p></header>${group.key==="novice"?'<p class="tech-intro">Khai mở căn cơ qua các bài học và bàn cờ thực hành. Tiến độ được ghi lại trong Tu hành ký.</p><a class="learn-link" href="/learn.html?v=bagua">Vào công pháp nhập môn →</a>':group.key==="lineage"?'<p>Công pháp chân truyền đang được biên soạn. Hãy rèn vững ngoại môn và nội môn trước khi khai mở tầng này.</p>':'<div class="techs">'+cards+'</div>'}${pages>1?`<div class="tech-pagination"><button type="button" class="act" data-page="-1"${techPage===0?" disabled":""}>← Trước</button><span aria-live="polite">Trang ${techPage+1} / ${pages}</span><button type="button" class="act" data-page="1"${techPage===pages-1?" disabled":""}>Sau →</button></div>`:""}</section>`;
 }
-$("tech-grid").onclick = e => {
-  const b = e.target.closest("button[data-t]");
-  if (!b) return;
-  setTheme(b.dataset.t); showTab("puzzle"); loadPuzzle();
+$("tech-grid").onclick=e=>{
+  const section=e.target.closest("button[data-section]");
+  if(section){techSection=section.dataset.section;techPage=0;renderTechs();$("tech-grid").querySelector('[data-section="'+techSection+'"]').focus({preventScroll:true});return;}
+  const page=e.target.closest("button[data-page]");
+  if(page&&!page.disabled){techPage+=Number(page.dataset.page);renderTechs();$("tech-grid").querySelector('[data-page="'+page.dataset.page+'"]').focus({preventScroll:true});return;}
+  const b=e.target.closest("button[data-t]");
+  if(!b||b.disabled)return;
+  setTheme(b.dataset.t);showTab("puzzle");loadPuzzle();
 };
 
 // ===== Nhập nước đi bằng chữ (cho bàn phím và màn hình đọc) =====
