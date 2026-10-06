@@ -197,3 +197,23 @@ details.more .movebox { margin-bottom: 0.8rem; }
 
 /* Preserve chess identities under forced colors and automatic darkening. */
 .board,.board-box,.promo svg{color-scheme:only light!important;forced-color-adjust:none!important;filter:none!important}
+
+/* Công pháp các: chọn phân môn, sáu công pháp mỗi trang. */
+.tech-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.6rem;margin-bottom:.9rem}
+.tech-nav button{--accent:var(--jade);font:inherit;font-size:.9rem;min-height:48px;padding:.55rem .65rem;border:1px solid var(--line);border-radius:12px;background:var(--paper);color:var(--muted);cursor:pointer}
+.tech-nav .novice{--accent:#a9c990}.tech-nav .inner{--accent:#c4aff0}.tech-nav .lineage{--accent:var(--gold)}
+.tech-nav button[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--paper))}
+.tech-nav button:focus-visible,.tech summary:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+#tech-grid .techs{grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}
+#tech-grid .tech-group{margin-bottom:0}
+#tech-grid .tech-group h2{margin:0}
+#tech-grid .tech{padding:.8rem;gap:.3rem}
+#tech-grid .tech h3{font-size:1.25rem}
+#tech-grid .tech details{font-size:.85rem;margin:.2rem 0}
+#tech-grid .tech summary{cursor:pointer;color:var(--jade);min-height:30px}
+#tech-grid .tech .count{margin-top:auto;font-size:.78rem}
+#tech-grid .tech .act{font-size:.85rem}
+.tech-pagination{display:flex;justify-content:center;align-items:center;gap:1rem;margin-top:1rem;font-size:.9rem}
+.tech-intro{margin:0 0 1rem;color:var(--muted)}
+@media(max-width:880px){#tech-grid .techs{grid-template-columns:repeat(2,minmax(0,1fr))}.tech-nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){#tech-grid .techs{grid-template-columns:minmax(0,1fr)}.tech-nav button{font-size:.82rem}}
