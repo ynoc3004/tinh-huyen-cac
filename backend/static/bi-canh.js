@@ -1,5 +1,5 @@
 import { Chess } from "/vendor/chess.js";
-import { PIECE_DEFS } from "/vendor/pieces.js";
+import { PIECE_DEFS } from "/vendor/pieces.js?v=paint-2";
 import { TECHS, TECH_GROUPS, TECH_BY_KEY, PLAIN, BOTS, SPEECH } from "/bi-canh-data.js?v=20261006-3";
 
 const $ = id => document.getElementById(id);
