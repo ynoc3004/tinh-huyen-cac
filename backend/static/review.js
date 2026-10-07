@@ -5,7 +5,39 @@ import {savePgnToLibrary} from "/save-pgn.js?v=1";
 import {moveReview,meanAccuracy} from "/review-math.js";
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";");
 let pgn="",moves=[],fens=[],index=0,flip=false,scores=[],reviews=[],worker=null,run=0,busy=false,players={w:"Trắng",b:"Đen"};
+let openingByPly=[],openingHeader=null;
 let cacheKey="",cachedQuality=0,cacheFailed=false;
+
+function formatScore(s){return s.mate!==null?(s.cp<0?"−":"")+"M"+Math.abs(s.mate):(s.cp>=0?"+":"")+(s.cp/100).toFixed(2);}
+function sanLine(fen,pv){
+ const board=new Chess(fen),parts=[];
+ for(const u of pv){try{const number=board.fen().split(" ")[5],color=board.turn(),m=board.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]});
+ parts.push((color==="w"?number+". ":parts.length===0?number+"… ":"")+m.san);}catch{break;}}
+ return parts.join(" ");
+}
+function drawVariations(score){
+ const lines=score?.lines??(score?.pv?.length?[score]:[]);
+ $("engine-lines").innerHTML=lines.length?lines.slice(0,3).map((s,i)=>{
+ const text=sanLine(fens[index],s.pv);
+ return '<details class="pv-line"><summary><span class="pv-eval">'+esc(formatScore(s))+'</span><span class="pv-rank">'+(i+1)+'</span><span class="pv-preview">'+esc(text||"Ván đã kết thúc")+'</span></summary><div class="pv-expanded">'+esc(text||"Không còn nước đi hợp lệ")+'<small>Độ sâu '+(s.depth||"—")+' · Điểm theo phía Trắng</small></div></details>';
+ }).join(""):'<p class="pv-empty">'+(score?"Thế cờ đã kết thúc, không còn phương án.":"Phân tích ván để xem 3 phương án tốt nhất.")+'</p>';
+ if(score&&!score.lines)$("pv-status").textContent="Kết quả cũ có 1 phương án · Bấm bổ sung để tính thêm.";
+ else $("pv-status").textContent=lines.length?lines.length+" phương án · Điểm theo phía Trắng":"MultiPV 3 · Stockfish";
+ const opening=openingByPly[index]||openingHeader;
+ $("opening-code").textContent=opening?.eco||"—";
+ $("opening-name").textContent=opening?.name||"Chưa nhận diện khai cuộc";
+ $("opening-source").textContent=opening?.source==="pgn"?"Theo thông tin PGN":opening?"Nhận diện theo thế cờ · ECO":"Đi thêm các nước khai cuộc để nhận diện.";
+}
+async function recognizeOpenings(headers){
+ openingHeader=/^[A-E][0-9]{2}$/.test(headers.ECO||"")?{eco:headers.ECO,name:[headers.Opening,headers.Variation].filter(Boolean).join(": ")||"Khai cuộc "+headers.ECO,source:"pgn"}:null;
+ try{
+  const r=await fetch("/openings-eco.json?v=1");if(!r.ok)throw Error();
+  const data=await r.json();let latest=null;
+  openingByPly=fens.map(fen=>{const row=data.positions[fen.split(" ").slice(0,3).join(" ")];if(row)latest={eco:row[0],name:row[1],source:"eco"};return latest;});
+ }catch{$("opening-source").textContent="Không tải được dữ liệu ECO.";}
+}
+function analyzeLabel(){return scores.length===fens.length?(scores.some(s=>!Array.isArray(s.lines))?"▶ Bổ sung 3 phương án":"↻ Phân tích lại"):"▶ Tiếp tục phân tích";}
+
 function rebuildReviews(){
  reviews=scores.slice(1).map((s,i)=>({...moveReview(scores[i].cp,s.cp,moves[i].color),color:moves[i].color}));
 }
@@ -23,10 +55,11 @@ async function restoreReview(){
   const data=JSON.parse(raw);
   if(data.version!==1||![250,750,2000].includes(data.quality)||!Array.isArray(data.scores)||!data.scores.length||data.scores.length>fens.length)return;
   if(!data.scores.every(s=>s&&Number.isFinite(s.cp)&&(s.mate===null||Number.isFinite(s.mate))&&Array.isArray(s.pv)&&s.pv.every(u=>typeof u==="string"&&/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u))))return;
+  if(!data.scores.every(s=>s.lines===undefined||(Array.isArray(s.lines)&&s.lines.length<=3&&s.lines.every(l=>l&&Number.isFinite(l.cp)&&(l.mate===null||Number.isFinite(l.mate))&&Array.isArray(l.pv)&&l.pv.every(u=>typeof u==="string"&&/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u))))))return;
   scores=data.scores;cachedQuality=data.quality;$("quality").value=String(cachedQuality);rebuildReviews();summary();
   $("analysis-progress").max=Math.max(1,moves.length);$("analysis-progress").value=Math.max(0,scores.length-1);
   const complete=scores.length===fens.length;
-  $("analyze").textContent=complete?"↻ Phân tích lại":"▶ Tiếp tục phân tích";
+  $("analyze").textContent=analyzeLabel();
   $("analysis-status").textContent=(complete?"Đã khôi phục phân tích toàn ván. ":"Đã khôi phục "+Math.max(0,scores.length-1)+" / "+moves.length+" nước. ")+savedStatus();
  }catch{cacheFailed=true;$("analysis-status").textContent="Không đọc được bộ nhớ lưu kết quả; bạn vẫn có thể phân tích ván.";}
 }
@@ -48,9 +81,7 @@ function draw(){
  let text=index?moves[index-1].san:"Khai cuộc";
  if(index&&reviews[index-1])text+=" · "+reviews[index-1].label+" · Mất "+(reviews[index-1].loss/100).toFixed(2)+" điểm";
  $("move-comment").textContent=text;
- let pv="";
- if(score?.pv){const probe=new Chess(fens[index]);for(const u of score.pv.slice(0,6)){try{pv+=(pv?" ":"")+probe.move({from:u.slice(0,2),to:u.slice(2,4),promotion:u[4]}).san;}catch{break;}}}
- $("best-line").textContent=pv?"Phương án Stockfish: "+pv:"";
+ $("best-line").textContent="";drawVariations(score);
  let rows="",group=null;
  for(let i=0;i<moves.length;i++){
   const m=moves[i],number=new Chess(fens[i]).fen().split(" ")[5],r=reviews[i],quality=r?(r.loss>200?"blunder":r.loss>100?"mistake":r.loss>50?"inaccurate":"good"):"";
@@ -76,7 +107,7 @@ async function load(){
   $("game-title").textContent=players.w+" · "+players.b;
   while(c.undo()){}fens=[c.fen()];for(const m of moves){c.move(m);fens.push(c.fen());}
   $("loading").textContent=Math.ceil(moves.length/2)+" lượt · "+moves.length+" nước đi · Kết quả "+(headers.Result||"*");
-  await restoreReview();$("workspace").hidden=false;draw();
+  await recognizeOpenings(headers);await restoreReview();$("workspace").hidden=false;draw();
  }catch(e){$("loading").textContent=e.message;}
 }
 function engineStart(){
@@ -84,26 +115,29 @@ function engineStart(){
   worker=new Worker("/vendor/stockfish/stockfish-19-lite-single.js");
   const timer=setTimeout(()=>reject(Error("Stockfish khởi động quá lâu.")),30000);
   worker.onerror=()=>{clearTimeout(timer);reject(Error("Không chạy được Stockfish."));};
-  worker.onmessage=e=>{const s=String(e.data);if(s==="uciok"){worker.postMessage("setoption name Threads value 1");worker.postMessage("setoption name Hash value 32");worker.postMessage("isready");}else if(s==="readyok"){clearTimeout(timer);resolve();}};
+  worker.onmessage=e=>{const s=String(e.data);if(s==="uciok"){worker.postMessage("setoption name Threads value 1");worker.postMessage("setoption name Hash value 32");worker.postMessage("setoption name MultiPV value 3");worker.postMessage("isready");}else if(s==="readyok"){clearTimeout(timer);resolve();}};
   worker.postMessage("uci");
  });
 }
 function evaluate(fen,ms){
  return new Promise((resolve,reject)=>{
-  let score=null;const timer=setTimeout(()=>reject(Error("Stockfish không trả kết quả.")),15000);
+  let score=null;const lines=new Map();let latestDepth=0,completeLines=[];const timer=setTimeout(()=>reject(Error("Stockfish không trả kết quả.")),15000);
   worker.onerror=()=>{clearTimeout(timer);reject(Error("Stockfish gặp lỗi."));};
   worker.onmessage=e=>{
    const s=String(e.data);
    const m=s.match(/\bscore (cp|mate) (-?\d+)/),pv=s.match(/\bpv (.+)/);
    if(m&&!s.includes("lowerbound")&&!s.includes("upperbound")){
     const n=Number(m[2]),sign=new Chess(fen).turn()==="w"?1:-1;
-    score={cp:(m[1]==="cp"?n:(n>=0?10000:-10000))*sign,mate:m[1]==="mate"?n:null,pv:pv?pv[1].split(" "):[]};
+    const rank=Number(s.match(/\bmultipv (\d+)/)?.[1]||1),depth=Number(s.match(/\bdepth (\d+)/)?.[1]||0);
+    const candidate={cp:(m[1]==="cp"?n:(n>=0?10000:-10000))*sign,mate:m[1]==="mate"?n:null,pv:pv?pv[1].split(" "):[],depth};
+    if(rank>=1&&rank<=3){if(rank===1&&depth>latestDepth){lines.clear();latestDepth=depth;}if(depth===latestDepth)lines.set(rank,candidate);if(rank===1)score={...candidate};if(lines.size===Math.min(3,new Chess(fen).moves().length))completeLines=[...lines.entries()].sort((a,b)=>a[0]-b[0]).map(x=>x[1]);}
    }
    if(s.startsWith("bestmove")){clearTimeout(timer);
     const c=new Chess(fen);
     if(c.isCheckmate())score={cp:c.turn()==="w"?-10000:10000,mate:0,pv:[]};
     else if(c.isDraw())score={cp:0,mate:null,pv:[]};
-    if(!score)return reject(Error("Không có đánh giá cho thế cờ này."));resolve(score);
+    if(!score)return reject(Error("Không có đánh giá cho thế cờ này."));
+    const terminal=c.isGameOver();score.lines=terminal?[]:(completeLines.length?completeLines:[...lines.entries()].sort((a,b)=>a[0]-b[0]).map(x=>x[1]));if(score.lines[0])score={...score.lines[0],lines:score.lines};resolve(score);
    }
   };
   worker.postMessage("position fen "+fen);worker.postMessage("go movetime "+ms);
@@ -112,21 +146,22 @@ function evaluate(fen,ms){
 $("analyze").onclick=async()=>{
  if(busy||!fens.length)return;busy=true;const token=++run;
  const ms=Number($("quality").value);
- const resume=scores.length>0&&scores.length<fens.length&&cachedQuality===ms;
+ const resume=scores.length>0&&cachedQuality===ms&&(scores.length<fens.length||scores.some(s=>!Array.isArray(s.lines)));
  if(!resume){scores=[];reviews=[];}
  $("analyze").disabled=true;$("stop").disabled=false;$("quality").disabled=true;summary();draw();
  try{
   await engineStart();if(token!==run)return;
-  for(let i=scores.length;i<fens.length;i++){
-   const s=await evaluate(fens[i],ms);if(token!==run)return;scores.push(s);
-   if(i){reviews.push({...moveReview(scores[i-1].cp,s.cp,moves[i-1].color),color:moves[i-1].color});}
+  for(let i=0;i<fens.length;i++){
+   if(resume&&Array.isArray(scores[i]?.lines))continue;
+   const s=await evaluate(fens[i],ms);if(token!==run)return;scores[i]=s;
+   rebuildReviews();
    $("analysis-status").textContent="Đang tham ngộ "+i+" / "+moves.length;
    $("analysis-progress").value=i;$("analysis-progress").max=Math.max(1,moves.length);
    persistReview(ms);summary();draw();
   }
   $("analysis-status").textContent="Đã phân tích toàn bộ ván. "+savedStatus();
  }catch(e){if(token===run)$("analysis-status").textContent=e.message;}
- finally{if(token===run){busy=false;$("analyze").disabled=false;$("stop").disabled=true;worker?.terminate();worker=null;$("quality").disabled=false;$("analyze").textContent=scores.length===fens.length?"↻ Phân tích lại":"▶ Tiếp tục phân tích";}}
+ finally{if(token===run){busy=false;$("analyze").disabled=false;$("stop").disabled=true;worker?.terminate();worker=null;$("quality").disabled=false;$("analyze").textContent=analyzeLabel();}}
 };
 $("stop").onclick=()=>{run++;worker?.terminate();worker=null;busy=false;$("analyze").disabled=false;$("stop").disabled=true;$("quality").disabled=false;$("analyze").textContent="▶ Tiếp tục phân tích";$("analysis-status").textContent="Đã dừng. "+savedStatus();};
 $("prev").onclick=()=>{index=Math.max(0,index-1);draw();};$("next").onclick=()=>{index=Math.min(moves.length,index+1);draw();};
