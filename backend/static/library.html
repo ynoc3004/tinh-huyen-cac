@@ -167,7 +167,7 @@ document.addEventListener('dragend',()=>{drag=null;document.querySelectorAll('.o
 document.addEventListener('dragover',e=>{if(!drag)return;const t=e.target.closest?.('[data-drop]');document.querySelectorAll('.over').forEach(x=>x!==t&&x.classList.remove('over'));if(t){e.preventDefault();t.classList.add('over')}});
 document.addEventListener('drop',async e=>{if(!drag)return;const t=e.target.closest?.('[data-drop]');if(!t)return;e.preventDefault();t.classList.remove('over');const to=+t.dataset.drop,d=drag;drag=null;
  try{if(d.f){if(d.f===to)return;await api('/folders/'+d.f,'PATCH',{parent_id:to||null})}else{await api('/move','POST',{item_ids:sel.has(d.i)?[...sel]:[d.i],folder_id:to||null});sel.clear()}say('Đã di chuyển.',1);await load()}catch(err){say(err.message)}});
-function open(id){const i=items.find(x=>x.id===id);if(!i)return;const tg=(i.tags||'').split(',').filter(Boolean),url='/api/library/file/'+id;
+function open(id){const i=items.find(x=>x.id===id);if(!i)return;if(i.ext===".pgn"){location.href="/review.html?item="+id;return;}const tg=(i.tags||'').split(',').filter(Boolean),url='/api/library/file/'+id;
  $('#dbody').innerHTML=`<p class="row"><button id="dread">Đọc</button><a class="btn" href="${url}?download=true">Tải về</a><a class="btn" href="${url}" target="_blank" rel="noopener">Mở tab mới</a></p>
  <div class="row"><input id="dt" value="${esc(i.title)}" style="flex:1" aria-label="Tên file"><span class="muted">${esc(i.ext)}</span><label><input id="df" type="checkbox" ${i.favorite?'checked':''}> Yêu thích</label></div>
  <div class="row"><label for="dfold">Thư mục:</label><select id="dfold" style="flex:1">${folderOpts(null,i.folder_id||0)}</select></div>
