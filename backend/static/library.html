@@ -57,6 +57,7 @@ details.settings{margin:.6rem 0}details.settings summary{cursor:pointer}details.
 </section>
 <div id="app" hidden>
 <div class="tools" id="tools">
+ <button id="translation-picker" type="button">讀 Dịch Kinh Các · Chọn sách PDF</button>
  <label class="btn" for="upl">+ Thêm file</label><input id="upl" type="file" multiple hidden accept=".pdf,.epub,.png,.jpg,.jpeg,.webp,.pgn,.txt,.md,.docx">
  <button class="alt" id="newfold">＋ Thư mục</button><button class="alt" id="selmode">Chọn nhiều</button>
  <button class="alt" id="scan" title="Mã hóa các file thường đang nằm trong thư mục liên kết">Mã hóa file có sẵn trong thư mục</button>
@@ -76,6 +77,7 @@ details.settings{margin:.6rem 0}details.settings summary{cursor:pointer}details.
 <div id="bulk" class="tools" hidden><span id="bcount"></span><button class="alt" id="bmove">Chuyển vào…</button><button class="alt" id="bdel">Xóa</button><button class="alt" id="ball">Chọn tất cả</button></div>
 <div id="grid"></div><p id="more"></p>
 </div>
+<dialog id="translation-dialog"><h2>Dịch Kinh Các</h2><p>Chọn sách PDF để đọc song ngữ và dịch bằng Ollama.</p><div id="translation-books"></div><button type="button" id="translation-close">Đóng</button></dialog>
 <dialog id="dlg"><div id="dbody"></div></dialog>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -182,6 +184,14 @@ function open(id){const i=items.find(x=>x.id===id);if(!i)return;if(i.ext===".pgn
  $('#dbody').querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>patch({remove_tag:b.dataset.rm}).catch(e=>say(e.message)));
  $('#dclose').onclick=()=>$('#dlg').close();
  $('#ddel').onclick=async()=>{if(!confirm('Xóa vĩnh viễn "'+i.title+'" khỏi két? Không thể hoàn tác.'))return;try{await api('/'+id,'DELETE');$('#dlg').close();await load();tags()}catch(e){say(e.message)}}}
-function reader(id){if(!window.open('/reader.html?id='+id,'_blank'))say('Trình duyệt đã chặn tab mới. Hãy cho phép cửa sổ bật lên cho trang này.')}
+function reader(id){location.href="/reader.html?id="+id}
+$('#translation-close').onclick=()=>$('#translation-dialog').close();
+$('#translation-picker').onclick=async()=>{
+ try{
+  const books=(await api('?kind=book')).filter(i=>(i.ext||'').toLowerCase()==='.pdf');
+  $('#translation-books').innerHTML=books.length?books.map(i=>'<p><a class="btn" href="/translate.html?id='+i.id+'">'+esc(i.title)+' · Đọc & dịch →</a></p>').join(''):'<p>Chưa có PDF. Đóng cửa sổ rồi bấm “Thêm file” để nhập sách.</p>';
+  $('#translation-dialog').showModal();
+ }catch(e){say(e.message);}
+};
 (async()=>{try{const st=await api('/vault/status');ST=st;st.unlocked?enter():showGate()}catch(e){say(e.message)}})();
 </script></body></html>
