@@ -101,3 +101,11 @@ const started=Date.now();setInterval(()=>{const m=Math.floor((Date.now()-started
  setInterval(()=>fetch("/api/library/item/"+id).then(r=>{if(r.status===401){loaded=false;controls();$("pdf").src="about:blank";$("source").value="";$("result").textContent="";$("note").value="";status("Két đã khóa. Mở khóa rồi tải lại trang.");}}).catch(()=>{}),30000);
  }catch(e){status(e.message);}
 })();
+
+let readingSize=18,theme="day";
+try{readingSize=Math.min(26,Math.max(15,Number(localStorage.getItem("thc-study-size"))||18));theme=localStorage.getItem("thc-study-theme")==="night"?"night":"day";}catch{}
+function appearance(){document.documentElement.dataset.theme=theme;document.documentElement.style.setProperty("--reading-size",readingSize+"px");$("theme").textContent=theme==="night"?"☀ Ngày":"☾ Đêm";$("theme").setAttribute("aria-pressed",String(theme==="night"));$("text-smaller").disabled=readingSize<=15;$("text-larger").disabled=readingSize>=26;try{localStorage.setItem("thc-study-size",String(readingSize));localStorage.setItem("thc-study-theme",theme);}catch{}}
+$("theme").onclick=()=>{theme=theme==="night"?"day":"night";appearance();};
+$("text-smaller").onclick=()=>{readingSize=Math.max(15,readingSize-1);appearance();};
+$("text-larger").onclick=()=>{readingSize=Math.min(26,readingSize+1);appearance();};
+appearance();
