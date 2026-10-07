@@ -5,6 +5,31 @@ import {savePgnToLibrary} from "/save-pgn.js?v=1";
 import {moveReview,meanAccuracy} from "/review-math.js";
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";");
 let pgn="",moves=[],fens=[],index=0,flip=false,scores=[],reviews=[],worker=null,run=0,busy=false,players={w:"Trắng",b:"Đen"};
+let cacheKey="",cachedQuality=0,cacheFailed=false;
+function rebuildReviews(){
+ reviews=scores.slice(1).map((s,i)=>({...moveReview(scores[i].cp,s.cp,moves[i].color),color:moves[i].color}));
+}
+function persistReview(ms){
+ if(!cacheKey)return;
+ try{localStorage.setItem(cacheKey,JSON.stringify({version:1,quality:ms,scores,updated:Date.now()}));cachedQuality=ms;cacheFailed=false;}
+ catch{cacheFailed=true;}
+}
+function savedStatus(){return cacheFailed?"Không lưu được kết quả trên trình duyệt này.":"Đã tự lưu trên trình duyệt này.";}
+async function restoreReview(){
+ try{
+  const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(fens.join("\\n")));
+  cacheKey="thc:review:v1:"+Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,"0")).join("");
+  const raw=localStorage.getItem(cacheKey);if(!raw)return;
+  const data=JSON.parse(raw);
+  if(data.version!==1||![250,750,2000].includes(data.quality)||!Array.isArray(data.scores)||!data.scores.length||data.scores.length>fens.length)return;
+  if(!data.scores.every(s=>s&&Number.isFinite(s.cp)&&(s.mate===null||Number.isFinite(s.mate))&&Array.isArray(s.pv)&&s.pv.every(u=>typeof u==="string"&&/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u))))return;
+  scores=data.scores;cachedQuality=data.quality;$("quality").value=String(cachedQuality);rebuildReviews();summary();
+  $("analysis-progress").max=Math.max(1,moves.length);$("analysis-progress").value=Math.max(0,scores.length-1);
+  const complete=scores.length===fens.length;
+  $("analyze").textContent=complete?"↻ Phân tích lại":"▶ Tiếp tục phân tích";
+  $("analysis-status").textContent=(complete?"Đã khôi phục phân tích toàn ván. ":"Đã khôi phục "+Math.max(0,scores.length-1)+" / "+moves.length+" nước. ")+savedStatus();
+ }catch{cacheFailed=true;$("analysis-status").textContent="Không đọc được bộ nhớ lưu kết quả; bạn vẫn có thể phân tích ván.";}
+}
 document.body.insertAdjacentHTML("afterbegin",'<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'+PIECE_DEFS+'</defs></svg>');
 function draw(){
  const c=new Chess(fens[index]);let out="";
@@ -51,7 +76,7 @@ async function load(){
   $("game-title").textContent=players.w+" · "+players.b;
   while(c.undo()){}fens=[c.fen()];for(const m of moves){c.move(m);fens.push(c.fen());}
   $("loading").textContent=Math.ceil(moves.length/2)+" lượt · "+moves.length+" nước đi · Kết quả "+(headers.Result||"*");
-  $("workspace").hidden=false;draw();
+  await restoreReview();$("workspace").hidden=false;draw();
  }catch(e){$("loading").textContent=e.message;}
 }
 function engineStart(){
@@ -86,21 +111,24 @@ function evaluate(fen,ms){
 }
 $("analyze").onclick=async()=>{
  if(busy||!fens.length)return;busy=true;const token=++run;
- $("analyze").disabled=true;$("stop").disabled=false;scores=[];reviews=[];summary();draw();
+ const ms=Number($("quality").value);
+ const resume=scores.length>0&&scores.length<fens.length&&cachedQuality===ms;
+ if(!resume){scores=[];reviews=[];}
+ $("analyze").disabled=true;$("stop").disabled=false;$("quality").disabled=true;summary();draw();
  try{
-  await engineStart();if(token!==run)return;const ms=Number($("quality").value);
-  for(let i=0;i<fens.length;i++){
+  await engineStart();if(token!==run)return;
+  for(let i=scores.length;i<fens.length;i++){
    const s=await evaluate(fens[i],ms);if(token!==run)return;scores.push(s);
    if(i){reviews.push({...moveReview(scores[i-1].cp,s.cp,moves[i-1].color),color:moves[i-1].color});}
    $("analysis-status").textContent="Đang tham ngộ "+i+" / "+moves.length;
    $("analysis-progress").value=i;$("analysis-progress").max=Math.max(1,moves.length);
-   summary();draw();
+   persistReview(ms);summary();draw();
   }
-  $("analysis-status").textContent="Đã phân tích toàn bộ ván. Điểm là ước tính ở thời gian tính đã chọn.";
+  $("analysis-status").textContent="Đã phân tích toàn bộ ván. "+savedStatus();
  }catch(e){if(token===run)$("analysis-status").textContent=e.message;}
- finally{if(token===run){busy=false;$("analyze").disabled=false;$("stop").disabled=true;worker?.terminate();worker=null;}}
+ finally{if(token===run){busy=false;$("analyze").disabled=false;$("stop").disabled=true;worker?.terminate();worker=null;$("quality").disabled=false;$("analyze").textContent=scores.length===fens.length?"↻ Phân tích lại":"▶ Tiếp tục phân tích";}}
 };
-$("stop").onclick=()=>{run++;worker?.terminate();worker=null;busy=false;$("analyze").disabled=false;$("stop").disabled=true;$("analysis-status").textContent="Đã dừng; giữ kết quả tính được.";};
+$("stop").onclick=()=>{run++;worker?.terminate();worker=null;busy=false;$("analyze").disabled=false;$("stop").disabled=true;$("quality").disabled=false;$("analyze").textContent="▶ Tiếp tục phân tích";$("analysis-status").textContent="Đã dừng. "+savedStatus();};
 $("prev").onclick=()=>{index=Math.max(0,index-1);draw();};$("next").onclick=()=>{index=Math.min(moves.length,index+1);draw();};
 $("first").onclick=()=>{index=0;draw();};$("last").onclick=()=>{index=moves.length;draw();};
 $("flip").onclick=()=>{flip=!flip;draw();};
