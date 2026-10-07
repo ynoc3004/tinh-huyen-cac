@@ -325,6 +325,26 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
 .footer-nav a:hover { border-color:var(--gold); background:color-mix(in srgb,var(--gold) 10%,transparent); }
 .footer-nav i { font-style:normal; color:var(--gold); }
 .footer-nav .utility { color:var(--muted); font-size:.82rem; }
+
+/* Cổng môn: điều hướng chung của Tĩnh Huyền Các. */
+.site-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.7rem 1.2rem;padding:.7rem .9rem;margin-bottom:1.4rem;border:1px solid var(--line);border-top:2px solid var(--gold);border-radius:8px;background:color-mix(in srgb,var(--paper) 88%,transparent);box-shadow:0 4px 18px #00000008}
+.site-brand{display:flex;align-items:center;gap:.65rem;text-decoration:none;color:var(--ink);flex:none}
+.site-brand svg{width:36px;height:36px;color:var(--gold)}
+.site-brand strong{display:block;font-family:var(--title);font-weight:400;font-size:1.35rem;line-height:1.2}
+.site-brand small{display:block;font-size:.6rem;letter-spacing:.16em;color:var(--muted);margin-top:.15rem}
+.site-navigation{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center}
+.site-navigation a,.site-navigation button{display:inline-flex;align-items:center;min-height:38px;padding:.35rem .7rem;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--muted);font:inherit;font-size:.78rem;text-decoration:none;cursor:pointer}
+.site-navigation a:hover,.site-navigation button:hover{color:var(--gold);border-color:var(--line);background:color-mix(in srgb,var(--gold) 7%,transparent)}
+.site-navigation [aria-current="page"],.site-navigation [aria-selected="true"]{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 35%,transparent)}
+.site-navigation a:focus-visible,.site-navigation button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.home-footer{border-top:1px solid var(--line);margin-top:2.5rem;padding-top:1rem}
+.home-footer-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem;color:var(--gold);font-family:var(--title);font-size:1.3rem}
+.home-footer-heading small{font-family:var(--font-body);font-size:.75rem;color:var(--muted);align-self:center}
+.home-footer .footer-nav{margin-top:.6rem;padding-top:0}
+.home-footer .footer-nav .history-link{border-color:color-mix(in srgb,var(--gold) 50%,var(--line));color:var(--gold)}
+.home-footer-note{font-size:.72rem;color:var(--muted);margin:.8rem 0 0}
+@media(max-width:640px){.site-header{padding:.65rem;gap:.65rem}.site-navigation{width:100%;gap:.15rem}.site-navigation a,.site-navigation button{padding:.3rem .5rem;font-size:.74rem}.site-brand strong{font-size:1.2rem}}
+
 </style>
 <script src="/thien-co.js"></script>
 <script>
@@ -350,6 +370,7 @@ try {
 <canvas id="qi" class="qi" aria-hidden="true"></canvas>
 <span class="moon" aria-hidden="true"></span>
 <div class="wrap">
+<header class="site-header"><a class="site-brand" href="/"><svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"><path d="M15 2h18l13 13v18L33 46H15L2 33V15z" opacity=".5"/><circle cx="24" cy="24" r="15"/><path d="M24 9a15 15 0 0 1 0 30a7.5 7.5 0 0 1 0-15a7.5 7.5 0 0 0 0-15" fill="currentColor"/><circle cx="24" cy="16.5" r="2.3" fill="currentColor"/><circle cx="24" cy="31.5" r="2.3" fill="var(--paper)" stroke="none"/></svg><span><strong>Tĩnh Huyền Các</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính"><a href="/" aria-current="page">Cổng môn</a><a href="/library.html">Tàng kinh</a><a href="/bi-canh.html">Bí cảnh</a><a href="/arena.html">Đấu trường</a><a href="/bi-canh.html#history">Kỳ phổ</a></nav></header>
   <header class="head">
     <div>
       <h1>Tĩnh Huyền Các</h1>
@@ -372,14 +393,14 @@ try {
   <section id="realms" aria-live="polite">
     <p class="empty">Chưa có rating. Thêm LICHESS_USER hoặc CHESSCOM_USER vào file backend/.env, chạy lại máy chủ, rồi bấm Đồng bộ ván cờ.</p>
   </section>
-  <nav class="footer-nav" aria-label="Lối đi">
+  <footer class="home-footer"><div class="home-footer-heading"><span>Tĩnh Huyền Các · Lối về sư môn</span><small>Mỗi ván cờ, một lần ngộ đạo.</small></div><nav class="footer-nav" aria-label="Lối đi">
     <a href="/library.html"><i aria-hidden="true">▤</i> Tàng Kinh Các</a>
     <a href="/bi-canh.html"><i aria-hidden="true">☯</i> Bí Cảnh</a>
-    <a href="/bi-canh.html#history"><i aria-hidden="true">✦</i> Luận Kiếm Lưu Niên</a>
+    <a class="history-link" href="/bi-canh.html#history"><i aria-hidden="true">✦</i> Luận Kiếm Lưu Niên</a>
     <a href="/arena.html"><i aria-hidden="true">♜</i> Đấu Trường</a>
     <a class="utility" href="/fonts-preview.html"><i aria-hidden="true">Aa</i> Font chữ</a>
     <a class="utility" href="/docs"><i aria-hidden="true">⌘</i> API</a>
-  </nav>
+  </nav><p class="home-footer-note">Luận Kiếm Lưu Niên lưu lại kỳ phổ đấu bot để ôn luyện và xem lại từng nước.</p></footer>
 </div>
 <div class="mist-box" aria-hidden="true"><div class="mist"></div><div class="mist b"></div></div>
 <svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true">
