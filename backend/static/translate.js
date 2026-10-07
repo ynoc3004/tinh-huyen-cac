@@ -21,8 +21,8 @@ function persist(){
  state=snapshot;queue=queue.catch(()=>{}).then(()=>api(id+"/state",snapshot,"PUT"));return queue;
 }
 async function models(){
- try{const data=await api("models");engineOnline=true;$("model").replaceChildren(...data.models.map(name=>{const opt=document.createElement("option");opt.value=name;opt.textContent=name;return opt;}));
- const preferred=data.models.find(n=>n===state.model)||data.models.find(n=>n==="qwen3:4b");if(preferred)$("model").value=preferred;
+ try{const data=await api("models");engineOnline=true;$("model").replaceChildren(...data.models.map(name=>{const opt=document.createElement("option");opt.value=name;opt.textContent=name==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt (CPU)":name;return opt;}));
+ const preferred=data.models.find(n=>n===state.model)||data.models.find(n=>n==="opus-mt-en-vi");if(preferred)$("model").value=preferred;
  if(!data.models.length)$("status").textContent="Ollama chưa có model. Cài model rồi bấm Kết nối lại.";
  }catch(e){engineOnline=false;$("model").replaceChildren();if(state.model){const opt=document.createElement("option");opt.value=state.model;opt.textContent=state.model+" · ngoại tuyến";$("model").append(opt);}$("status").textContent=e.message;}controls();
 }
@@ -40,7 +40,7 @@ async function openPage(n){
  $("source-note").textContent=data.text?"Bôi đen đoạn trong ô này để dịch riêng.":"Trang không có chữ trích xuất; có thể là PDF scan.";
  $("status").textContent="Trang "+current+" · "+(data.text?"Sẵn sàng dịch.":"Chưa có chữ để dịch. Dán văn bản vào ô tiếng Anh.");
  if(data.text.length>12000)$("source-note").textContent="Trang dài: chọn từng đoạn tối đa 12.000 ký tự để dịch.";
- if(!engineOnline)$("status").textContent="Ollama chưa kết nối. Bản dịch đã lưu vẫn đọc được; bấm Kết nối lại để dịch mới.";
+ if(!engineOnline)$("status").textContent="Chưa kết nối bộ máy dịch. Bản dịch đã lưu vẫn đọc được.";
  await persist();await cached();
  }catch(e){$("status").textContent=e.message;}
  finally{loading=false;controls();}
@@ -50,7 +50,7 @@ async function translate(selected){
  const text=selected?$("source").value.slice($("source").selectionStart,$("source").selectionEnd):$("source").value;
  if(!text.trim()){$("status").textContent=selected?"Bôi đen đoạn cần dịch trong ô tiếng Anh trước.":"Không có chữ để dịch.";return;}
  if(text.length>12000){$("status").textContent="Nội dung quá dài. Chọn một đoạn tối đa 12.000 ký tự.";return;}
- busy=true;controls();$("status").textContent="Đang dịch bằng Ollama local… Có thể mất vài phút.";
+ busy=true;controls();$("status").textContent="Đang dịch bằng model local… Lần đầu cần nạp model vào bộ nhớ.";
  try{const data=await api(id+"/translate",body(text));$("result").textContent=data.translation;$("status").textContent=(selected?"Bản dịch đoạn chọn":"Bản dịch trang "+current)+" · "+(data.cached?"Đã mở từ két":"Đã dịch và tự lưu vào két")+" · "+data.model;}
  catch(e){$("status").textContent=e.message;}finally{busy=false;controls();}
 }
