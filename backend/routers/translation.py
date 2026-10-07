@@ -206,8 +206,15 @@ async def translate(item_id: int, body: Translate, key: bytes = Depends(library.
             raise
         except httpx.TimeoutException:
             raise HTTPException(504, "Gemini trả lời quá lâu. Tiếp tục lại với đoạn ngắn hơn.")
-        except httpx.HTTPError:
-            raise HTTPException(503, "Không kết nối được Gemini. Kiểm tra mạng rồi tiếp tục.")
+        except httpx.HTTPStatusError as e:
+            code = e.response.status_code
+            raise HTTPException(503, f"Gemini trả HTTP {code}. Nếu là 5xx, dịch vụ đang lỗi hoặc quá tải; thử lại sau. Không phải kết luận mất mạng.")
+        except httpx.ConnectError as e:
+            if "CERTIFICATE_VERIFY_FAILED" in str(e):
+                raise HTTPException(503, "Python không xác thực được chứng chỉ HTTPS của Google. Kiểm tra chứng chỉ/proxy trên máy; không tắt xác thực SSL.")
+            raise HTTPException(503, "Python không thiết lập được kết nối Gemini (ConnectError). Kiểm tra proxy/VPN; curl có thể dùng cấu hình mạng khác.")
+        except httpx.HTTPError as e:
+            raise HTTPException(503, "Lỗi truyền dữ liệu Gemini: " + type(e).__name__ + ". Thử lại hoặc kiểm tra proxy/VPN.")
         except (ValueError, KeyError, TypeError):
             raise HTTPException(502, "Bản dịch Gemini lỗi dữ liệu hoặc thay đổi ký hiệu nước đi. Thử đoạn ngắn hơn.")
         out = {"translation": result, "model": body.model, "page": body.page}
