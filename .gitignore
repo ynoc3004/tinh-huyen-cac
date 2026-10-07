@@ -10,3 +10,6 @@ data/library/*
 !data/library/.gitkeep
 data/lichess_db_puzzle.csv.zst
 data/puzzles.db
+# local translation model and OCR language data
+backend/models/
+tessdata/
