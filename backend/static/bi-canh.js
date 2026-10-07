@@ -1,3 +1,4 @@
+import {savePgnToLibrary} from "/save-pgn.js?v=1";
 import { Chess } from "/vendor/chess.js";
 import { PIECE_DEFS } from "/vendor/pieces.js?v=paint-2";
 import { TECHS, TECH_GROUPS, TECH_BY_KEY, PLAIN, BOTS, SPEECH } from "/bi-canh-data.js?v=20261006-3";
@@ -654,7 +655,7 @@ async function loadBotArchive(){
     const r=await fetch("/api/game-archive?source="+$("history-source").value+"&page="+archivePage);if(!r.ok)throw Error(r.status);
     const j=await r.json();if(token!==archiveToken)return;
     $("history-status").textContent=j.total?j.total+" kỳ phổ đã lưu":"Chưa có kỳ phổ trong nguồn này. Đồng bộ ván online hoặc bắt đầu luận kiếm.";
-    $("history-list").innerHTML=j.items.map(g=>`<button type="button" class="history-entry" data-game="${esc(g.id)}" data-source="${esc(g.source)}"><span><b>${esc(g.opponent)}</b><small>${esc(({bot:"Luận kiếm",chesscom:"Chess.com",lichess:"Lichess"})[g.source])} · ${esc(new Date(g.started_at).toLocaleString("vi-VN"))} · Quân ${colorName(g.user_color)}${g.plies===null?"":" · "+Math.ceil(g.plies/2)+" nước"}</small></span><span class="history-result">${esc(g.result==="*"?"Chưa kết thúc":g.result)}<small>${esc(g.reason)}</small></span></button>`).join("");
+    $("history-list").innerHTML=j.items.map(g=>`<article class="history-card"><button type="button" class="history-entry" data-game="${esc(g.id)}" data-source="${esc(g.source)}"><span><b>${esc(g.opponent)}</b><small>${esc(({bot:"Luận kiếm",chesscom:"Chess.com",lichess:"Lichess"})[g.source])} · ${esc(new Date(g.started_at).toLocaleString("vi-VN"))} · Quân ${colorName(g.user_color)}${g.plies===null?"":" · "+Math.ceil(g.plies/2)+" nước"}</small></span><span class="history-result">${esc(g.result==="*"?"Chưa kết thúc":g.result)}<small>${esc(g.reason)}</small></span></button><div class="history-card-actions"><a href="/review.html?source=${esc(g.source)}&game=${esc(g.id)}">Phân tích ván cờ →</a><button type="button" data-save-game="${esc(g.id)}" data-source="${esc(g.source)}">Lưu vào Tàng Kinh Các</button></div></article>`).join("");
     $("history-page").textContent=archivePage+" / "+Math.max(1,Math.ceil(j.total/12));
     $("history-prev").disabled=archivePage===1;$("history-next").disabled=archivePage*12>=j.total;
   }catch{$("history-status").textContent="Chưa đọc được lưu niên. Kiểm tra backend rồi bấm Làm mới.";}
@@ -667,6 +668,7 @@ function drawReplay(){
   $("history-moves").innerHTML=replayMoves.map((m,i)=>`<button type="button" data-ply="${i+1}" aria-current="${i+1===replayIndex?"step":"false"}">${i%2===0?Math.floor(i/2)+1+". ":""}${esc(m.san)}</button>`).join("");
 }
 $("history-list").onclick=async e=>{
+  const save=e.target.closest("[data-save-game]");if(save){save.disabled=true;try{const r=await fetch("/api/game-archive/"+save.dataset.source+"/"+encodeURIComponent(save.dataset.saveGame));if(!r.ok)throw Error("Không đọc được kỳ phổ.");const g=await r.json();if(!g.pgn)throw Error("Ván này chưa có PGN.");await savePgnToLibrary(g.pgn,"Ta - "+g.opponent);}catch(err){$("history-status").textContent=err.message;}finally{save.disabled=false;}return;}
   const b=e.target.closest("[data-game]");if(!b)return;
   const token=++archiveToken;
   try{
