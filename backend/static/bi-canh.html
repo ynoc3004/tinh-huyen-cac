@@ -14,7 +14,7 @@ try {
 } catch (e) { document.documentElement.dataset.theme = "dark"; }
 try { const f = localStorage.getItem("titleFont"); if (f) { document.documentElement.style.setProperty("--title", f); document.documentElement.style.setProperty("--tw", "400"); } } catch (e) {}
 </script>
-<link rel="stylesheet" href="/bi-canh.css?v=header-1">
+<link rel="stylesheet" href="/bi-canh.css?v=online-archive-1">
 </head>
 <body>
 <div class="wrap">
@@ -110,8 +110,8 @@ try { const f = localStorage.getItem("titleFont"); if (f) { document.documentEle
   </section>
 
 <section id="pane-history" role="tabpanel" aria-labelledby="tab-history" hidden>
-  <div class="library-heading"><div><span class="library-eyebrow">LUẬN KIẾM LƯU NIÊN</span><h2>Kỳ phổ lưu dấu, ôn cũ ngộ mới</h2><p>Lịch sử ván đấu với bot · Lưu trên máy đang chạy backend.</p></div><span class="library-seal" aria-hidden="true">記</span></div>
-  <div class="btns"><button type="button" class="act" id="history-refresh">Làm mới lưu niên</button></div>
+  <div class="library-heading"><div><span class="library-eyebrow">LUẬN KIẾM LƯU NIÊN</span><h2>Kỳ phổ lưu dấu, ôn cũ ngộ mới</h2><p>Kỳ phổ Chess.com, Lichess và luận kiếm với bot · Lưu trên máy chạy backend.</p></div><span class="library-seal" aria-hidden="true">記</span></div>
+  <div class="archive-toolbar"><div class="field"><label for="history-source">Nguồn kỳ phổ</label><select id="history-source"><option value="all">Tất cả ván đấu</option><option value="bot">Luận kiếm với bot</option><option value="chesscom">Chess.com</option><option value="lichess">Lichess</option></select></div><div class="btns"><button type="button" class="act main" id="history-sync">Đồng bộ ván online</button><button type="button" class="act" id="history-refresh">Làm mới</button></div></div><p id="history-accounts" class="meta"></p><p class="meta">Chess.com: hai tháng có kho ván gần nhất · Lichess: tối đa 100 ván gần nhất. Ván trùng được bỏ qua.</p><p id="history-sync-status" role="status" aria-live="polite"></p>
   <p id="history-status" role="status"></p><div id="history-list"></div>
   <div class="tech-pagination"><button type="button" class="act" id="history-prev">← Trước</button><span id="history-page"></span><button type="button" class="act" id="history-next">Sau →</button></div>
   <section id="history-replay" class="stage" hidden>
@@ -128,6 +128,6 @@ try { const f = localStorage.getItem("titleFont"); if (f) { document.documentEle
   <path class="mid" d="M0 150 0 104 120 84 250 112 390 76 520 110 660 70 800 108 940 82 1080 112 1200 90 1200 150z"/>
   <path class="near" d="M0 150 0 128 150 114 300 132 470 112 640 134 810 116 980 134 1100 120 1200 130 1200 150z"/>
 </svg>
-<script type="module" src="/bi-canh.js?v=bot-compact-2"></script>
+<script type="module" src="/bi-canh.js?v=online-archive-1"></script>
 </body>
 </html>
