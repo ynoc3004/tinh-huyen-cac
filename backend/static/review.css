@@ -71,3 +71,14 @@ body.review-page{margin:0;background:radial-gradient(ellipse at 0 0,#cfded480,tr
 .pv-line{border-top:1px solid #e2e6d8}.pv-line summary{display:flex;gap:8px;align-items:center;cursor:pointer;min-height:35px;padding:5px 0;list-style:none;font-size:12px}.pv-line summary::-webkit-details-marker{display:none}.pv-line summary::after{content:"▾";color:#7b8970;margin-left:auto}.pv-line[open] summary::after{content:"▴"}
 .pv-eval{flex-shrink:0;min-width:50px;padding:3px 5px;background:#eaf0df;border-radius:4px;color:#315c46;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
 .pv-rank{font-size:9px;color:#8a947e}.pv-preview{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#41533b;min-width:0}.pv-expanded{font-size:12px;line-height:1.8;padding:6px 8px 10px;overflow-wrap:anywhere;background:#f4f6ed;border-radius:5px}.pv-expanded small{display:block;font-size:9px;color:#829073;margin-top:5px}.pv-empty{font-size:11px;color:#7b8970;margin:6px 0}
+
+.review-page .site-header{margin:16px 0;background:#ffffff65;box-shadow:0 4px 20px #29422f08}.review-page .site-brand strong{font:600 19px/1.3 "Noto Serif",Georgia,serif}.review-page .site-navigation a[aria-current="page"]{background:#e5eddd;border-color:#bccdb3;color:#315c46}
+.import-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 6px;padding:10px 12px;border:1px solid #d5dece;border-radius:8px;background:#ffffff75;font-size:11px;color:#75816e}
+.import-toolbar button{padding:8px 12px;border:1px solid #b6c9aa;background:#edf3e5;color:#315c46;border-radius:6px;font-size:12px}
+.pgn-import-dialog{width:min(94vw,580px);max-height:90vh;overflow:auto;border:1px solid #b9c7ad;border-radius:14px;padding:22px;background:#fffcf4;color:#24392f;font:14px/1.6 system-ui;box-sizing:border-box}
+.pgn-import-dialog::backdrop{background:#172e23b0}.import-title{display:flex;align-items:center;justify-content:space-between;gap:12px}.import-title h2{font:600 22px "Noto Serif",Georgia,serif}.import-title button{border:0;background:transparent;font:24px system-ui;color:#6f7e65;cursor:pointer;min-width:40px;min-height:40px}
+.pgn-import-dialog>form>p{font-size:12px;color:#6d7e61}.pgn-import-dialog label{display:block;font-size:12px;font-weight:600;margin:10px 0 6px}
+.pgn-import-dialog input,.pgn-import-dialog textarea{display:block;width:100%;box-sizing:border-box;border:1px solid #c8d3bb;border-radius:7px;padding:10px;background:#fffef8;color:#364b2e;font:12px/1.6 system-ui}.pgn-import-dialog textarea{resize:vertical;font-family:ui-monospace,monospace}
+.import-divider{display:block;text-align:center;font-size:10px;color:#8a947e;margin:14px 0 5px}
+#confirm-import{background:#315c46;color:white;border-color:#315c46}
+@media(max-width:550px){.import-toolbar{align-items:flex-start;flex-direction:column}.import-toolbar button{width:100%}.pgn-import-dialog{padding:16px}}
