@@ -64,14 +64,18 @@ async function restoreReview(){
  }catch{cacheFailed=true;$("analysis-status").textContent="Không đọc được bộ nhớ lưu kết quả; bạn vẫn có thể phân tích ván.";}
 }
 document.body.insertAdjacentHTML("afterbegin",'<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'+PIECE_DEFS+'</defs></svg>');
+function moveAnnotation(review){
+ if(!review)return null;
+ return review.loss>200?{kind:"blunder",symbol:"??"}:review.loss>100?{kind:"mistake",symbol:"?"}:review.loss>50?{kind:"inaccurate",symbol:"?!"}:review.loss>10?{kind:"good",symbol:"✓"}:{kind:"accurate",symbol:"✓"};
+}
 function draw(){
  const c=new Chess(fens[index]);let out="";
  const top=flip?"w":"b",bottom=flip?"b":"w";
  for(const [pos,color] of [["top",top],["bottom",bottom]]){$(pos+"-player").textContent=players[color];$(pos+"-color").textContent=color==="w"?"Quân trắng":"Quân đen";$(pos+"-dot").className="player-dot "+(color==="w"?"white":"black");}
  $("eval-white").style.top=flip?"0":"auto";$("eval-white").style.bottom=flip?"auto":"0";
  for(let row=0;row<8;row++)for(let col=0;col<8;col++){
-  const f=flip?7-col:col,r=flip?row:7-row,sq="abcdefgh"[f]+(r+1),p=c.get(sq),last=moves[index-1];
-  out+='<div class="review-square '+((f+r)%2?"light":"dark")+((last&&(sq===last.from||sq===last.to))?" last":"")+'">'+(p?'<svg viewBox="0 0 45 45"><use href="#'+p.color+p.type.toUpperCase()+'"/></svg>':"")+(col===0?'<small class="rank">'+(r+1)+'</small>':"")+(row===7?'<small class="file">'+"abcdefgh"[f]+'</small>':"")+'</div>';
+  const f=flip?7-col:col,r=flip?row:7-row,sq="abcdefgh"[f]+(r+1),p=c.get(sq),last=moves[index-1],annotation=sq===last?.to?moveAnnotation(reviews[index-1]):null;
+  out+='<div class="review-square '+((f+r)%2?"light":"dark")+((last&&(sq===last.from||sq===last.to))?" last":"")+(annotation?" annotated-square annotation-"+annotation.kind:"")+'">'+(p?'<svg viewBox="0 0 45 45"><use href="#'+p.color+p.type.toUpperCase()+'"/></svg>':"")+(annotation?'<span class="board-move-badge badge-'+annotation.kind+'" role="img" aria-label="'+esc(reviews[index-1].label)+'" title="'+esc(reviews[index-1].label)+'">'+annotation.symbol+'</span>':"")+(col===0?'<small class="rank">'+(r+1)+'</small>':"")+(row===7?'<small class="file">'+"abcdefgh"[f]+'</small>':"")+'</div>';
  }
  $("review-board").innerHTML=out;$("position").textContent=index+" / "+moves.length;
  $("first").disabled=!index;$("last").disabled=index===moves.length;$("prev").disabled=!index;$("next").disabled=index===moves.length;
