@@ -345,3 +345,22 @@ details.more .movebox { margin-bottom: 0.8rem; }
 #pane-bot .bot-start-row .seg button{font-size:.8rem;min-height:40px;padding:.25rem .7rem}
 #pane-bot .bot-start-row .btns.start{margin:0}
 #pane-bot .bot-start-row .btns.start .main{font-size:.8rem;min-height:40px;padding:.35rem .7rem}
+
+/* Cổng môn: điều hướng chung của Tĩnh Huyền Các. */
+.site-header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.7rem 1.2rem;padding:.7rem .9rem;margin-bottom:1.4rem;border:1px solid var(--line);border-top:2px solid var(--gold);border-radius:8px;background:color-mix(in srgb,var(--paper) 88%,transparent);box-shadow:0 4px 18px #00000008}
+.site-brand{display:flex;align-items:center;gap:.65rem;text-decoration:none;color:var(--ink);flex:none}
+.site-brand svg{width:36px;height:36px;color:var(--gold)}
+.site-brand strong{display:block;font-family:var(--title);font-weight:400;font-size:1.35rem;line-height:1.2}
+.site-brand small{display:block;font-size:.6rem;letter-spacing:.16em;color:var(--muted);margin-top:.15rem}
+.site-navigation{display:flex;flex-wrap:wrap;gap:.25rem;align-items:center}
+.site-navigation a,.site-navigation button{display:inline-flex;align-items:center;min-height:38px;padding:.35rem .7rem;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--muted);font:inherit;font-size:.78rem;text-decoration:none;cursor:pointer}
+.site-navigation a:hover,.site-navigation button:hover{color:var(--gold);border-color:var(--line);background:color-mix(in srgb,var(--gold) 7%,transparent)}
+.site-navigation [aria-current="page"],.site-navigation [aria-selected="true"]{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 35%,transparent)}
+.site-navigation a:focus-visible,.site-navigation button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.home-footer{border-top:1px solid var(--line);margin-top:2.5rem;padding-top:1rem}
+.home-footer-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem;color:var(--gold);font-family:var(--title);font-size:1.3rem}
+.home-footer-heading small{font-family:var(--font-body);font-size:.75rem;color:var(--muted);align-self:center}
+.home-footer .footer-nav{margin-top:.6rem;padding-top:0}
+.home-footer .footer-nav .history-link{border-color:color-mix(in srgb,var(--gold) 50%,var(--line));color:var(--gold)}
+.home-footer-note{font-size:.72rem;color:var(--muted);margin:.8rem 0 0}
+@media(max-width:640px){.site-header{padding:.65rem;gap:.65rem}.site-navigation{width:100%;gap:.15rem}.site-navigation a,.site-navigation button{padding:.3rem .5rem;font-size:.74rem}.site-brand strong{font-size:1.2rem}}
