@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kỳ Phổ Tham Ngộ · Tĩnh Huyền Các</title>
 <link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/fonts/titles.css">
-<link rel="stylesheet" href="/bi-canh.css?v=review-1"><link rel="stylesheet" href="/review.css?v=studio-2">
+<link rel="stylesheet" href="/bi-canh.css?v=review-1"><link rel="stylesheet" href="/review.css?v=multipv-4">
 </head>
 <body class="review-page"><main class="review-shell">
 <header class="review-header">
@@ -14,11 +14,13 @@
 <p id="loading" class="game-meta" role="status">Đang mở kỳ phổ…</p>
 <div id="workspace" hidden><div class="review-layout">
 <section class="board-column" aria-label="Bàn phân tích">
+<div class="opening-banner"><span id="opening-code" class="eco-badge">—</span><div><strong id="opening-name">Đang nhận diện khai cuộc…</strong><small id="opening-source"></small></div></div>
 <div class="player-strip"><span id="top-dot" class="player-dot black" aria-hidden="true"></span><strong id="top-player">Đen</strong><span id="top-color" class="player-color">Quân đen</span></div>
 <div class="review-board-row"><div class="eval-bar" aria-hidden="true"><div id="eval-white"></div></div><div id="review-board" class="review-board" aria-label="Thế cờ"></div></div>
 <div class="player-strip"><span id="bottom-dot" class="player-dot white" aria-hidden="true"></span><strong id="bottom-player">Trắng</strong><span id="bottom-color" class="player-color">Quân trắng</span></div>
 <div class="review-controls"><div class="step-controls"><button id="first" title="Về đầu" aria-label="Về đầu">|←</button><button id="prev" title="Nước trước · phím trái" aria-label="Nước trước">←</button><span id="position" aria-live="polite"></span><button id="next" title="Nước sau · phím phải" aria-label="Nước sau">→</button><button id="last" title="Về cuối" aria-label="Về cuối">→|</button></div><button id="flip">⇅ Đảo bàn</button></div>
 <div class="position-insight"><div class="evaluation-block"><span>ĐÁNH GIÁ THẾ CỜ</span><strong id="evaluation" class="evaluation"></strong></div><div class="position-comment"><p id="move-comment"></p><p id="best-line"></p></div></div>
+<section class="engine-variations" aria-label="Ba phương án Stockfish"><div class="moves-heading"><h3>Ba phương án tốt nhất</h3><span id="pv-status">MultiPV 3 · Stockfish</span></div><div id="engine-lines"></div></section>
 <p class="board-hint">Dùng phím ← → hoặc chọn nước đi để xem lại kỳ phổ.</p>
 </section>
 <aside class="review-panel" aria-label="Kết quả phân tích">
@@ -32,4 +34,4 @@
 <div class="review-actions archive-actions"><button id="save">↓ Lưu vào Tàng Kinh Các</button><button id="download" title="Tải kỳ phổ về máy">Tải PGN</button></div>
 </aside></div></div>
 <footer class="review-footer"><span>TĨNH HUYỀN CÁC</span><span>Mỗi kỳ cuộc, một lần ngộ đạo.</span></footer>
-</main><script type="module" src="/review.js?v=saved-3"></script></body></html>
+</main><script type="module" src="/review.js?v=multipv-4"></script></body></html>
