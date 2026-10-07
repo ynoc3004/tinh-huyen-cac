@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field
 from db import conn
 from routers import library
 from services import vault
+from services import local_translation
 
 router = APIRouter(prefix="/api/library/translation")
 GLOSSARY = "fork=đòn đôi; pin=ghim; skewer=xiên; discovered attack=tấn công mở; opposition=đối vua; zugzwang=tình thế bắt buộc phải đi; outpost=ô tiền đồn; pawn structure=cấu trúc tốt; initiative=quyền chủ động; exchange sacrifice=hy sinh chất; endgame=tàn cuộc; middlegame=trung cuộc; opening=khai cuộc."
@@ -112,9 +113,9 @@ async def models(key: bytes = Depends(library.guard)):
         async with httpx.AsyncClient(timeout=8, trust_env=False) as client:
             r = await client.get("http://127.0.0.1:11434/api/tags")
             r.raise_for_status()
-        return {"models": local_models(r.json())}
+        return {"models": [local_translation.ENGINE] + local_models(r.json())}
     except (httpx.HTTPError, ValueError, KeyError):
-        raise HTTPException(503, "Chưa kết nối Ollama. Mở Ollama hoặc chạy ollama serve rồi bấm Kết nối lại.")
+        return {"models": [local_translation.ENGINE]}
 
 @router.get("/{item_id}/page")
 def page(item_id: int, page: int = 1, ocr: bool = False, key: bytes = Depends(library.guard)):
@@ -155,6 +156,16 @@ async def translate(item_id: int, body: Translate, key: bytes = Depends(library.
         return {**saved, "cached": True}
     if not body.text.strip():
         raise HTTPException(400, "Trang không có chữ. PDF scan cần OCR; bạn có thể dán văn bản vào ô tiếng Anh.")
+    if body.model == local_translation.ENGINE:
+        try:
+            result = await asyncio.to_thread(local_translation.translate_text, body.text)
+        except Exception as e:
+            raise HTTPException(503, str(e) if isinstance(e, RuntimeError) else "Không tải/chạy được model dịch local. Chạy python setup_translation.py để kiểm tra.")
+        if not result.strip():
+            raise HTTPException(502, "Model trả về bản dịch trống")
+        out = {"translation": result, "model": body.model, "page": body.page}
+        write_cache(path, key, out)
+        return {**out, "cached": False}
     text, tokens = protect_moves(body.text)
     system = ("Bạn là người dịch sách cờ vua Anh–Việt. Chỉ xuất bản dịch tiếng Việt, không thêm lời mở đầu, giải thích hay kiến thức ngoài nguyên bản. "
               "Giữ đoạn văn, số nước đi, mã ECO và mọi token __THC_MOVE_n__ nguyên vẹn đúng một lần. "
