@@ -21,7 +21,7 @@ function persist(){
  state=snapshot;queue=queue.catch(()=>{}).then(()=>api(id+"/state",snapshot,"PUT"));return queue;
 }
 async function models(){
- try{const data=await api("models");engineOnline=true;$("model").replaceChildren(...data.models.map(name=>{const opt=document.createElement("option");opt.value=name;opt.textContent=name.startsWith("gemini:")?"Gemini · "+name.slice(7):name==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt (CPU)":name;return opt;}));
+ try{const data=await api("models");engineOnline=true;$("model").replaceChildren(...data.models.map(name=>{const opt=document.createElement("option");opt.value=name;opt.textContent=name==="deepl:en-vi"?"DeepL · Anh → Việt":name.startsWith("gemini:")?"Gemini · "+name.slice(7):name==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt (CPU)":name;return opt;}));
  const preferred=data.models.find(n=>n===state.model)||data.models.find(n=>n==="opus-mt-en-vi");if(preferred)$("model").value=preferred;
  if(!data.models.length)$("status").textContent="Ollama chưa có model. Cài model rồi bấm Kết nối lại.";
  }catch(e){engineOnline=false;$("model").replaceChildren();if(state.model){const opt=document.createElement("option");opt.value=state.model;opt.textContent=state.model+" · ngoại tuyến";$("model").append(opt);}$("status").textContent=e.message;}controls();
