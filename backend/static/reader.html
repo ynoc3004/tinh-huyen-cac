@@ -11,7 +11,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:52rem;wid
 .msg{margin:auto;text-align:center;padding:2rem;max-width:30rem}[hidden]{display:none!important}
 </style><link rel="stylesheet" href="/tien-canh.css"><script src="/tien-canh.js"></script></head><body>
 <header><a class="btn" href="/library.html">← Tàng Kinh Các</a><span class="t" id="t">Đang tải…</span>
-<span id="fs" hidden><button id="m" aria-label="Chữ nhỏ hơn">A−</button> <button id="l" aria-label="Chữ lớn hơn">A+</button></span><a class="btn" id="dl" href="#" hidden>Tải về</a></header>
+<span id="fs" hidden><button id="m" aria-label="Chữ nhỏ hơn">A−</button> <button id="l" aria-label="Chữ lớn hơn">A+</button></span><a class="btn" id="translate-book" href="#" hidden>讀 Dịch Kinh Các</a><a class="btn" id="dl" href="#" hidden>Tải về</a></header>
 <div id="b"></div>
 <script>
 const $=s=>document.querySelector(s),B=$('#b'),id=+new URLSearchParams(location.search).get('id'),url='/api/library/file/'+id;
@@ -27,6 +27,7 @@ const K={'.pdf':'pdf','.png':'img','.jpg':'img','.jpeg':'img','.webp':'img','.tx
  const i=await r.json(),k=K[(i.ext||'').toLowerCase()];
  document.title=i.title+' · Tàng Kinh Các';$('#t').textContent=i.title;$('#dl').href=url+'?download=true';$('#dl').hidden=false;
  setInterval(()=>fetch('/api/library/item/'+id).then(x=>{if(x.status===401)location.reload()}).catch(()=>{}),30000); // giữ két không tự khóa khi đang đọc
+ if(k==='pdf'){$('#translate-book').href='/translate.html?id='+id;$('#translate-book').hidden=false;}
  if(k==='pdf')B.innerHTML=`<iframe src="${url}" title="${esc(i.title)}"></iframe>`;
  else if(k==='img'){B.innerHTML=`<img src="${url}" alt="${esc(i.title)}">`;B.firstChild.onclick=e=>e.target.classList.toggle('full')}
  else if(k==='txt'){let fs=+localStorage.getItem('rfs')||17;B.innerHTML='<pre id="x">Đang tải…</pre>';const x=$('#x'),z=d=>{fs=Math.min(40,Math.max(11,fs+d));x.style.fontSize=fs+'px';try{localStorage.setItem('rfs',fs)}catch(e){}};z(0);
