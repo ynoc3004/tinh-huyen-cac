@@ -6,6 +6,7 @@ import time
 import json
 import re
 import secrets
+import xml.etree.ElementTree as ET
 from pathlib import Path
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,6 +23,9 @@ GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash")
 
 def gemini_models():
     return ["gemini:" + GEMINI_MODEL] if os.getenv("GEMINI_API_KEY", "").strip() and re.fullmatch(r"gemini-[a-zA-Z0-9.\\-]+", GEMINI_MODEL) else []
+
+def deepl_models():
+    return ["deepl:en-vi"] if os.getenv("DEEPL_API_KEY", "").strip() else []
 
 SAN = re.compile(r"(?<![\w])(?:O-O-O|O-O|0-0-0|0-0|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?)[+#]?[!?]{0,2}(?![\w])")
 
@@ -118,9 +122,9 @@ async def models(key: bytes = Depends(library.guard)):
         async with httpx.AsyncClient(timeout=8, trust_env=False) as client:
             r = await client.get("http://127.0.0.1:11434/api/tags")
             r.raise_for_status()
-        return {"models": gemini_models() + [local_translation.ENGINE] + local_models(r.json())}
+        return {"models": deepl_models() + gemini_models() + [local_translation.ENGINE] + local_models(r.json())}
     except (httpx.HTTPError, ValueError, KeyError):
-        return {"models": gemini_models() + [local_translation.ENGINE]}
+        return {"models": deepl_models() + gemini_models() + [local_translation.ENGINE]}
 
 @router.get("/{item_id}/page")
 def page(item_id: int, page: int = 1, ocr: bool = False, key: bytes = Depends(library.guard)):
@@ -169,6 +173,59 @@ async def translate(item_id: int, body: Translate, key: bytes = Depends(library.
             raise HTTPException(503, str(e) if isinstance(e, RuntimeError) else "Không tải/chạy được model dịch local. Chạy python setup_translation.py để kiểm tra.")
         if not result.strip():
             raise HTTPException(502, "Model trả về bản dịch trống")
+        out = {"translation": result, "model": body.model, "page": body.page}
+        write_cache(path, key, out)
+        return {**out, "cached": False}
+    if body.model == "deepl:en-vi":
+        api_key = os.getenv("DEEPL_API_KEY", "").strip()
+        if not api_key:
+            raise HTTPException(503, "Backend chưa có DEEPL_API_KEY. Đặt khóa rồi khởi động lại.")
+        # Legacy Free keys end in :fx. Other plans use the standard endpoint.
+        plan = os.getenv("DEEPL_API_PLAN", "").strip().lower()
+        if plan not in ("", "free", "standard"):
+            raise HTTPException(503, "DEEPL_API_PLAN chỉ nhận free hoặc standard.")
+        host = "api-free.deepl.com" if plan == "free" or (not plan and api_key.endswith(":fx")) else "api.deepl.com"
+        protected, move_tokens = protect_moves(body.text)
+        xml_text = html.escape(protected)
+        for token in move_tokens:
+            xml_text = xml_text.replace(token, "<move>" + token + "</move>")
+        payload = {"text": ["<text>" + xml_text + "</text>"], "source_lang": "EN",
+                   "target_lang": "VI", "tag_handling": "xml", "tag_handling_version": "v2",
+                   "ignore_tags": ["move"], "split_sentences": "nonewlines",
+                   "preserve_formatting": True,
+                   "context": "This is an English chess book about chess openings, strategy and tactics."}
+        try:
+            async with httpx.AsyncClient(timeout=120, trust_env=False) as client:
+                response = await client.post("https://" + host + "/v2/translate",
+                    headers={"Authorization": "DeepL-Auth-Key " + api_key}, json=payload)
+            if response.status_code == 456:
+                raise HTTPException(429, "DeepL đã hết hạn mức ký tự. Tiến độ được giữ; kiểm tra hạn mức trong tài khoản DeepL.")
+            if response.status_code == 429:
+                raise HTTPException(429, "DeepL giới hạn tốc độ. Đợi một lúc rồi tiếp tục; tiến độ đã lưu.")
+            if response.status_code in (401, 403):
+                raise HTTPException(503, "DeepL từ chối API key. Kiểm tra khóa và DEEPL_API_PLAN (free cho API Free cũ, standard cho các gói khác).")
+            if response.status_code == 400:
+                raise HTTPException(400, "DeepL không chấp nhận yêu cầu Anh–Việt. Kiểm tra hỗ trợ tiếng Việt của gói API.")
+            response.raise_for_status()
+            translations = response.json()["translations"]
+            if len(translations) != 1:
+                raise ValueError("Unexpected translation count")
+            root = ET.fromstring(translations[0]["text"])
+            if root.tag != "text":
+                raise ValueError("Invalid translation root")
+            result = restore_moves("".join(root.itertext()).strip(), move_tokens)
+            if not result:
+                raise ValueError("Empty translation")
+        except HTTPException:
+            raise
+        except httpx.TimeoutException:
+            raise HTTPException(504, "DeepL trả lời quá lâu. Thử lại với đoạn ngắn hơn.")
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(503, f"DeepL trả HTTP {e.response.status_code}. Thử lại sau; tiến độ đã lưu.")
+        except httpx.HTTPError:
+            raise HTTPException(503, "Không kết nối được DeepL. Kiểm tra kết nối HTTPS/proxy của Python.")
+        except (ValueError, KeyError, TypeError, ET.ParseError):
+            raise HTTPException(502, "DeepL trả dữ liệu không hợp lệ hoặc đổi ký hiệu nước đi. Bản lỗi chưa được lưu.")
         out = {"translation": result, "model": body.model, "page": body.page}
         write_cache(path, key, out)
         return {**out, "cached": False}
