@@ -22,7 +22,7 @@ REALM_BANDS = {
 DEFAULT_BAND = REALM_BANDS["Luyện Khí"]
 MAIN_THEMES = ["mate", "fork", "pin", "skewer", "discoveredAttack", "doubleCheck", "sacrifice", "deflection", "attraction", "trappedPiece",
                "hangingPiece", "capturingDefender", "quietMove", "defensiveMove", "intermezzo", "backRankMate", "smotheredMate",
-               "kingsideAttack", "exposedKing", "promotion", "zugzwang", "endgame"]
+               "kingsideAttack", "exposedKing", "promotion", "zugzwang", "endgame", "clearance", "interference", "xRayAttack"]
 _status_memo = {}
 SAMPLE_FILE = Path(__file__).with_name("sample_puzzles.json")
 URL = "https://database.lichess.org/lichess_db_puzzle.csv.zst"
