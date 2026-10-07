@@ -98,18 +98,49 @@ async function load(){
   const q=new URLSearchParams(location.search);let r;
   if(q.has("item"))r=await fetch("/api/library/file/"+encodeURIComponent(q.get("item")));
   else if(q.has("source")&&q.has("game"))r=await fetch("/api/game-archive/"+encodeURIComponent(q.get("source"))+"/"+encodeURIComponent(q.get("game")));
-  else throw Error("Chọn một kỳ phổ để phân tích.");
+  else {$("loading").textContent="Nhập file PGN hoặc dán kỳ phổ để bắt đầu phân tích.";$("import-dialog").showModal();return;}
   if(!r.ok)throw Error(r.status===401?"Tàng Kinh Các đang khóa. Mở khóa rồi tải lại trang.":"Không đọc được kỳ phổ.");
   if(q.has("item"))pgn=await r.text();else {const g=await r.json();pgn=g.pgn;flip=g.user_color==="b";}
   if(!pgn?.trim())throw Error("Ván này chưa có PGN.");
-  const c=new Chess();c.loadPgn(pgn);moves=c.history({verbose:true});const headers=c.getHeaders();
+  await showGame();
+ }catch(e){$("loading").textContent=e.message;}
+}
+
+async function showGame(parsed=null){
+  const c=parsed||new Chess();if(!parsed)c.loadPgn(pgn);moves=c.history({verbose:true});const headers=c.getHeaders();
+  scores=[];reviews=[];openingByPly=[];openingHeader=null;cacheKey="";cachedQuality=0;cacheFailed=false;index=0;
+  $("analyze").textContent="▶ Phân tích toàn ván";$("analysis-progress").value=0;$("analysis-status").textContent="Sẵn sàng · Stockfish chạy trên máy của bạn.";summary();
   players={w:headers.White||"Trắng",b:headers.Black||"Đen"};
   $("game-title").textContent=players.w+" · "+players.b;
   while(c.undo()){}fens=[c.fen()];for(const m of moves){c.move(m);fens.push(c.fen());}
   $("loading").textContent=Math.ceil(moves.length/2)+" lượt · "+moves.length+" nước đi · Kết quả "+(headers.Result||"*");
   await recognizeOpenings(headers);await restoreReview();$("workspace").hidden=false;draw();
- }catch(e){$("loading").textContent=e.message;}
 }
+$("open-import").onclick=()=>$("import-dialog").showModal();
+$("close-import").onclick=$("cancel-import").onclick=()=>$("import-dialog").close();
+$("pgn-file").onchange=()=>{$("import-status").textContent=$("pgn-file").files[0]?"Đã chọn "+$("pgn-file").files[0].name:"Mỗi lần nhập một ván cờ · Tối đa 2 MB.";$("pgn-text").value="";};
+$("pgn-text").oninput=()=>{if($("pgn-text").value.trim())$("pgn-file").value="";};
+$("import-form").onsubmit=async e=>{
+ e.preventDefault();$("confirm-import").disabled=true;
+ try{
+  const file=$("pgn-file").files[0];
+  if(file&&file.size>2*1024*1024)throw Error("File lớn hơn 2 MB. Hãy xuất riêng một ván.");
+  const raw=(file?await file.text():$("pgn-text").value).replace(/^\uFEFF/,"").trim();
+  if(!raw)throw Error("Hãy chọn file hoặc dán nội dung PGN.");
+  if(new TextEncoder().encode(raw).length>2*1024*1024)throw Error("PGN lớn hơn 2 MB.");
+  if((raw.match(/^\[Event\s/gm)||[]).length>1)throw Error("File chứa nhiều ván. Hãy xuất riêng ván muốn phân tích.");
+  const parsed=new Chess();
+  try{parsed.loadPgn(raw);}catch{throw Error("PGN không hợp lệ hoặc có nước đi sai. Hãy kiểm tra nội dung kỳ phổ.");}
+  if(!parsed.history().length)throw Error("Kỳ phổ chưa có nước đi để phân tích.");
+  if(busy)$("stop").onclick();
+  pgn=raw;flip=false;
+  await showGame(parsed);
+  history.replaceState(null,"","/review.html");
+  $("import-dialog").close();$("import-status").textContent="Đã nhập kỳ phổ.";
+ }catch(err){$("import-status").textContent=err.message;}
+ finally{$("confirm-import").disabled=false;}
+};
+
 function engineStart(){
  return new Promise((resolve,reject)=>{
   worker=new Worker("/vendor/stockfish/stockfish-19-lite-single.js");
