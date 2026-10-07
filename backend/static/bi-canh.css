@@ -217,3 +217,44 @@ details.more .movebox { margin-bottom: 0.8rem; }
 .tech-intro{margin:0 0 1rem;color:var(--muted)}
 @media(max-width:880px){#tech-grid .techs{grid-template-columns:repeat(2,minmax(0,1fr))}.tech-nav{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){#tech-grid .techs{grid-template-columns:minmax(0,1fr)}.tech-nav button{font-size:.82rem}}
+
+/* Tàng Kinh Các: giấy cổ, ngọc bích và vàng. */
+.library-heading{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:1rem}
+.library-eyebrow{font-size:.68rem;letter-spacing:.24em;color:var(--gold)}
+.library-heading h2{font-family:var(--title);font-weight:400;font-size:clamp(1.5rem,3vw,2rem);margin:.2rem 0;color:var(--ink)}
+.library-heading p{margin:0;color:var(--muted);font-size:.9rem}
+.library-seal{flex:none;border:3px double #ac6554;border-radius:4px;background:#803831;color:#f3dfbb;padding:.3rem .65rem;line-height:1.2;transform:rotate(5deg)}
+.tech-search-wrap{display:flex;gap:1rem;align-items:center;margin-bottom:1rem}
+.tech-search-wrap label{font-size:.82rem;color:var(--gold);white-space:nowrap}
+.tech-search-wrap input{width:100%;max-width:30rem;min-width:0;padding:.65rem .9rem;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:inherit;font-size:.9rem}
+.tech-search-wrap input:focus{outline:2px solid var(--gold);outline-offset:2px}
+#tech-grid{--manual:#17251f;--manual-ink:#e6e7d8;--manual-muted:#a5b6a5}
+:root[data-theme="light"] #tech-grid{--manual:#f6f1e4;--manual-ink:#263c33;--manual-muted:#607269}
+#tech-grid .tech-nav button{position:relative;border-radius:6px;padding:.65rem .5rem}
+#tech-grid .tech-nav button[aria-pressed="true"]:after{content:"";position:absolute;bottom:-4px;left:calc(50% - 4px);width:8px;height:8px;transform:rotate(45deg);background:var(--gold)}
+#tech-grid .tech-group{position:relative;isolation:isolate;overflow:hidden;border-radius:10px;background:color-mix(in srgb,var(--paper) 85%,transparent);padding:1rem}
+#tech-grid .tech-group:before{content:"☯";position:absolute;right:-35px;top:-45px;font:180px/1 serif;color:var(--accent);opacity:.045;z-index:-1;animation:library-orbit 80s linear infinite;pointer-events:none}
+#tech-grid .tech-group header{margin-bottom:.85rem}
+#tech-grid .tech-group h2{font-size:1.45rem}
+#tech-grid .tech{position:relative;border:1px solid color-mix(in srgb,var(--accent) 25%,var(--gold));border-top:1px solid color-mix(in srgb,var(--accent) 25%,var(--gold));border-left:3px solid var(--accent);border-radius:5px;background:linear-gradient(120deg,color-mix(in srgb,var(--gold) 5%,transparent),transparent 60%),var(--manual);color:var(--manual-ink);padding:.85rem;box-shadow:0 3px 9px #00000008;transition:transform .2s,border-color .2s,box-shadow .2s}
+#tech-grid .tech:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 6px 18px #00000012}
+#tech-grid .tech:after{content:"";position:absolute;right:6px;top:6px;width:12px;height:12px;border-top:1px solid var(--gold);border-right:1px solid var(--gold);opacity:.5;pointer-events:none}
+.manual-head{display:flex;gap:.7rem;align-items:center;margin-bottom:.3rem;min-width:0}
+.manual-head>div{min-width:0}.manual-label{display:block;font-size:.62rem;letter-spacing:.1em;color:var(--manual-muted);margin-bottom:.15rem}
+.manual-icon{display:grid;place-items:center;flex:none;width:42px;height:48px;border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);border-radius:20px 20px 5px 5px;color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,transparent)}
+.manual-icon svg{width:29px;height:29px}
+#tech-grid .tech h3{font-size:1.3rem;line-height:1.35}
+#tech-grid .tech .plain,#tech-grid .tech .count{color:var(--manual-muted)}
+#tech-grid .tech details{border-top:1px solid color-mix(in srgb,var(--gold) 20%,transparent);padding-top:.35rem}
+#tech-grid .tech summary{font-size:.8rem;color:var(--accent)}
+#tech-grid .tech .count{font-size:.73rem;margin-bottom:.4rem}
+#tech-grid .tech button.main{background:var(--accent);color:#0d211a;border-color:var(--accent);border-radius:5px;display:flex;justify-content:space-between;align-items:center;min-height:38px;padding:.35rem .75rem}
+:root[data-theme="light"] #tech-grid .tech button.main{color:#fffdf5}
+#tech-grid .tech-group.inner{--accent:#c4aff0}
+:root[data-theme="light"] #tech-grid .tech-group.inner{--accent:#72519c}
+:root[data-theme="light"] #tech-grid .tech-nav .novice{--accent:#456b2d}
+:root[data-theme="light"] #tech-grid .tech-nav .inner{--accent:#72519c}
+.tech-empty{grid-column:1/-1;color:var(--muted);padding:1rem}
+@keyframes library-orbit{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#tech-grid .tech-group:before{animation:none}#tech-grid .tech{transition:none}#tech-grid .tech:hover{transform:none}}
+@media(max-width:520px){.tech-search-wrap{align-items:stretch;flex-direction:column;gap:.35rem}.library-heading h2{font-size:1.4rem}.manual-icon{width:35px;height:43px}}
