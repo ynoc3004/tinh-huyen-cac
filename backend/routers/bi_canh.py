@@ -40,3 +40,33 @@ def result(r: Result):
 @router.get("/stats")
 def stats():
     return puzzles.stats()
+
+# Bot games are stored separately; they do not affect platform ratings.
+from typing import Literal
+from services import bot_history
+
+class BotGame(BaseModel):
+    id: str = Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9-]+$")
+    started_at: str = Field(min_length=1, max_length=40)
+    opponent: str = Field(min_length=1, max_length=100)
+    realm: str = Field("", max_length=40)
+    user_color: Literal["w", "b"]
+    result: Literal["*", "1-0", "0-1", "1/2-1/2"]
+    reason: str = Field("", max_length=160)
+    pgn: str = Field(max_length=200000)
+    plies: int = Field(ge=0, le=10000)
+
+@router.put("/bot-games")
+def save_bot_game(game: BotGame):
+    return bot_history.save(game.model_dump())
+
+@router.get("/bot-games")
+def list_bot_games(page: int = Query(1, ge=1), size: int = Query(12, ge=1, le=50)):
+    return bot_history.listing(page, size)
+
+@router.get("/bot-games/{game_id}")
+def get_bot_game(game_id: str):
+    game = bot_history.get(game_id)
+    if game is None:
+        raise HTTPException(404, "Không tìm thấy kỳ phổ.")
+    return game
