@@ -82,3 +82,16 @@ body.review-page{margin:0;background:radial-gradient(ellipse at 0 0,#cfded480,tr
 .import-divider{display:block;text-align:center;font-size:10px;color:#8a947e;margin:14px 0 5px}
 #confirm-import{background:#315c46;color:white;border-color:#315c46}
 @media(max-width:550px){.import-toolbar{align-items:flex-start;flex-direction:column}.import-toolbar button{width:100%}.pgn-import-dialog{padding:16px}}
+
+/* Move verdicts follow the destination square in either orientation. */
+.review-square.annotated-square{box-shadow:inset 0 0 0 3px var(--verdict)}
+.annotation-accurate{--verdict:#5a9146;background:color-mix(in srgb,#71a953 36%,#e1e8d5)!important}
+.annotation-good{--verdict:#769a4c;background:color-mix(in srgb,#93af68 36%,#e1e8d5)!important}
+.annotation-inaccurate{--verdict:#c59c2c;background:color-mix(in srgb,#e9c650 42%,#e1e8d5)!important}
+.annotation-mistake{--verdict:#d88135;background:color-mix(in srgb,#ee9c54 44%,#e1e8d5)!important}
+.annotation-blunder{--verdict:#cf5344;background:color-mix(in srgb,#ef7c6b 48%,#e1e8d5)!important}
+.board-move-badge{position:absolute;z-index:2;top:2px;right:2px;display:grid;place-items:center;width:clamp(18px,2.3vw,26px);height:clamp(18px,2.3vw,26px);border-radius:50%;font:800 clamp(10px,1.3vw,15px)/1 system-ui;color:white;box-shadow:0 1px 5px #0003;border:1px solid #fff9;pointer-events:none;forced-color-adjust:none}
+.badge-accurate{background:#5a9146}.badge-good{background:#769a4c}.badge-inaccurate{background:#b89529}.badge-mistake{background:#d88135}.badge-blunder{background:#d74839}
+.review-panel .position-insight{margin:2px 0 12px;padding:12px;background:#f1f5e9}.review-panel .evaluation-block{min-width:76px}.review-panel .evaluation{font-size:20px}
+.review-panel .engine-variations{margin:0 0 15px;padding:10px;background:#f8f9f0;box-shadow:none}.review-panel .pv-line summary{font-size:11px}.review-panel .moves-heading{gap:8px}
+@media(max-width:700px){.board-move-badge{width:24px;height:24px;font-size:13px}}
