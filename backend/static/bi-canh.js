@@ -473,10 +473,13 @@ const autoLevel = () => Math.max(0, Math.min(5, REALMS.indexOf(me.realm) + shift
 const speak = kind => { $("bot-speech").textContent = "“" + pickOne(SPEECH[kind]) + "”"; };
 function fillOpponents() {
   const au = BOTS[autoLevel()];
-  $("bot-opps").innerHTML = `<button type="button" role="radio" class="opp auto" data-v="auto" aria-checked="${bot.sel === "auto"}"><b>Tự chọn theo cảnh giới của bạn</b><small>Hiện là ${esc(au.name)} (${esc(au.realm)}). Thắng thì đối thủ mạnh lên, thua thì dịu đi.</small></button>` +
-    BOTS.map((b, i) => `<button type="button" role="radio" class="opp" data-v="${i}" aria-checked="${bot.sel === String(i)}"><b>${esc(b.name)}</b><small>${esc(b.realm)}, khoảng ${b.show} điểm</small></button>`).join("");
+  $("bot-opponent").innerHTML = '<option value="auto">Theo cảnh giới · '+esc(au.name)+'</option>' +
+    BOTS.map((b,i)=>'<option value="'+i+'">'+esc(b.name)+' · ~'+b.show+' điểm</option>').join("");
+  $("bot-opponent").value = bot.sel;
+  const selected=bot.sel==="auto"?au:BOTS[Number(bot.sel)];
+  $("bot-opponent-note").textContent=selected.realm+" · khoảng "+selected.show+" điểm"+(bot.sel==="auto"?" · Tự điều chỉnh sau mỗi ván.":"");
 }
-$("bot-opps").onclick = e => { const b = e.target.closest(".opp"); if (b) { bot.sel = b.dataset.v; fillOpponents(); } };
+$("bot-opponent").onchange = e => {bot.sel=e.target.value;fillOpponents();};
 $("bot-colors").onclick = e => {
   const b = e.target.closest("button[data-c]");
   if (!b) return;
