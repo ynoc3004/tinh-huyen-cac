@@ -125,7 +125,8 @@ def page(item_id: int, page: int = 1, ocr: bool = False, key: bytes = Depends(li
             raise HTTPException(400, "Số trang không hợp lệ")
         job = get_job(row, key) if ocr else None
         saved = read_cache(page_path(row, key, job, page), key) if job and job.get("ocr") else None
-        text = saved["text"] if saved else extract_page(doc, page - 1, ocr)
+        edited = read_cache(cache_path(row, key, "study-source-v1:" + str(page)), key)
+        text = edited["text"] if edited else saved["text"] if saved else extract_page(doc, page - 1, ocr)
         return {"page": page, "pages": len(doc), "text": text, "title": row["title"]}
 
 @router.get("/{item_id}/state")
@@ -333,9 +334,10 @@ async def batch_step(item_id: int, key: bytes = Depends(library.guard)):
             if not data:
                 with document(row, key) as doc:
                     raw = doc[p-1].get_text().strip()
-                    if not raw and doc[p-1].get_images() and not job["ocr"]:
+                    edited = read_cache(cache_path(row, key, "study-source-v1:" + str(p)), key)
+                    if not edited and not raw and doc[p-1].get_images() and not job["ocr"]:
                         raise HTTPException(400, f"Trang {p} là ảnh scan. Bật OCR và bắt đầu lại với cùng khoảng trang.")
-                    text = extract_page(doc, p-1, job["ocr"])
+                    text = edited["text"] if edited else extract_page(doc, p-1, job["ocr"])
                 chunks = split_chunks(text, job["chunk_size"])
                 data = {"text": text, "chunks": chunks, "translations": [], "complete": False}
             n = len(data["translations"])
@@ -371,3 +373,16 @@ def export_book(item_id: int, key: bytes = Depends(library.guard)):
     if not count: raise HTTPException(400, "Chưa có đoạn nào được dịch")
     return Response("".join(out)+"</body></html>", media_type="text/html",
                     headers={"Content-Disposition": "attachment; filename=ban-dich-song-ngu.html", "Cache-Control": "no-store"})
+
+class StudySource(BaseModel):
+    page: int = Field(ge=1)
+    text: str = Field(max_length=120000)
+
+@router.post("/{item_id}/study/source")
+def save_study_source(item_id: int, body: StudySource, key: bytes = Depends(library.guard)):
+    row = book(item_id)
+    with document(row, key) as doc:
+        if body.page > len(doc):
+            raise HTTPException(400, "Số trang không hợp lệ")
+    write_cache(cache_path(row, key, "study-source-v1:" + str(body.page)), key, {"text": body.text})
+    return {"ok": True}
