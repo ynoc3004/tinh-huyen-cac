@@ -389,20 +389,55 @@ $("pz-auto").onchange = () => store.set("bicanh.auto", $("pz-auto").checked ? 1 
 
 // ===== Công pháp các =====
 
+
+// Biểu tượng SVG nét mảnh, không phụ thuộc phông chữ.
+const TECH_GLYPHS={
+mate:"M8 25h16M10 25v-9l3 3 3-7 3 7 3-3v9M16 5v6M13 8h6",
+fork:"M8 26l16-20M6 9l17 17M5 7l4 1-1 4M22 23l4 1-1 4",
+pin:"M16 5v22M11 10h10M10 18c-6 0-6 8 0 8h12c6 0 6-8 0-8",
+skewer:"M5 27L27 5M17 6l9 1 1 9M8 17h7v7H8z",
+discoveredAttack:"M5 24h22M18 19l6 5-6 5M8 20V8h8M12 4l4 4-4 4",
+doubleCheck:"M7 25L14 8l3 10M25 25L18 8l-3 10",
+sacrifice:"M16 4l4 9 9 3-9 4-4 9-4-9-9-4 9-3z",
+deflection:"M5 25l12-12M17 13V5M17 13h10M22 4l5 1-1 5",
+attraction:"M8 8v10c0 10 16 10 16 0V8M8 12h5M19 12h5M16 4v9M13 10l3 3 3-3",
+trappedPiece:"M6 6h20v20H6zM12 12h8v8h-8z",
+hangingPiece:"M16 5v8M8 8l4 5M24 8l-4 5M11 25l2-9h6l2 9z",
+capturingDefender:"M16 4l10 5v8c0 6-10 11-10 11S6 23 6 17V9zM9 24L24 9",
+quietMove:"M5 22c5-10 15-10 22 0M9 7h14M13 27h6",
+defensiveMove:"M16 4l10 5v8c0 6-10 11-10 11S6 23 6 17V9zM10 16l4 4 8-9",
+intermezzo:"M6 8h20M6 24h20M16 4v24M12 12l4 4 4-4",
+backRankMate:"M5 26h22M8 6v15M16 6v15M24 6v15M5 17h22",
+smotheredMate:"M6 6h20v20H6zM12 22v-8l7-6 3 8-7 6",
+kingsideAttack:"M5 25L25 5M20 5h5v5M7 8l3 4 3-7 3 7 3-4v9H7z",
+exposedKing:"M9 26h14M10 26V15l3 3 3-6 3 6 3-3v11M16 4v6M13 7h6M4 9l3 3M28 9l-3 3",
+promotion:"M10 26h12M12 26l2-8h4l2 8M16 17V5M10 11l6-6 6 6",
+zugzwang:"M8 5h16M8 27h16M10 5c0 7 12 15 12 22M22 5c0 7-12 15-12 22",
+endgame:"M8 25h16M10 25v-9l3 3 3-7 3 7 3-3v9M16 5v6M13 8h6M4 29h24",
+clearance:"M4 24h24M20 19l5 5-5 5M12 20V5M7 10l5-5 5 5",
+interference:"M4 16h24M16 4v24M11 11h10v10H11z",
+xRayAttack:"M4 16h24M23 11l5 5-5 5M12 6v20M19 6v20"
+};
+function techGlyph(key){return '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+(TECH_GLYPHS[key]||TECH_GLYPHS.quietMove)+'"/></svg>';}
+const techNormalize=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/đ/gi,"d").toLowerCase();
+let techQuery="";
+
 let techSection = "outer", techPage = 0;
 const TECH_PAGE_SIZE = 6;
 function renderTechs() {
+  $("tech-search-wrap").hidden=techSection==="novice"||techSection==="lineage";
   const groups = [{key:"novice",name:"Đệ tử tạp dịch",icon:"☯",note:"Nhập môn: bàn cờ, cách đi quân và luật chơi."},...TECH_GROUPS,{key:"lineage",name:"Công pháp chân truyền",icon:"✦",note:"Công pháp chuyên sâu · Sắp khai mở"}];
   const group = groups.find(g=>g.key===techSection)||groups[0];
-  const items = TECHS.filter(t=>t.group===group.key);
+  const items = TECHS.filter(t=>t.group===group.key && techNormalize(t.name+" "+t.plain).includes(techNormalize(techQuery.trim())));
   const pages = Math.max(1,Math.ceil(items.length/TECH_PAGE_SIZE));
   techPage = Math.min(techPage,pages-1);
   const cards = items.slice(techPage*TECH_PAGE_SIZE,(techPage+1)*TECH_PAGE_SIZE).map(t=>{
     const n=pz.avail[t.key]||0;
-    return `<article class="tech"><h3>${esc(t.name)}</h3><span class="plain">${esc(t.plain)}</span><details><summary>Tham ngộ khẩu quyết</summary><p>${esc(t.essence)}</p></details><span class="count">${n?(pz.sample?"Có trong bộ mẫu":n.toLocaleString("vi-VN")+" câu trong kho"):"Cần nạp kho Lichess để luyện"}</span><button type="button" class="act${n?" main":""}" data-t="${t.key}"${n?"":" disabled"}>Luyện công pháp này</button></article>`;
+    return `<article class="tech"><div class="manual-head"><span class="manual-icon">${techGlyph(t.key)}</span><div><span class="manual-label">Bí kíp · ${String(TECHS.indexOf(t)+1).padStart(2,"0")}</span><h3>${esc(t.name)}</h3><span class="plain">${esc(t.plain)}</span></div></div><details><summary>Tham ngộ khẩu quyết</summary><p>${esc(t.essence)}</p></details><span class="count">${n?(pz.sample?"Có trong bộ mẫu":"Kho bí cảnh · "+n.toLocaleString("vi-VN")+" thế"):"Cần nạp kho Lichess để luyện"}</span><button type="button" class="act${n?" main":""}" data-t="${t.key}"${n?"":" disabled"}>Tu luyện <span aria-hidden="true">→</span></button></article>`;
   }).join("");
-  $("tech-grid").innerHTML = `<nav class="tech-nav" aria-label="Cấp công pháp">${groups.map(g=>`<button type="button" class="${g.key}" data-section="${g.key}" aria-pressed="${g.key===techSection}"><span aria-hidden="true">${g.icon}</span> ${esc(g.name)}</button>`).join("")}</nav><section class="tech-group ${group.key}"><header><h2>${esc(group.name)}</h2><p>${esc(group.note)}${items.length?" · "+items.length+" công pháp":""}</p></header>${group.key==="novice"?'<p class="tech-intro">Khai mở căn cơ qua các bài học và bàn cờ thực hành. Tiến độ được ghi lại trong Tu hành ký.</p><a class="learn-link" href="/learn.html?v=bagua">Vào công pháp nhập môn →</a>':group.key==="lineage"?'<p>Công pháp chân truyền đang được biên soạn. Hãy rèn vững ngoại môn và nội môn trước khi khai mở tầng này.</p>':'<div class="techs">'+cards+'</div>'}${pages>1?`<div class="tech-pagination"><button type="button" class="act" data-page="-1"${techPage===0?" disabled":""}>← Trước</button><span aria-live="polite">Trang ${techPage+1} / ${pages}</span><button type="button" class="act" data-page="1"${techPage===pages-1?" disabled":""}>Sau →</button></div>`:""}</section>`;
+  $("tech-grid").innerHTML = `<nav class="tech-nav" aria-label="Cấp công pháp">${groups.map(g=>`<button type="button" class="${g.key}" data-section="${g.key}" aria-pressed="${g.key===techSection}"><span aria-hidden="true">${g.icon}</span> ${esc(g.name)}</button>`).join("")}</nav><section class="tech-group ${group.key}"><header><h2>${esc(group.name)}</h2><p>${esc(group.note)}${items.length?" · "+items.length+" công pháp":""}</p></header>${group.key==="novice"?'<p class="tech-intro">Khai mở căn cơ qua các bài học và bàn cờ thực hành. Tiến độ được ghi lại trong Tu hành ký.</p><a class="learn-link" href="/learn.html?v=bagua">Vào công pháp nhập môn →</a>':group.key==="lineage"?'<p>Công pháp chân truyền đang được biên soạn. Hãy rèn vững ngoại môn và nội môn trước khi khai mở tầng này.</p>':'<div class="techs">'+(cards||'<p class="tech-empty">Chưa tìm thấy công pháp. Thử tên chiến thuật khác hoặc chọn môn phái khác.</p>')+'</div>'}${pages>1?`<div class="tech-pagination"><button type="button" class="act" data-page="-1"${techPage===0?" disabled":""}>← Trước</button><span aria-live="polite">Trang ${techPage+1} / ${pages}</span><button type="button" class="act" data-page="1"${techPage===pages-1?" disabled":""}>Sau →</button></div>`:""}</section>`;
 }
+$("tech-search").addEventListener("input",e=>{techQuery=e.target.value;techPage=0;renderTechs();});
 $("tech-grid").onclick=e=>{
   const section=e.target.closest("button[data-section]");
   if(section){techSection=section.dataset.section;techPage=0;renderTechs();$("tech-grid").querySelector('[data-section="'+techSection+'"]').focus({preventScroll:true});return;}
