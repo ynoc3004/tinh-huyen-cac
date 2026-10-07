@@ -14,7 +14,7 @@ try {
 } catch (e) { document.documentElement.dataset.theme = "dark"; }
 try { const f = localStorage.getItem("titleFont"); if (f) { document.documentElement.style.setProperty("--title", f); document.documentElement.style.setProperty("--tw", "400"); } } catch (e) {}
 </script>
-<link rel="stylesheet" href="/bi-canh.css?v=history-1">
+<link rel="stylesheet" href="/bi-canh.css?v=bot-compact-2">
 </head>
 <body>
 <div class="wrap">
@@ -77,15 +77,14 @@ try { const f = localStorage.getItem("titleFont"); if (f) { document.documentEle
     <div class="panel bot-panel">
       <header class="practice-heading"><div><span class="library-eyebrow">LUẬN KIẾM ĐÀI</span><h2>Kỳ phùng đối thủ</h2></div><span class="practice-seal" aria-hidden="true">劍</span></header>
       <p class="speech" id="bot-speech"></p>
-      <h2 class="h2s">Chọn đối thủ</h2>
-      <div class="opps" id="bot-opps" role="radiogroup" aria-label="Chọn đối thủ luận kiếm"></div>
-      <h2 class="h2s">Bạn cầm quân</h2>
+      <div class="bot-opponent-field"><label for="bot-opponent">Chọn đối thủ</label><select id="bot-opponent"></select><small id="bot-opponent-note"></small></div>
+      <div class="bot-start-row"><div><h2 class="h2s">Bạn cầm quân</h2>
       <div class="seg" id="bot-colors" role="radiogroup" aria-label="Chọn màu quân">
         <button type="button" role="radio" aria-checked="true" data-c="w">Trắng</button>
         <button type="button" role="radio" aria-checked="false" data-c="b">Đen</button>
         <button type="button" role="radio" aria-checked="false" data-c="r">Ngẫu nhiên</button>
       </div>
-      <div class="btns start"><button class="act main" id="bot-new" type="button">Bắt đầu luận kiếm</button></div>
+      </div><div class="btns start"><button class="act main" id="bot-new" type="button">Bắt đầu luận kiếm →</button></div></div>
       <p class="status" id="bot-status" role="status" aria-live="polite">Chọn đối thủ rồi bấm Bắt đầu.</p>
       <p class="meta" id="bot-meta"></p><div class="bot-save-line"><span id="bot-save" role="status">Kỳ phổ tự lưu sau mỗi nước đi.</span><button type="button" class="link" id="bot-save-retry">Lưu lại</button></div>
       <div class="moves" id="bot-moves" aria-label="Danh sách nước đi">Chưa có nước đi.</div>
@@ -128,6 +127,6 @@ try { const f = localStorage.getItem("titleFont"); if (f) { document.documentEle
   <path class="mid" d="M0 150 0 104 120 84 250 112 390 76 520 110 660 70 800 108 940 82 1080 112 1200 90 1200 150z"/>
   <path class="near" d="M0 150 0 128 150 114 300 132 470 112 640 134 810 116 980 134 1100 120 1200 130 1200 150z"/>
 </svg>
-<script type="module" src="/bi-canh.js?v=history-1"></script>
+<script type="module" src="/bi-canh.js?v=bot-compact-2"></script>
 </body>
 </html>
