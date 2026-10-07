@@ -364,3 +364,10 @@ details.more .movebox { margin-bottom: 0.8rem; }
 .home-footer .footer-nav .history-link{border-color:color-mix(in srgb,var(--gold) 50%,var(--line));color:var(--gold)}
 .home-footer-note{font-size:.72rem;color:var(--muted);margin:.8rem 0 0}
 @media(max-width:640px){.site-header{padding:.65rem;gap:.65rem}.site-navigation{width:100%;gap:.15rem}.site-navigation a,.site-navigation button{padding:.3rem .5rem;font-size:.74rem}.site-brand strong{font-size:1.2rem}}
+
+.archive-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.7rem 1rem;margin:.8rem 0}
+.archive-toolbar .field{margin:0;min-width:190px}
+.archive-toolbar .field label{font-size:.78rem;color:var(--gold)}
+.archive-toolbar select{width:100%;min-height:42px;background:var(--paper);color:var(--ink);border:1px solid var(--jade);border-radius:5px;padding:.4rem .6rem;font:inherit;font-size:.85rem}
+.archive-toolbar .btns{margin:0}
+#history-accounts,#history-sync-status{font-size:.8rem}
