@@ -21,7 +21,7 @@ function persist(){
  state=snapshot;queue=queue.catch(()=>{}).then(()=>api(id+"/state",snapshot,"PUT"));return queue;
 }
 async function models(){
- try{const data=await api("models");engineOnline=true;$("model").replaceChildren(...data.models.map(name=>{const opt=document.createElement("option");opt.value=name;opt.textContent=name==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt (CPU)":name;return opt;}));
+ try{const data=await api("models");engineOnline=true;$("model").replaceChildren(...data.models.map(name=>{const opt=document.createElement("option");opt.value=name;opt.textContent=name.startsWith("gemini:")?"Gemini · "+name.slice(7):name==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt (CPU)":name;return opt;}));
  const preferred=data.models.find(n=>n===state.model)||data.models.find(n=>n==="opus-mt-en-vi");if(preferred)$("model").value=preferred;
  if(!data.models.length)$("status").textContent="Ollama chưa có model. Cài model rồi bấm Kết nối lại.";
  }catch(e){engineOnline=false;$("model").replaceChildren();if(state.model){const opt=document.createElement("option");opt.value=state.model;opt.textContent=state.model+" · ngoại tuyến";$("model").append(opt);}$("status").textContent=e.message;}controls();
@@ -50,7 +50,7 @@ async function translate(selected){
  const text=selected?$("source").value.slice($("source").selectionStart,$("source").selectionEnd):$("source").value;
  if(!text.trim()){$("status").textContent=selected?"Bôi đen đoạn cần dịch trong ô tiếng Anh trước.":"Không có chữ để dịch.";return;}
  if(text.length>12000){$("status").textContent="Nội dung quá dài. Chọn một đoạn tối đa 12.000 ký tự.";return;}
- busy=true;controls();$("status").textContent="Đang dịch bằng model local… Lần đầu cần nạp model vào bộ nhớ.";
+ busy=true;controls();$("status").textContent="Đang dịch bằng bộ máy đã chọn…";
  try{const data=await api(id+"/translate",body(text));$("result").textContent=data.translation;$("status").textContent=(selected?"Bản dịch đoạn chọn":"Bản dịch trang "+current)+" · "+(data.cached?"Đã mở từ két":"Đã dịch và tự lưu vào két")+" · "+data.model;}
  catch(e){$("status").textContent=e.message;}finally{busy=false;controls();}
 }
