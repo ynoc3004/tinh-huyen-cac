@@ -45,7 +45,7 @@ $("translate").onclick=async()=>{
  if(busy||!loaded)return;
  if(!$("source").value.trim()){status("Không có chữ để dịch.");return;}
  if($("source").value.length>12000){status("Trang dài quá 12.000 ký tự. Dùng Dịch Kinh Các để dịch theo đoạn.");return;}
- busy=true;controls();status("Đang dịch trên máy…");
+ busy=true;controls();status($("model").value.startsWith("gemini:")?"Đang gửi đoạn chữ tới Gemini để dịch…":"Đang dịch trên máy…");
  try{if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}
  const data=await api(id+"/translate",body());$("result").textContent=data.translation;status("Bản dịch đã lưu · đối chiếu nguyên bản khi học.");
  }catch(e){status(e.message);}finally{busy=false;controls();}
@@ -95,7 +95,7 @@ const started=Date.now();setInterval(()=>{const m=Math.floor((Date.now()-started
  if(!id){status("Chọn sách trong tủ. Nếu chưa có, tải PDF lên ở Tàng Kinh Các.");$("books").disabled=false;return;}
  $("books").value=String(id);$("translation").href="/translate.html?id="+id;
  state=await api(id+"/state");job=await api(id+"/batch");$("note").value=state.note||"";$("return").hidden=!state.bookmark;$("ocr").checked=!!job.ocr;
- const models=await api("models");$("model").replaceChildren(...models.models.map(x=>new Option(x==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt":x,x)));
+ const models=await api("models");$("model").replaceChildren(...models.models.map(x=>new Option(x.startsWith("gemini:")?"Gemini · "+x.slice(7):x==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt":x,x)));
  const preferred=job.model||state.model;if(models.models.includes(preferred))$("model").value=preferred;
  await openPage(state.page||1,true);
  setInterval(()=>fetch("/api/library/item/"+id).then(r=>{if(r.status===401){loaded=false;controls();$("pdf").src="about:blank";$("source").value="";$("result").textContent="";$("note").value="";status("Két đã khóa. Mở khóa rồi tải lại trang.");}}).catch(()=>{}),30000);
