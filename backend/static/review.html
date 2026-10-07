@@ -3,14 +3,16 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kỳ Phổ Tham Ngộ · Tĩnh Huyền Các</title>
 <link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/fonts/titles.css">
-<link rel="stylesheet" href="/bi-canh.css?v=review-1"><link rel="stylesheet" href="/review.css?v=multipv-4">
+<link rel="stylesheet" href="/bi-canh.css?v=review-1"><link rel="stylesheet" href="/review.css?v=import-5">
 </head>
 <body class="review-page"><main class="review-shell">
-<header class="review-header">
-<a class="review-brand" href="/"><span class="brand-mark" aria-hidden="true">☯</span><span><strong>Tĩnh Huyền Các</strong><small>KỲ PHỔ THAM NGỘ</small></span></a>
-<nav aria-label="Điều hướng"><a href="/">Cổng môn</a><a href="/bi-canh.html#history">Lưu niên</a><a href="/library.html">Tàng Kinh Các</a></nav>
-</header>
+<header class="site-header"><a class="site-brand" href="/"><svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"><path d="M15 2h18l13 13v18L33 46H15L2 33V15z" opacity=".5"/><circle cx="24" cy="24" r="15"/><path d="M24 9a15 15 0 0 1 0 30a7.5 7.5 0 0 1 0-15a7.5 7.5 0 0 0 0-15" fill="currentColor"/><circle cx="24" cy="16.5" r="2.3" fill="currentColor"/><circle cx="24" cy="31.5" r="2.3" fill="var(--paper)" stroke="none"/></svg><span><strong>Tĩnh Huyền Các</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính"><a href="/">Cổng môn</a><a href="/library.html">Tàng kinh</a><a href="/bi-canh.html">Bí cảnh</a><a href="/arena.html">Đấu trường</a><a href="/bi-canh.html#history">Kỳ phổ</a><a href="/review.html" aria-current="page">Phân tích</a></nav></header>
 <div class="review-heading"><div><span class="review-eyebrow">ÔN KỲ PHỔ · NGỘ KỲ ĐẠO</span><h1 id="game-title">Phân tích ván cờ</h1></div><a class="back-link" href="/bi-canh.html#history">← Về kỳ phổ</a></div>
+<div class="import-toolbar"><span>Tham ngộ kỳ phổ của riêng bạn</span><button type="button" id="open-import">＋ Nhập PGN để phân tích</button></div>
+<dialog id="import-dialog" class="pgn-import-dialog"><form id="import-form"><div class="import-title"><h2>Nhập kỳ phổ</h2><button type="button" id="close-import" aria-label="Đóng">×</button></div><p>Tải file PGN hoặc dán nội dung kỳ phổ để phân tích bằng Stockfish.</p>
+<label for="pgn-file">Chọn file PGN</label><input id="pgn-file" type="file" accept=".pgn,.txt,application/x-chess-pgn,text/plain"><span class="import-divider">hoặc dán nội dung</span>
+<label for="pgn-text">Nội dung PGN</label><textarea id="pgn-text" rows="7" placeholder='[White "Bạn"]&#10;[Black "Đối thủ"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 *' spellcheck="false"></textarea>
+<p id="import-status" role="status">Mỗi lần nhập một ván cờ · Tối đa 2 MB.</p><div class="review-actions"><button type="submit" id="confirm-import">Mở bàn phân tích</button><button type="button" id="cancel-import">Hủy</button></div></form></dialog>
 <p id="loading" class="game-meta" role="status">Đang mở kỳ phổ…</p>
 <div id="workspace" hidden><div class="review-layout">
 <section class="board-column" aria-label="Bàn phân tích">
@@ -34,4 +36,4 @@
 <div class="review-actions archive-actions"><button id="save">↓ Lưu vào Tàng Kinh Các</button><button id="download" title="Tải kỳ phổ về máy">Tải PGN</button></div>
 </aside></div></div>
 <footer class="review-footer"><span>TĨNH HUYỀN CÁC</span><span>Mỗi kỳ cuộc, một lần ngộ đạo.</span></footer>
-</main><script type="module" src="/review.js?v=multipv-4"></script></body></html>
+</main><script type="module" src="/review.js?v=import-5"></script></body></html>
