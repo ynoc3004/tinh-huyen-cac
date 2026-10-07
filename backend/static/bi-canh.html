@@ -14,7 +14,7 @@ try {
 } catch (e) { document.documentElement.dataset.theme = "dark"; }
 try { const f = localStorage.getItem("titleFont"); if (f) { document.documentElement.style.setProperty("--title", f); document.documentElement.style.setProperty("--tw", "400"); } } catch (e) {}
 </script>
-<link rel="stylesheet" href="/bi-canh.css?v=compact-1">
+<link rel="stylesheet" href="/bi-canh.css?v=library-1">
 </head>
 <body>
 <div class="wrap">
@@ -103,7 +103,7 @@ try { const f = localStorage.getItem("titleFont"); if (f) { document.documentEle
   </section>
 
   <section id="pane-tech" role="tabpanel" aria-labelledby="tab-tech" hidden>
-    <p class="sub">Mỗi công pháp là một đòn chiến thuật có thật trong cờ vua, đặt tên theo huyền môn để dễ nhớ. Chọn một công pháp để luyện liên tục các câu đố cùng loại. Khi giải xong một câu, tên công pháp của câu đó sẽ hiện ra.</p>
+    <div class="library-heading"><div><span class="library-eyebrow">TÀNG KINH CÁC</span><h2>Một chiêu khai ngộ, vạn thế thông huyền</h2><p>Chọn bí kíp, tham ngộ khẩu quyết, diễn luyện trên kỳ bàn.</p></div><span class="library-seal" aria-hidden="true">藏<br>經</span></div><div id="tech-search-wrap" class="tech-search-wrap"><label for="tech-search">Tra cứu bí kíp</label><input id="tech-search" type="search" placeholder="Tìm theo tên công pháp hoặc chiến thuật…" autocomplete="off"></div>
     <div class="techs" id="tech-grid"></div>
   </section>
 </div>
@@ -112,6 +112,6 @@ try { const f = localStorage.getItem("titleFont"); if (f) { document.documentEle
   <path class="mid" d="M0 150 0 104 120 84 250 112 390 76 520 110 660 70 800 108 940 82 1080 112 1200 90 1200 150z"/>
   <path class="near" d="M0 150 0 128 150 114 300 132 470 112 640 134 810 116 980 134 1100 120 1200 130 1200 150z"/>
 </svg>
-<script type="module" src="/bi-canh.js?v=compact-1"></script>
+<script type="module" src="/bi-canh.js?v=library-1"></script>
 </body>
 </html>
