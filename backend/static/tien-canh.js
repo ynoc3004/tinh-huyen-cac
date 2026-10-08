@@ -73,12 +73,6 @@
       const scene=document.createElement('div');scene.className='site-scenery';scene.setAttribute('aria-hidden','true');
       scene.innerHTML='<span class="moon"></span><div class="site-mist"></div><div class="site-mist second"></div><svg class="site-ridge" viewBox="0 0 1200 150" preserveAspectRatio="none"><path class="far" d="M0 150V70L80 86 190 36 300 80 430 28 560 84 690 40 820 88 950 32 1080 74 1200 50V150z"/><path class="mid" d="M0 150V104L120 84 250 112 390 76 520 110 660 70 800 108 940 82 1080 112 1200 90V150z"/><path class="near" d="M0 150V128L150 114 300 132 470 112 640 134 810 116 980 134 1100 120 1200 130V150z"/></svg>';document.body.prepend(scene);
     }
-    let footer=document.querySelector('.home-footer, .site-footer');
-    if(!footer&&page!=='reader'){
-      footer=document.createElement('footer');footer.className='site-footer noprint';footer.innerHTML='<div class="home-footer-heading"><span>Tĩnh Huyền Các · Lối về sư môn</span><small>Một nước cờ, một lần ngộ đạo.</small></div><nav class="footer-nav" aria-label="Lối về sư môn"><a href="/">☯ Cổng môn</a><a href="/learn.html">✦ Nhập môn kỳ đạo</a><a href="/library.html">▤ Tàng Kinh Các</a><a href="/fonts-preview.html">Aa Font chữ</a></nav>';
-      (page==='learn'?document.querySelector('body > main'):header.parentElement).append(footer);
-    }
-    footer?.classList.add('site-footer','noprint');
     const positionOrb=()=>root.style.setProperty('--site-orb-top',Math.ceil(header.getBoundingClientRect().bottom+window.scrollY+24)+'px');
     positionOrb();window.addEventListener('resize',positionOrb);if(window.ResizeObserver)new ResizeObserver(positionOrb).observe(header);document.fonts?.ready.then(positionOrb);apply();
   }

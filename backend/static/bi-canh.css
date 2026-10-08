@@ -313,10 +313,10 @@ details.more .movebox { margin-bottom: 0.8rem; }
 #pane-bot .btns.start .main{background:var(--jade);color:#11271c;padding:.4rem 1rem;min-height:42px}
 :root[data-theme="light"] #pane-bot .btns.start .main{color:#fffdf4}
 .bot-save-line{display:flex;justify-content:space-between;gap:.5rem;font-size:.72rem;color:var(--muted);margin:.5rem 0}
-.bicanh-footer{display:flex;flex-wrap:wrap;align-items:center;gap:.8rem 1.2rem;border-top:1px solid var(--line);padding:1rem 0;margin-top:2rem;font-size:.83rem}
-.bicanh-footer span{color:var(--muted);margin-left:auto;font-style:italic}
-.bicanh-footer button{border-color:var(--gold);color:var(--gold)}
-.bicanh-footer small{display:block;color:var(--muted);font-size:.7rem}
+
+
+
+
 #history-list{display:grid;gap:.5rem}
 .history-entry{display:flex;align-items:center;justify-content:space-between;gap:1rem;text-align:left;width:100%;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-left:3px solid var(--jade);border-radius:6px;padding:.7rem 1rem;cursor:pointer}
 .history-entry:hover{border-color:var(--gold)}
@@ -328,7 +328,7 @@ details.more .movebox { margin-bottom: 0.8rem; }
 .history-moves{display:flex;flex-wrap:wrap;gap:.25rem;max-height:300px;overflow:auto;margin-bottom:1rem}
 .history-moves button{font:inherit;font-size:.85rem;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:.3rem .5rem;cursor:pointer}
 .history-moves button[aria-current="step"]{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 15%,var(--paper))}
-@media(max-width:520px){.history-entry{align-items:start;flex-direction:column;gap:.3rem}.history-result{text-align:left}.bicanh-footer span{margin-left:0}}
+@media(max-width:520px){.history-entry{align-items:start;flex-direction:column;gap:.3rem}.history-result{text-align:left}}
 
 /* Chọn đối thủ gọn, ưu tiên kỳ bàn và ván đang chơi. */
 #pane-bot .practice-heading{padding-bottom:.55rem;margin-bottom:.55rem}
@@ -357,12 +357,12 @@ details.more .movebox { margin-bottom: 0.8rem; }
 .site-navigation a:hover,.site-navigation button:hover{color:var(--gold);border-color:var(--line);background:color-mix(in srgb,var(--gold) 7%,transparent)}
 .site-navigation [aria-current="page"],.site-navigation [aria-selected="true"]{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 35%,transparent)}
 .site-navigation a:focus-visible,.site-navigation button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.home-footer{border-top:1px solid var(--line);margin-top:2.5rem;padding-top:1rem}
-.home-footer-heading{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.5rem;color:var(--gold);font-family:var(--title);font-size:1.3rem}
-.home-footer-heading small{font-family:var(--font-body);font-size:.75rem;color:var(--muted);align-self:center}
-.home-footer .footer-nav{margin-top:.6rem;padding-top:0}
-.home-footer .footer-nav .history-link{border-color:color-mix(in srgb,var(--gold) 50%,var(--line));color:var(--gold)}
-.home-footer-note{font-size:.72rem;color:var(--muted);margin:.8rem 0 0}
+
+
+
+
+
+
 @media(max-width:640px){.site-header{padding:.65rem;gap:.65rem}.site-navigation{width:100%;gap:.15rem}.site-navigation a,.site-navigation button{padding:.3rem .5rem;font-size:.74rem}.site-brand strong{font-size:1.2rem}}
 
 .archive-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.7rem 1rem;margin:.8rem 0}
