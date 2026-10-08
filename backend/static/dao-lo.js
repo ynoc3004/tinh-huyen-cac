@@ -18,8 +18,7 @@ function nextStep(t) {
 }
 function realmText(t) {
   return `<p class="can-co-line">Căn cơ là ${esc(speedOf(t))} trên ${esc(platformOf(t))}, ${esc(t.rating)} điểm.</p>
-    <p class="next">${nextStep(t)}</p>
-    <p class="koan">Tu vi không ở chỗ cao nhất, mà ở mạch thấp nhất còn vững.</p>`;
+    <p class="next">${nextStep(t)}</p>`;
 }
 const MODE_ORDER = ["bullet", "blitz", "rapid", "daily", "classical", "correspondence"];
 const MAIN_MODES = 3; // đạn, chớp, nhanh luôn hiện; các mode còn lại nằm trong "xem thêm"

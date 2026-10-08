@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1">
 <link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <style>
+@font-face { font-family:"Dao Han"; font-style:normal; font-weight:400; font-display:swap; src:url("/fonts/files/dao-han.woff2") format("woff2"); }
 :root {
   --bg: #0b1210;
   --bg-deep: #070c0b;
@@ -106,8 +107,6 @@ h1 {
 }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1rem; margin: 1.6rem 0 2.4rem; }
 button { font: inherit; cursor: pointer; }
-.dao-link { display: inline-flex; align-items:center; min-height:44px; color:var(--jade); text-decoration:none; border-bottom:1px solid var(--line); }
-.dao-link:hover { color:var(--gold); border-color:var(--gold); }
 #msg { color: var(--muted); font-size: 0.95rem; }
 a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 
@@ -136,8 +135,13 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-
 .hero-text { margin-top: 1.4rem; }
 .can-co-line { margin: 0 0 0.35rem; font-size: 1.05rem; }
 .next { margin: 0 0 1.5rem; color: var(--muted); }
-.koan { position: relative; margin: 0 auto; max-width: 21rem; padding-top: 1.1rem; color: var(--muted); font-style: italic; font-size: 0.95rem; }
-.koan::before { content: ""; position: absolute; top: 0; left: 50%; width: 2.2rem; height: 2px; margin-left: -1.1rem; background: var(--seal); }
+.daily-dao { max-width:34rem; margin:1.6rem auto 0; padding-top:1.1rem; border-top:1px solid var(--line); text-align:left; }
+.daily-dao h3 { margin:0 0 .8rem; font:400 1.25rem/1.5 var(--title); color:var(--gold); }
+.daily-dao p.han[data-dao-han] { margin:0; font-family:var(--font-body),"Dao Han","Noto Serif CJK TC","Songti SC","SimSun",serif!important; font-size:1.12rem; line-height:2; font-style:normal; overflow-wrap:anywhere; }
+.daily-dao .dao-source { margin:.8rem 0 0; font-size:.7rem; color:var(--muted); }
+.daily-dao .dao-source a { color:var(--muted); text-decoration:none; border-bottom:1px solid var(--line); }
+.daily-dao .dao-source a:hover { color:var(--gold); }
+.daily-dao [data-dao-status] { margin:.4rem 0 0; color:var(--muted); font-size:.72rem; }
 
 /* Pháp mạch */
 h2 {
@@ -307,13 +311,18 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
     <div class="seal" aria-hidden="true">Tĩnh<br>Huyền</div>
   </header>
   <div class="toolbar">
-    <a class="dao-link" href="/dao-lo.html">Đạo Lộ · Hồ sơ &amp; tu vi →</a>
     <span id="msg" role="status"></span>
   </div>
   <section id="thien-co" aria-label="Thiên cơ">
     <div class="tc-left">
       <div class="tc-dial" id="tc-dial"></div>
       <div class="hero-text" id="tc-realm-text"></div>
+      <section class="daily-dao" data-daily-dao aria-label="Đạo Đức Kinh mỗi ngày">
+        <h3 data-dao-title>Đạo Đức Kinh · Chương 1 / 81</h3>
+        <p class="han" data-dao-han lang="zh-Hant">道 可 道 非 常 道. 名 可 名 非 常 名. 無 名 天 地 之 始; 有 名 萬 物 之 母. 故 常 無 欲 以 觀 其 妙; 常 有 欲, 以 觀 其 徼. 此 兩 者 同 出 而 異 名. 同 謂 之 玄. 玄 之 又 玄. 眾 妙 之 門.</p>
+        <p class="dao-source"><a data-dao-source href="https://nhantu.net/TonGiao/DaoDucKinh/DDK01.htm" target="_blank" rel="noopener noreferrer">Hán văn · Nhân Tử</a></p>
+        <p data-dao-status role="status" aria-live="polite"></p>
+      </section>
     </div>
     <div class="tc-info" id="tc-info"></div>
   </section>
@@ -348,8 +357,7 @@ function nextStep(t) {
 }
 function realmText(t) {
   return `<p class="can-co-line">Căn cơ là ${esc(speedOf(t))} trên ${esc(platformOf(t))}, ${esc(t.rating)} điểm.</p>
-    <p class="next">${nextStep(t)}</p>
-    <p class="koan">Tu vi không ở chỗ cao nhất, mà ở mạch thấp nhất còn vững.</p>`;
+    <p class="next">${nextStep(t)}</p>`;
 }
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 function ripple() {
@@ -693,5 +701,6 @@ async function load() {
 }
 load();
 </script>
+<script type="module" src="/daily-dao.js?v=1"></script>
 </body>
 </html>

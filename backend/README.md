@@ -135,6 +135,16 @@ API tests dùng PDF/database tạm và phản hồi giả, kiểm tra chọn loc
 Thử thực tế trên PDF London System: nhận diện 20 hình ở các trang PDF 22, 24, 26, 27, 29–44; đã đối chiếu vị trí quân với ảnh. Đây là mẫu một kiểu sách, không đại diện cho mọi PDF. Kiểu quân trong Winning Chess Strategies có trường hợp nhận nhầm; cần hiệu đính hoặc dùng nguồn nhận diện khác.
 
 
+## Đạo Đức Kinh mỗi ngày
+
+Trang chủ hiển thị nguyên phần **Hán văn** của một chương Đạo Đức Kinh bên dưới bàn Thiên cơ, thay cho câu tu vi cũ. Nội dung cổ gồm đủ 81 chương, lấy từ các trang `DDK01.htm` đến `DDK81.htm` của [Nhân Tử](https://nhantu.net/TonGiao/DaoDucKinh/DDK01.htm); không sao chép phiên âm, bản dịch hoặc bình giảng hiện đại.
+
+Kho chữ nằm trong `static/dao-duc-kinh.json`, dùng ngay cùng website, không gọi trang nguồn hay AI mỗi ngày. Chu kỳ bắt đầu chương 1 ngày **09/10/2026**, mỗi ngày tăng một chương theo múi giờ **Việt Nam**, hết chương 81 quay về chương 1. Mọi trình duyệt dùng cùng ngày sẽ đọc cùng chương; tải lại trang không đổi chương. Tab đang mở tự cập nhật qua nửa đêm và khi quay lại tab. Nguồn của chương đang đọc được liên kết ngay dưới Hán văn.
+
+Font chữ Hán Noto Serif TC được đóng gói cùng website, thu gọn theo các ký tự trong 81 chương; giấy phép SIL OFL ở `static/fonts/OFL-noto-serif-tc.txt`. Không cần cài package hoặc trả phí để hiển thị.
+
+Kiểm tra dữ liệu và lịch luân phiên: `node tests/daily-dao.test.mjs`.
+
 ## Đạo Lộ
 
 Trang `/dao-lo.html` lưu hồ sơ cá nhân: họ tên, đạo hiệu, sinh thần (ngày dương lịch và giờ sinh nếu biết), quê quán, chí hướng và ghi chú. Các mục đều tùy chọn. Bấm **Lưu hồ sơ** để lưu vào `data/app.db`; hồ sơ dùng chung trên các trình duyệt truy cập cùng backend. Database tự thêm bảng hồ sơ khi khởi động, giữ nguyên dữ liệu cờ hiện có.
