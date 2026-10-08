@@ -492,3 +492,58 @@ def save_study_source(item_id: int, body: StudySource, key: bytes = Depends(libr
             raise HTTPException(400, "Số trang không hợp lệ")
     write_cache(cache_path(row, key, "study-source-v1:" + str(body.page)), key, {"text": body.text})
     return {"ok": True}
+
+# Scan results and preview images use the same encrypted vault cache as books.
+_scan_locks = {}
+class ScanPage(BaseModel):
+    page: int = Field(ge=1)
+    force: bool = False
+
+@router.get('/{item_id}/study/boards')
+def cached_boards(item_id: int, page: int = 1, key: bytes = Depends(library.guard)):
+    row = book(item_id)
+    with document(row, key) as doc:
+        if not 1 <= page <= len(doc):
+            raise HTTPException(400, 'Số trang không hợp lệ')
+    saved = read_cache(cache_path(row, key, 'board-scan-v1:' + str(page)), key)
+    return {**saved, 'cached': True} if saved else {'boards':None, 'page':page, 'available':bool(os.getenv('GEMINI_API_KEY','').strip())}
+
+@router.post('/{item_id}/study/boards')
+async def scan_boards(item_id: int, body: ScanPage, key: bytes = Depends(library.guard)):
+    import base64
+    from services import board_scan
+    row = book(item_id)
+    path = cache_path(row, key, 'board-scan-v1:' + str(body.page))
+    lock = _scan_locks.setdefault(row['blob'], asyncio.Lock())
+    if lock.locked():
+        raise HTTPException(409, 'Đang quét sách này ở một tab khác. Đợi hoàn thành rồi mở kết quả đã lưu.')
+    async with lock:
+        saved = read_cache(path, key)
+        if saved and not body.force:
+            return {**saved, 'cached':True}
+        api_key = os.getenv('GEMINI_API_KEY','').strip()
+        model = os.getenv('GEMINI_SCAN_MODEL',GEMINI_MODEL)
+        if not api_key or not re.fullmatch(r'gemini-[a-zA-Z0-9.\-]+',model):
+            raise HTTPException(503,'Quét hình cần GEMINI_API_KEY và model hỗ trợ ảnh. DeepL chỉ dịch chữ. Đặt khóa Gemini rồi khởi động lại backend.')
+        with document(row, key) as doc:
+            if not 1 <= body.page <= len(doc):
+                raise HTTPException(400, 'Số trang không hợp lệ')
+            import pymupdf
+            pdf_page=doc[body.page-1]
+            zoom=min(2.5, 2200/max(pdf_page.rect.width,pdf_page.rect.height))
+            pix=pdf_page.get_pixmap(matrix=pymupdf.Matrix(zoom,zoom),colorspace=pymupdf.csRGB,alpha=False)
+            png=pix.tobytes('png')
+            if len(png)>10*1024*1024:
+                raise HTTPException(413,'Trang ảnh quá lớn để quét. Hãy dùng bản PDF nhẹ hơn.')
+            boards=await board_scan.scan_image(png, api_key, model)
+            for board in boards:
+                top,left,bottom,right=board['bbox']
+                rect=pdf_page.rect
+                clip=pymupdf.Rect(rect.x0+left*rect.width/1000,rect.y0+top*rect.height/1000,
+                                  rect.x0+right*rect.width/1000,rect.y0+bottom*rect.height/1000)
+                scale=min(2.5,420/max(clip.width,clip.height))
+                preview=pdf_page.get_pixmap(matrix=pymupdf.Matrix(scale,scale),clip=clip,colorspace=pymupdf.csRGB,alpha=False)
+                board['image']='data:image/png;base64,'+base64.b64encode(preview.tobytes('png')).decode()
+        out={'page':body.page,'boards':boards,'model':model,'available':True}
+        write_cache(path,key,out)
+        return {**out,'cached':False}
