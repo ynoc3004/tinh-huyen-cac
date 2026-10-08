@@ -4,16 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bí Cảnh · Tĩnh Huyền Các</title>
+<script>if(location.hash==="#history")location.replace("/history.html"+location.search);</script>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1">
 <link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <script src="/thien-co.js"></script>
 
 <link rel="stylesheet" href="/bi-canh.css?v=online-archive-1">
 <link rel="stylesheet" href="/review.css?v=1">
-<link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/tien-canh.js?v=appearance-2"></script></head>
+<link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/tien-canh.js?v=archive-page-1"></script></head>
 <body class="archive-page">
 <div class="wrap">
-<header class="site-header"><a class="site-brand" href="/"><svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"><path d="M15 2h18l13 13v18L33 46H15L2 33V15z" opacity=".5"/><circle cx="24" cy="24" r="15"/><path d="M24 9a15 15 0 0 1 0 30a7.5 7.5 0 0 1 0-15a7.5 7.5 0 0 0 0-15" fill="currentColor"/><circle cx="24" cy="16.5" r="2.3" fill="currentColor"/><circle cx="24" cy="31.5" r="2.3" fill="var(--paper)" stroke="none"/></svg><span><strong>Tĩnh Huyền Các</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính"><a href="/">Cổng môn</a><a href="/library.html">Tàng kinh</a><a href="/bi-canh.html" aria-current="page">Bí cảnh</a><a href="/arena.html">Đấu trường</a><button type="button" role="tab" id="tab-history" aria-controls="pane-history" aria-selected="false">Kỳ phổ</button></nav></header>
+<header class="site-header"><a class="site-brand" href="/"><svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"><path d="M15 2h18l13 13v18L33 46H15L2 33V15z" opacity=".5"/><circle cx="24" cy="24" r="15"/><path d="M24 9a15 15 0 0 1 0 30a7.5 7.5 0 0 1 0-15a7.5 7.5 0 0 0 0-15" fill="currentColor"/><circle cx="24" cy="16.5" r="2.3" fill="currentColor"/><circle cx="24" cy="31.5" r="2.3" fill="var(--paper)" stroke="none"/></svg><span><strong>Tĩnh Huyền Các</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính"><a href="/">Cổng môn</a><a href="/library.html">Tàng kinh</a><a href="/bi-canh.html" aria-current="page">Bí cảnh</a><a href="/arena.html">Đấu trường</a><a href="/history.html">Kỳ phổ</a></nav></header>
   <div class="top">
     <div>
       <a class="back" href="/">← Tĩnh Huyền Các</a>
@@ -104,17 +105,6 @@
     <div class="techs" id="tech-grid"></div>
   </section>
 
-<section id="pane-history" role="tabpanel" aria-labelledby="tab-history" hidden>
-  <div class="library-heading"><div><span class="library-eyebrow">LUẬN KIẾM LƯU NIÊN</span><h2>Kỳ phổ lưu dấu, ôn cũ ngộ mới</h2><p>Kỳ phổ Chess.com, Lichess và luận kiếm với bot · Lưu trên máy chạy backend.</p></div><span class="library-seal" aria-hidden="true">記</span></div>
-  <div class="archive-toolbar"><div class="field"><label for="history-source">Nguồn kỳ phổ</label><select id="history-source"><option value="all">Tất cả ván đấu</option><option value="bot">Luận kiếm với bot</option><option value="chesscom">Chess.com</option><option value="lichess">Lichess</option></select></div><div class="btns"><button type="button" class="act main" id="history-sync">Đồng bộ ván online</button><button type="button" class="act" id="history-refresh">Làm mới</button></div></div><p id="history-accounts" class="meta"></p><p class="meta">Chess.com: hai tháng có kho ván gần nhất · Lichess: tối đa 100 ván gần nhất. Ván trùng được bỏ qua.</p><p id="history-sync-status" role="status" aria-live="polite"></p>
-  <p id="history-status" role="status"></p><div id="history-list"></div>
-  <div class="tech-pagination"><button type="button" class="act" id="history-prev">← Trước</button><span id="history-page"></span><button type="button" class="act" id="history-next">Sau →</button></div>
-  <section id="history-replay" class="stage" hidden>
-    <div><div class="frame"><div class="board-box" id="history-board"></div></div>
-      <div class="btns replay-controls"><button type="button" class="act" id="replay-start" aria-label="Về khai cuộc">|←</button><button type="button" class="act" id="replay-prev" aria-label="Nước trước">←</button><span id="history-position" aria-live="polite"></span><button type="button" class="act" id="replay-next" aria-label="Nước sau">→</button><button type="button" class="act" id="replay-end" aria-label="Đến nước cuối">→|</button></div></div>
-    <div class="panel"><h2 id="history-title"></h2><p id="history-result"></p><div id="history-moves" class="history-moves"></div><button type="button" class="act main" id="history-download">Tải kỳ phổ PGN</button></div>
-  </section>
-</section>
 
 </div>
 <svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true">
@@ -122,6 +112,6 @@
   <path class="mid" d="M0 150 0 104 120 84 250 112 390 76 520 110 660 70 800 108 940 82 1080 112 1200 90 1200 150z"/>
   <path class="near" d="M0 150 0 128 150 114 300 132 470 112 640 134 810 116 980 134 1100 120 1200 130 1200 150z"/>
 </svg>
-<script type="module" src="/bi-canh.js?v=review-1"></script>
+<script type="module" src="/bi-canh.js?v=archive-page-1"></script>
 </body>
 </html>

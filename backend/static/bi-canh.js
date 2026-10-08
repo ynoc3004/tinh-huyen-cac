@@ -645,77 +645,11 @@ function saveBotRecord(result="*",reason="Đang luận kiếm"){
   queueBotSave({...botRecord,result,reason,pgn:bot.chess.pgn(),plies:bot.chess.history().length});
 }
 $("bot-save-retry").onclick=()=>{Object.values(pendingGames).forEach(queueBotSave);};
-let archivePage=1,archiveToken=0,replayMoves=[],replayIndex=0,replayPgn="",replayStartFen=new Chess().fen(),replayChess=new Chess();
-const replayBoard=new Board($("history-board"),{chess:()=>replayChess,canMove:()=>false,onMove:()=>false});
-async function loadBotArchive(){
-  const token=++archiveToken;
-  $("history-status").textContent="Đang mở lưu niên...";
-  try{
-    Object.values(pendingGames).forEach(queueBotSave);await saveChain;
-    const r=await fetch("/api/game-archive?source="+$("history-source").value+"&page="+archivePage);if(!r.ok)throw Error(r.status);
-    const j=await r.json();if(token!==archiveToken)return;
-    $("history-status").textContent=j.total?j.total+" kỳ phổ đã lưu":"Chưa có kỳ phổ trong nguồn này. Đồng bộ ván online hoặc bắt đầu luận kiếm.";
-    $("history-list").innerHTML=j.items.map(g=>`<article class="history-card"><button type="button" class="history-entry" data-game="${esc(g.id)}" data-source="${esc(g.source)}"><span><b>${esc(g.opponent)}</b><small>${esc(({bot:"Luận kiếm",chesscom:"Chess.com",lichess:"Lichess"})[g.source])} · ${esc(new Date(g.started_at).toLocaleString("vi-VN"))} · Quân ${colorName(g.user_color)}${g.plies===null?"":" · "+Math.ceil(g.plies/2)+" nước"}</small></span><span class="history-result">${esc(g.result==="*"?"Chưa kết thúc":g.result)}<small>${esc(g.reason)}</small></span></button><div class="history-card-actions"><a href="/review.html?source=${esc(g.source)}&game=${esc(g.id)}">Phân tích ván cờ →</a><button type="button" data-save-game="${esc(g.id)}" data-source="${esc(g.source)}">Lưu vào Tàng Kinh Các</button></div></article>`).join("");
-    $("history-page").textContent=archivePage+" / "+Math.max(1,Math.ceil(j.total/12));
-    $("history-prev").disabled=archivePage===1;$("history-next").disabled=archivePage*12>=j.total;
-  }catch{$("history-status").textContent="Chưa đọc được lưu niên. Kiểm tra backend rồi bấm Làm mới.";}
-}
-function drawReplay(){
-  replayChess=new Chess(replayStartFen);for(let i=0;i<replayIndex;i++)replayChess.move(replayMoves[i]);
-  replayBoard.last=replayIndex?replayMoves[replayIndex-1]:null;replayBoard.render();
-  $("history-position").textContent="Nước "+replayIndex+" / "+replayMoves.length;
-  $("replay-prev").disabled=replayIndex===0;$("replay-next").disabled=replayIndex===replayMoves.length;
-  $("history-moves").innerHTML=replayMoves.map((m,i)=>`<button type="button" data-ply="${i+1}" aria-current="${i+1===replayIndex?"step":"false"}">${i%2===0?Math.floor(i/2)+1+". ":""}${esc(m.san)}</button>`).join("");
-}
-$("history-list").onclick=async e=>{
-  const save=e.target.closest("[data-save-game]");if(save){save.disabled=true;try{const r=await fetch("/api/game-archive/"+save.dataset.source+"/"+encodeURIComponent(save.dataset.saveGame));if(!r.ok)throw Error("Không đọc được kỳ phổ.");const g=await r.json();if(!g.pgn)throw Error("Ván này chưa có PGN.");await savePgnToLibrary(g.pgn,"Ta - "+g.opponent);}catch(err){$("history-status").textContent=err.message;}finally{save.disabled=false;}return;}
-  const b=e.target.closest("[data-game]");if(!b)return;
-  const token=++archiveToken;
-  try{
-    const r=await fetch("/api/game-archive/"+b.dataset.source+"/"+encodeURIComponent(b.dataset.game));if(!r.ok)throw Error(r.status);
-    const g=await r.json();if(token!==archiveToken)return;
-    if(!g.pgn)throw Error("PGN trống");const c=new Chess();c.loadPgn(g.pgn);replayMoves=c.history({verbose:true});while(c.undo()){}replayStartFen=c.fen();replayPgn=g.pgn;replayIndex=0;
-    replayBoard.flip=g.user_color==="b";$("history-replay").hidden=false;
-    $("history-title").textContent="Ta · "+g.opponent;
-    $("history-result").textContent=g.result+" · "+g.reason;drawReplay();
-  }catch{$("history-status").textContent="Không mở được kỳ phổ này. Hãy thử lại.";}
-};
-$("replay-prev").onclick=()=>{replayIndex=Math.max(0,replayIndex-1);drawReplay();};
-$("replay-next").onclick=()=>{replayIndex=Math.min(replayMoves.length,replayIndex+1);drawReplay();};
-$("replay-start").onclick=()=>{replayIndex=0;drawReplay();};
-$("replay-end").onclick=()=>{replayIndex=replayMoves.length;drawReplay();};
-$("history-moves").onclick=e=>{const b=e.target.closest("[data-ply]");if(b){replayIndex=Number(b.dataset.ply);drawReplay();}};
-$("history-download").onclick=()=>{
-  const url=URL.createObjectURL(new Blob([replayPgn],{type:"application/x-chess-pgn"}));
-  const a=document.createElement("a");a.href=url;a.download="luan-kiem.pgn";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-};
-
-$("history-source").onchange=()=>{archivePage=1;loadBotArchive();};
-$("history-sync").onclick=async()=>{
-  const b=$("history-sync");b.disabled=true;$("history-sync-status").textContent="Đang đồng bộ Chess.com và Lichess...";
-  try{
-    const r=await fetch("/api/sync",{method:"POST"});if(!r.ok)throw Error(r.status);
-    const data=await r.json(),v=data.new_games||{};
-    const notes=[...Object.entries(v.errors||{}),...Object.entries(v.skipped||{})].map(([k,msg])=>k+": "+msg);
-    $("history-sync-status").textContent="Ván mới: Chess.com "+(v.chesscom||0)+", Lichess "+(v.lichess||0)+(notes.length?". "+notes.join(". "):"");
-    archivePage=1;await loadBotArchive();await loadMe();
-  }catch{$("history-sync-status").textContent="Đồng bộ chưa thành công. Kiểm tra mạng và backend rồi thử lại.";}
-  finally{b.disabled=false;}
-};
-async function loadSyncAccounts(){
-  try{const r=await fetch("/api/sync/accounts");if(!r.ok)return;const a=await r.json();
-  $("history-accounts").textContent="Chess.com: "+(a.chesscom||"chưa cấu hình CHESSCOM_USER")+" · Lichess: "+(a.lichess||"chưa cấu hình LICHESS_USER");}catch{}
-}
-$("history-refresh").onclick=loadBotArchive;
-$("history-prev").onclick=()=>{archivePage--;loadBotArchive();};
-$("history-next").onclick=()=>{archivePage++;loadBotArchive();};
-
 // ===== Chuyển chế độ và phím tắt =====
-const TABS = ["puzzle", "bot", "tech", "history"];
+const TABS = ["puzzle", "bot", "tech"];
 let activeTab = "puzzle";
 function showTab(name) {
   activeTab = name;
-  if(name==="history"){loadSyncAccounts();loadBotArchive();}
   for (const t of TABS) { $("pane-" + t).hidden = t !== name; $("tab-" + t).setAttribute("aria-selected", String(t === name)); }
   history.replaceState(null, "", name === "puzzle" ? location.pathname + location.search : "#" + name);
   if (name === "bot" && !bot.chess) { bot.chess = new Chess(); bot.level = autoLevel(); botBoard.render(); botButtons(); renderBotStrips(); }
@@ -742,5 +676,5 @@ fillOpponents();
 speak("idle");
 pzBoard.render();
 strip("pz-top", "Đối thủ", ""); strip("pz-bottom", "Ta", myLine());
-if (location.hash === "#history") showTab("history"); else if (location.hash === "#bot") showTab("bot"); else if (location.hash === "#tech") showTab("tech");
+if (location.hash === "#bot") showTab("bot"); else if (location.hash === "#tech") showTab("tech");
 initPuzzleTab();

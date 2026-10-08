@@ -135,6 +135,14 @@ API tests dùng PDF/database tạm và phản hồi giả, kiểm tra chọn loc
 Thử thực tế trên PDF London System: nhận diện 20 hình ở các trang PDF 22, 24, 26, 27, 29–44; đã đối chiếu vị trí quân với ảnh. Đây là mẫu một kiểu sách, không đại diện cho mọi PDF. Kiểu quân trong Winning Chess Strategies có trường hợp nhận nhầm; cần hiệu đính hoặc dùng nguồn nhận diện khác.
 
 
+## Kỳ phổ
+
+Trang `/history.html` dành riêng cho kỳ phổ; Bí Cảnh giữ câu đố, đấu bot và công pháp. Liên kết cũ `/bi-canh.html#history` tự chuyển đến trang mới.
+
+Chọn **Bullet**, **Blitz**, **Rapid** và nguồn Chess.com/Lichess/bot để tìm ván. Số lượng từng nhóm tính theo nguồn đã chọn; bộ lọc áp dụng trong database trước khi phân trang. Các tốc độ khác hoặc thiếu dữ liệu, cùng ván bot chưa có đồng hồ, nằm trong **Khác / Không đồng hồ**. Phân loại sử dụng dữ liệu tốc độ từ nền tảng, không suy đoán từ số nước đi. Đồng bộ, xem lại, phân tích, tải PGN và lưu vào Tàng Kinh Các vẫn dùng như trước.
+
+Kiểm tra API và lịch sử bot: `python -m unittest discover -s tests -p "test_game_archive.py" -v` và `python -m unittest discover -s tests -p "test_bot_history.py" -v`.
+
 ## Diện mạo chung
 
 Tất cả trang dùng `static/tien-canh.css` và `static/tien-canh.js`: màu ngọc/vàng, núi và sương, thanh điều hướng cùng kiểu Cổng môn. Trang chủ giữ hiệu ứng thời tiết và bàn Thiên cơ. Vị trí mặt trời/mặt trăng tính theo chiều cao thực tế của header, kể cả khi đổi font hoặc dùng điện thoại. Menu trên điện thoại cuộn ngang.
