@@ -56,7 +56,7 @@
     if(!header){
       header=document.createElement('header');header.className='site-header noprint';
       const active=['tournament','arena-live'].includes(page)?'arena':page==='reader'?'library':page;
-      header.innerHTML='<a class="site-brand" href="/">'+icon+'<span><strong>Tĩnh Huyền Các</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính">'+links.map(([href,name,key])=>'<a href="'+href+'"'+(key===active?' aria-current="page"':'')+'>'+name+'</a>').join('')+'</nav>';
+      header.innerHTML='<a class="site-brand" href="/">'+icon+'<span><strong>Tĩnh Huyền Quán</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính">'+links.map(([href,name,key])=>'<a href="'+href+'"'+(key===active?' aria-current="page"':'')+'>'+name+'</a>').join('')+'</nav>';
       const host=page==='learn'?document.querySelector('body > main'):document.querySelector('body > .wrap, body > .review-shell');(host||document.body).prepend(header);
     }else{
       header.classList.add('noprint');const nav=header.querySelector('.site-navigation');
