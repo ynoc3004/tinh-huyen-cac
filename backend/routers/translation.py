@@ -500,6 +500,17 @@ class ScanPage(BaseModel):
     force: bool = False
     model: str = Field(default='', max_length=120, pattern=r'^(gemini-[a-zA-Z0-9.\-]+)?$')
 
+class ScanProbe(BaseModel):
+    model: str = Field(min_length=1, max_length=120, pattern=r'^gemini-[a-zA-Z0-9.\-]+$')
+
+@router.post('/study/scan-probe')
+async def scan_probe(body: ScanProbe, key: bytes = Depends(library.guard)):
+    from services import board_scan
+    api_key = os.getenv('GEMINI_API_KEY', '').strip()
+    if not api_key:
+        raise HTTPException(503, 'Backend chưa có GEMINI_API_KEY. Đặt khóa rồi khởi động lại server.')
+    return await board_scan.probe_image(api_key, body.model)
+
 @router.get('/study/scan-models')
 async def scan_models(key: bytes = Depends(library.guard)):
     """Discover Gemini choices independently of the translation provider."""
@@ -533,6 +544,18 @@ async def scan_models(key: bytes = Depends(library.guard)):
     except (httpx.HTTPError, ValueError, TypeError, KeyError):
         return {'models': fallback, 'default': default, 'available': True,
                 'warning': 'Chưa tải được danh sách AI. Có thể thử model cấu hình sẵn hoặc tải lại danh sách.'}
+
+@router.get('/{item_id}/study/page-image')
+def study_page_image(item_id: int, page: int = 1, key: bytes = Depends(library.guard)):
+    import pymupdf
+    row = book(item_id)
+    with document(row, key) as doc:
+        if not 1 <= page <= len(doc):
+            raise HTTPException(400, 'Số trang không hợp lệ')
+        pdf_page = doc[page - 1]
+        zoom = min(2.5, 1800 / max(pdf_page.rect.width, pdf_page.rect.height))
+        image = pdf_page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), colorspace=pymupdf.csRGB, alpha=False)
+        return Response(image.tobytes('png'), media_type='image/png', headers={'Cache-Control': 'no-store'})
 
 @router.get('/{item_id}/study/boards')
 def cached_boards(item_id: int, page: int = 1, key: bytes = Depends(library.guard)):

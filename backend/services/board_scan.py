@@ -22,34 +22,37 @@ def validate_placement(value):
             return False
     return value.count('K') == 1 and value.count('k') == 1
 
-async def _scan_response(image_bytes, api_key, model):
+async def _scan_response(image_bytes, api_key, model, prompt=PROMPT, max_tokens=8192, attempts=3):
     # Retry explicit transient server failures on the same selected model.
     # Quota/key errors and connection timeouts stop without another request.
     async with httpx.AsyncClient(timeout=150, trust_env=False) as client:
-        for attempt in range(3):
+        for attempt in range(attempts):
             response = await client.post('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',
                 headers={'x-goog-api-key':api_key}, json={
-                    'contents':[{'role':'user','parts':[{'text':PROMPT}, {'inlineData':{'mimeType':'image/png','data':base64.b64encode(image_bytes).decode()}}]}],
-                    'generationConfig':{'temperature':0, 'maxOutputTokens':8192, 'responseMimeType':'application/json'}})
-            if response.status_code not in (502, 503, 504) or attempt == 2:
+                    'contents':[{'role':'user','parts':[{'text':prompt}, {'inlineData':{'mimeType':'image/png','data':base64.b64encode(image_bytes).decode()}}]}],
+                    'generationConfig':{'temperature':0, 'maxOutputTokens':max_tokens, 'responseMimeType':'application/json'}})
+            if response.status_code not in (502, 503, 504) or attempt == attempts - 1:
                 return response, attempt + 1
             await asyncio.sleep(2 ** (attempt + 1) + random.uniform(0, 0.5))
+
+def check_response(r, model, attempts):
+    if r.status_code == 429:
+        raise HTTPException(429, 'Gemini hết hạn mức hoặc giới hạn tốc độ quét. Đợi rồi thử lại; các kết quả đã lưu vẫn còn.')
+    if r.status_code in (401, 403):
+        raise HTTPException(503, f'Gemini quét ảnh trả HTTP {r.status_code}: khóa hoặc quyền dự án bị từ chối. Kiểm tra khóa và quyền trong AI Studio.')
+    if r.status_code == 404:
+        raise HTTPException(503, f'Model {model} chưa khả dụng cho quét ảnh (HTTP 404). Mở mục AI quét, tải lại danh sách rồi chọn model khác.')
+    if r.status_code == 400:
+        raise HTTPException(503, f'Gemini từ chối yêu cầu quét ảnh bằng {model} (HTTP 400). Model có thể không hỗ trợ ảnh hoặc cấu hình này. Mở mục AI quét để chọn model khác.')
+    if r.status_code in (502, 503, 504):
+        raise HTTPException(503, f'Gemini · {model} trả HTTP {r.status_code} sau {attempts} lần thử. Dịch vụ đang tạm không khả dụng. Mở AI quét để chọn model khác hoặc thử lại sau; kết quả đã lưu vẫn còn.')
+    r.raise_for_status()
 
 async def scan_image(image_bytes, api_key, model):
     try:
         # Bound the complete request/retry cycle, not each retry separately.
         r, attempts = await asyncio.wait_for(_scan_response(image_bytes, api_key, model), timeout=180)
-        if r.status_code == 429:
-            raise HTTPException(429, 'Gemini hết hạn mức hoặc giới hạn tốc độ quét. Đợi rồi thử lại; các kết quả đã lưu vẫn còn.')
-        if r.status_code in (401, 403):
-            raise HTTPException(503, f'Gemini quét ảnh trả HTTP {r.status_code}: khóa hoặc quyền dự án bị từ chối. Kiểm tra khóa và quyền trong AI Studio.')
-        if r.status_code == 404:
-            raise HTTPException(503, f'Model {model} chưa khả dụng cho quét ảnh (HTTP 404). Mở mục AI quét, tải lại danh sách rồi chọn model khác.')
-        if r.status_code == 400:
-            raise HTTPException(503, f'Gemini từ chối yêu cầu quét ảnh bằng {model} (HTTP 400). Model có thể không hỗ trợ ảnh hoặc cấu hình này. Mở mục AI quét để chọn model khác.')
-        if r.status_code in (502, 503, 504):
-            raise HTTPException(503, f'Gemini · {model} trả HTTP {r.status_code} sau {attempts} lần thử. Dịch vụ đang tạm không khả dụng. Mở AI quét để chọn model khác hoặc thử lại sau; kết quả đã lưu vẫn còn.')
-        r.raise_for_status()
+        check_response(r, model, attempts)
         candidate = r.json()['candidates'][0]
         if candidate.get('finishReason') != 'STOP':
             raise ValueError('Incomplete scan')
@@ -87,3 +90,31 @@ async def scan_image(image_bytes, api_key, model):
     except (ValueError,KeyError,TypeError,IndexError):
         raise HTTPException(502,'Kết quả quét chưa hoàn chỉnh hoặc sai dữ liệu. Thử quét lại; bản lỗi chưa được lưu.')
 
+
+def probe_png():
+    """A small generated checkerboard, never a user's book page."""
+    import struct
+    import zlib
+    def chunk(kind, data):
+        return struct.pack('!I', len(data)) + kind + data + struct.pack('!I', zlib.crc32(kind + data))
+    pixels = b''.join(b'\0' + b''.join(bytes([235 if (x//8 + y//8)%2 else 85])*3 for x in range(64)) for y in range(64))
+    return b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('!2I5B',64,64,8,2,0,0,0)) + chunk(b'IDAT',zlib.compress(pixels)) + chunk(b'IEND',b'')
+
+async def probe_image(api_key, model):
+    try:
+        response, attempts = await asyncio.wait_for(_scan_response(probe_png(), api_key, model,
+            prompt='Describe this small image in one short JSON object with a description field.', max_tokens=1024, attempts=1), timeout=45)
+        check_response(response, model, attempts)
+        data = response.json()
+        if not data.get('candidates') or data.get('promptFeedback', {}).get('blockReason'):
+            raise HTTPException(502, 'Model không trả kết quả cho ảnh thử.')
+        return {'ok': True, 'model': model,
+                'message': f'{model} đã nhận ảnh thử thành công. Có thể thử quét trang sách; kiểm tra này chưa bảo đảm nhận diện quân chính xác.'}
+    except HTTPException as error:
+        raise HTTPException(error.status_code, 'Ảnh thử nhỏ cũng không thành công. ' + str(error.detail))
+    except (httpx.TimeoutException, asyncio.TimeoutError):
+        raise HTTPException(504, 'Model phản hồi ảnh thử quá lâu. Chọn model khác trong AI quét.')
+    except httpx.HTTPError:
+        raise HTTPException(503, 'Không kết nối được Gemini khi thử ảnh nhỏ. Kiểm tra HTTPS/proxy.')
+    except (ValueError, TypeError, KeyError):
+        raise HTTPException(502, 'Gemini trả dữ liệu không hợp lệ cho ảnh thử.')

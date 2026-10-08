@@ -98,3 +98,8 @@ Nút quét và dịch có trạng thái riêng, có thể chạy đồng thời.
 
 Kiểm tra bổ sung (từ `backend`): `node tests/study-workflow.test.cjs`. Kiểm tra này giả lập DOM và API, xác nhận quét không gọi dịch, model chọn riêng, hai tác vụ đồng thời và sửa quân. Python: `python -m unittest discover -s tests -v`.
 
+
+
+Thư Phòng hiện là màn hình đọc/dịch chung; liên kết `translate.html?id=...` chuyển sang `study.html?id=...#batch-panel`. Mục **Dịch nhiều trang** giữ thiết lập khoảng trang, thuật ngữ, OCR, dừng/tiếp tục và xuất bản dịch. Bản gốc hiển thị ảnh đúng trang được chọn để trình xem PDF riêng không lệch trang với thao tác quét.
+
+Trong **AI quét**, nút **Kiểm tra AI với ảnh nhỏ** gửi một ảnh bàn cờ trống 64×64 được tạo ở backend, không gửi sách. Nó kiểm tra model có nhận yêu cầu ảnh lúc đó hay không, không kiểm chứng độ chính xác nhận quân. Nếu ảnh nhỏ cũng trả HTTP 503, chọn model khác hoặc đợi dịch vụ phục hồi; thử lại không bảo đảm khắc phục lỗi nhà cung cấp.

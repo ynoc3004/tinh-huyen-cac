@@ -129,3 +129,44 @@ class ScanTests(test_translation.TranslationTests):
             self.assertEqual(self.client.post(self.base+'/study/boards', json={'page': 1, 'force': True}).status_code, 503)
         saved = self.client.get(self.base+'/study/boards?page=1').json()
         self.assertEqual(saved['boards'][0]['placement'], PLACEMENT)
+
+    def test_page_preview_matches_selected_page_and_vault_guard(self):
+        first = self.client.get(self.base+'/study/page-image?page=1')
+        second = self.client.get(self.base+'/study/page-image?page=2')
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.headers['content-type'], 'image/png')
+        self.assertEqual(first.headers['cache-control'], 'no-store')
+        self.assertNotEqual(first.content, second.content)
+        self.assertTrue(first.content.startswith(b'\x89PNG'))
+        self.assertEqual(self.client.get(self.base+'/study/page-image?page=3').status_code, 400)
+        self.client.post('/api/library/vault/lock')
+        self.assertEqual(self.client.get(self.base+'/study/page-image?page=1').status_code, 401)
+
+    def test_small_image_probe_reports_model_failure_without_retry(self):
+        import asyncio
+        from fastapi import HTTPException
+        status = [200]
+        calls = []
+        class Client:
+            def __init__(self, **kwargs): pass
+            async def __aenter__(self): return self
+            async def __aexit__(self, *args): pass
+            async def post(self, url, headers, json):
+                calls.append(url)
+                image = base64.b64decode(json['contents'][0]['parts'][1]['inlineData']['data'])
+                self_image = __import__('pymupdf').Pixmap(image)
+                assert self_image.width == 64 and self_image.height == 64
+                return httpx.Response(status[0], json={'candidates': [{'finishReason': 'STOP'}]}, request=httpx.Request('POST',url))
+        with patch.object(board_scan.httpx, 'AsyncClient', Client):
+            self.assertTrue(asyncio.run(board_scan.probe_image('test-only', 'gemini-selected'))['ok'])
+            calls.clear(); status[0] = 503
+            with self.assertRaises(HTTPException) as error:
+                asyncio.run(board_scan.probe_image('test-only', 'gemini-selected'))
+            self.assertEqual(len(calls), 1)
+            self.assertIn('Ảnh thử nhỏ', error.exception.detail)
+            self.assertNotIn('test-only', error.exception.detail)
+        with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-only'}), patch.object(board_scan, 'probe_image', AsyncMock(return_value={'ok': True})):
+            self.assertEqual(self.client.post('/api/library/translation/study/scan-probe', json={'model':'gemini-selected'}).status_code, 200)
+            self.assertEqual(self.client.post('/api/library/translation/study/scan-probe', json={'model':'../bad'}).status_code, 422)
+        self.client.post('/api/library/vault/lock')
+        self.assertEqual(self.client.post('/api/library/translation/study/scan-probe', json={'model':'gemini-selected'}).status_code, 401)

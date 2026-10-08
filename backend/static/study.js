@@ -1,7 +1,7 @@
 import {Chess} from "/vendor/chess.js";
 import {PIECE_DEFS} from "/vendor/pieces.js?v=paint-2";
 const $=id=>document.getElementById(id),id=Number(new URLSearchParams(location.search).get("id"));
-let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,loaded=false,job={},savedSource="",view="bilingual";
+let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual";
 function status(t){$("status").textContent=t;}
 async function api(path,body,method="POST"){
  const r=await fetch("/api/library/translation/"+path,body===undefined?{}:{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -10,12 +10,15 @@ async function api(path,body,method="POST"){
 }
 function controls(){
  const navigating=busy||translating||scanning;
- $("scan-page").disabled=busy||scanning||!loaded;$("scan-again").disabled=busy||scanning||!loaded;
- $("scan-model").disabled=busy||scanning;$("scan-refresh").disabled=scanning;
+ $("scan-page").disabled=busy||scanning||probing||!loaded;$("scan-again").disabled=busy||scanning||probing||!loaded;
+ $("scan-model").disabled=busy||scanning||probing;$("scan-refresh").disabled=scanning||probing;$("scan-probe").disabled=busy||scanning||probing||!loaded||!$("scan-model").value;
  for(const name of ["prev","next","page","ocr","books"])$(name).disabled=navigating||!loaded;
- for(const name of ["translate","save-source","source"])$(name).disabled=busy||translating||!loaded;
+ for(const name of ["translate","translate-selection","save-source","source"])$(name).disabled=busy||translating||batchRunning||!loaded;
  $("prev").disabled=navigating||!loaded||page<=1;$("next").disabled=navigating||!loaded||page>=total;
- $("model").disabled=busy||translating;
+ $("model").disabled=busy||translating||batchRunning;
+ $("books").disabled=navigating||batchRunning||!loaded;$("ocr").disabled=navigating||batchRunning||!loaded;
+ for(const name of ["batch-start","batch-end","batch-size","batch-ocr","glossary","upload"])$(name).disabled=batchRunning||translating;
+ $("batch-run").disabled=busy||translating||batchRunning||!loaded||!$("model").value;$("batch-pause").hidden=!batchRunning;
  $("translate").textContent=translating?"Đang dịch…":"Dịch trang";
  $("scan-page").textContent=scanning?"Đang quét…":"✦ Quét trang "+page;
  $("reading-pane").setAttribute("aria-busy",String(translating));
@@ -23,7 +26,7 @@ function controls(){
 }
 function translationStatus(t){$("translation-status").textContent=t;}
 async function save(){state={...state,page,note:$("note").value,model:$("model").value};await api(id+"/state",state,"PUT");}
-function body(){return {text:$("source").value,page,model:$("model").value};}
+function body(text=$("source").value){return {text,page,model:$("model").value,glossary:$("glossary").value};}
 let cacheRevision=0;
 async function cached(){
  const revision=++cacheRevision,requestedPage=page,requestedModel=$("model").value,requestedText=$("source").value;
@@ -31,7 +34,7 @@ async function cached(){
  $("result").textContent="Trang này chưa có bản dịch. Kiểm tra chữ tiếng Anh rồi bấm Dịch trang.";
  if(!$("model").value)return;
  const batch=await api(id+"/batch/page?page="+page);if(!current())return;
- if(batch.translation&&batch.model===$("model").value&&batch.text===$("source").value){$("result").textContent=batch.translation;return;}
+ if(batch.translation&&batch.model===$("model").value&&batch.text===$("source").value&&(job.glossary||"")===$("glossary").value){$("result").textContent=batch.translation;return;}
  if($("source").value.trim()&&$("source").value.length<=12000){
  const data=await api(id+"/cached",body());if(current()&&data.translation)$("result").textContent=data.translation;
  }
@@ -42,7 +45,7 @@ async function openPage(n,initial=false){
  if(!initial){await save();if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}}
  const data=await api(id+"/page?page="+n+"&ocr="+$("ocr").checked);
  page=data.page;total=data.pages;loaded=true;$("page").value=page;$("total").textContent="/ "+total;
- document.title=data.title+" · Thư Phòng";$("pdf").src="/api/library/file/"+id+"#page="+page;
+ document.title=data.title+" · Thư Phòng";$("pdf").src="/api/library/translation/"+id+"/study/page-image?page="+page;$("pdf").alt="Trang "+page+" · "+data.title;
  $("source").value=data.text;savedSource=data.text;translationStatus("");clearScan();await openScans();await cached();await save();
  status(data.text?"Trang "+page+" · chữ tiếng Anh có thể hiệu đính trước khi dịch.":"Trang không có chữ. Bật OCR nếu đây là trang scan.");
  }catch(e){status(e.message);}finally{busy=false;controls();}
@@ -53,15 +56,17 @@ $("ocr").onchange=()=>openPage(page);
 $("model").onchange=async()=>{try{await cached();await save();}catch(e){translationStatus(e.message);}};
 $("source").oninput=()=>{$("result").textContent="Chữ gốc đã thay đổi. Lưu chữ đã sửa rồi dịch lại.";};
 $("save-source").onclick=async()=>{try{await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;status("Đã lưu chữ hiệu đính trong két.");}catch(e){status(e.message);}};
-$("translate").onclick=async()=>{
- if(busy||translating||!loaded)return;
- if(!$("source").value.trim()){translationStatus("Không có chữ để dịch.");return;}
- if($("source").value.length>12000){translationStatus("Trang dài quá 12.000 ký tự. Dùng Dịch Kinh Các để dịch theo đoạn.");return;}
+async function translatePage(selection=false){
+ if(busy||translating||batchRunning||!loaded)return;
+ const text=selection?$("source").value.slice($("source").selectionStart,$("source").selectionEnd):$("source").value;
+ if(!text.trim()){translationStatus(selection?"Bôi đen đoạn tiếng Anh cần dịch trước.":"Không có chữ để dịch.");return;}
+ if(text.length>12000){translationStatus("Nội dung dài quá 12.000 ký tự. Bôi đen từng đoạn hoặc dùng Dịch nhiều trang.");return;}
  cacheRevision++;translating=true;controls();translationStatus($("model").value==="deepl:en-vi"?"Đang gửi đoạn chữ tới DeepL để dịch…":$("model").value.startsWith("gemini:")?"Đang gửi đoạn chữ tới Gemini để dịch…":"Đang dịch trên máy…");
  try{if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}
- const data=await api(id+"/translate",body());$("result").textContent=data.translation;translationStatus("Bản dịch đã lưu · đối chiếu nguyên bản khi học.");
+ const data=await api(id+"/translate",body(text));$("result").textContent=data.translation;translationStatus("Bản dịch đã lưu · đối chiếu nguyên bản khi học.");
  }catch(e){translationStatus(e.message);}finally{translating=false;controls();}
-};
+}
+$("translate").onclick=()=>translatePage();$("translate-selection").onclick=()=>translatePage(true);
 $("bookmark").onclick=async()=>{if(!loaded)return;state.bookmark=page;try{await save();$("return").hidden=false;status("Đã đánh dấu trang "+page);}catch(e){status(e.message);}};
 $("return").onclick=()=>openPage(Math.min(total,state.bookmark||1));
 $("save-note").onclick=async()=>{if(!loaded)return;try{await save();$("note-status").textContent="Đã lưu ghi chú trong két.";}catch(e){$("note-status").textContent=e.message;}};
@@ -106,13 +111,16 @@ const started=Date.now();setInterval(()=>{const m=Math.floor((Date.now()-started
  const r=await fetch("/api/library?kind=book");if(!r.ok)throw Error("Mở khóa Tàng Kinh Các trước. Bấm liên kết ở góc trái rồi quay lại đây.");
  const books=(await r.json()).filter(x=>x.ext===".pdf");$("books").replaceChildren(new Option("Chọn sách PDF…",""),...books.map(x=>new Option(x.title,String(x.id))));
  if(!id){status("Chọn sách trong tủ. Nếu chưa có, tải PDF lên ở Tàng Kinh Các.");$("books").disabled=false;return;}
- $("books").value=String(id);$("translation").href="/translate.html?id="+id;
+ $("books").value=String(id);$("batch-export").href="/api/library/translation/"+id+"/export";
  state=await api(id+"/state");job=await api(id+"/batch");$("note").value=state.note||"";$("return").hidden=!state.bookmark;$("ocr").checked=!!job.ocr;
  const models=await api("models");$("model").replaceChildren(...models.models.map(x=>new Option(x==="deepl:en-vi"?"DeepL · Anh → Việt":x.startsWith("gemini:")?"Gemini · "+x.slice(7):x==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt":x,x)));
+ initializeBatch();
  const preferred=state.model||job.model;if(models.models.includes(preferred))$("model").value=preferred;
  await openPage(state.page||1,true);
+ if(!job.end)$("batch-end").value=total;renderBatch();
+ if(location.hash==="#batch-panel")$("batch-panel").open=true;
  loadScanModels();
- setInterval(()=>fetch("/api/library/item/"+id).then(r=>{if(r.status===401){loaded=false;clearScan();controls();$("pdf").src="about:blank";$("source").value="";$("result").textContent="";$("note").value="";status("Két đã khóa. Mở khóa rồi tải lại trang.");}}).catch(()=>{}),30000);
+ setInterval(()=>fetch("/api/library/item/"+id).then(r=>{if(r.status===401){loaded=false;batchStop=true;clearScan();controls();$("pdf").removeAttribute("src");$("pdf").alt="Két đã khóa";$("source").value="";$("result").textContent="";$("note").value="";status("Két đã khóa. Mở khóa rồi tải lại trang.");}}).catch(()=>{}),30000);
  }catch(e){status(e.message);}
 })();
 
@@ -143,8 +151,8 @@ function openScan(i,card){
  catch{$("position").value=fen;$("scan-editor").hidden=true;$("scan-status").textContent="FEN nhận diện chưa hợp lệ. Sửa FEN trong mục Nhập thế cờ rồi mở lại.";}
 }
 async function scanPage(force=false){
- if(busy||scanning||!loaded)return;scanning=true;controls();$("scan-status").textContent="Đang quét tất cả hình trên trang "+page+"… Nếu Gemini tạm quá tải, tự thử lại tối đa 2 lần.";
- try{showScans(await api(id+"/study/boards",{page,force,model:$("scan-model").value}));}catch(e){$("scan-status").textContent=e.message;}finally{scanning=false;controls();}
+ if(busy||scanning||probing||!loaded)return;scanning=true;controls();$("scan-status").textContent="Đang quét tất cả hình trên trang "+page+"… Nếu Gemini tạm quá tải, tự thử lại tối đa 2 lần.";
+ try{showScans(await api(id+"/study/boards",{page,force,model:$("scan-model").value}));}catch(e){$("scan-status").textContent=e.message;document.querySelector(".scan-settings").open=true;}finally{scanning=false;controls();}
 }
 $("scan-page").onclick=()=>scanPage();$("scan-again").onclick=()=>scanPage(true);
 $("scan-edit").onclick=()=>{editingScan=!editingScan;selected=null;$("scan-edit").textContent=editingScan?"Đang sửa · bấm để dừng":"Sửa quân";$("scan-edit").setAttribute("aria-pressed",String(editingScan));$("scan-status").textContent=editingScan?"Chọn quân trong danh sách rồi bấm ô để đặt; chọn Xóa quân để xóa.":"Đã dừng sửa quân. Bấm Thực hành thế đã sửa để kiểm tra.";render();};
@@ -160,9 +168,57 @@ async function loadScanModels(){
  if(data.models.includes(preferred))$("scan-model").value=preferred;
  else if(data.models.includes(data.default))$("scan-model").value=data.default;
  $("scan-model-label").textContent=$("scan-model").value||"chưa có model";
+ controls();
  $("scan-model-status").textContent=!data.available?"Chưa đặt GEMINI_API_KEY ở backend.":data.warning||"AI quét ảnh được chọn riêng với AI dịch chữ.";
  }catch(e){$("scan-model-status").textContent=e.message;}
- finally{loadingScanModels=false;$("scan-refresh").disabled=scanning;}
+ finally{loadingScanModels=false;$("scan-refresh").disabled=scanning||probing;}
 }
 $("scan-refresh").onclick=()=>loadScanModels();
-$("scan-model").onchange=()=>{$("scan-model-label").textContent=$("scan-model").value;try{localStorage.setItem("thc-scan-model",$("scan-model").value);}catch{}};
+$("scan-model").onchange=()=>{$("scan-probe-status").textContent="";$("scan-model-label").textContent=$("scan-model").value;try{localStorage.setItem("thc-scan-model",$("scan-model").value);}catch{}};
+
+$("translation").onclick=()=>{$("batch-panel").open=!$("batch-panel").open;};
+function initializeBatch(){
+ if(job.phase&&job.phase!=="idle"){
+ for(const [control,field] of [["batch-start","start"],["batch-end","end"],["batch-size","chunk_size"],["glossary","glossary"]])$(control).value=job[field]??$(control).value;
+ $("batch-ocr").checked=!!job.ocr;
+ }
+}
+function renderBatch(){
+ if(!job.phase||job.phase==="idle")return;
+ const count=job.end-job.start+1;
+ $("batch-progress").value=100*((job.done||0)+(job.chunks?job.chunk/job.chunks:0))/count;
+ $("batch-progress-label").textContent=(job.done||0)+" / "+count+" trang"+(job.chunks?" · đoạn "+job.chunk+"/"+job.chunks:"");
+ $("batch-export").hidden=!job.done&&!job.chunk;
+ $("batch-status").textContent=job.error||(job.phase==="completed"?"Đã hoàn thành và lưu bản dịch.":batchRunning?"Đang dịch; bạn vẫn có thể đọc và thử thế cờ.":"Tiến độ đã lưu. Bấm tiếp tục khi sẵn sàng.");
+}
+$("batch-run").onclick=async()=>{
+ if(!loaded||batchRunning||translating||busy)return;
+ batchRunning=true;batchStop=false;controls();let batchError="";
+ try{
+ if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}
+ job=await api(id+"/batch/start",{model:$("model").value,start:Number($("batch-start").value),end:Number($("batch-end").value),ocr:$("batch-ocr").checked,chunk_size:Number($("batch-size").value),glossary:$("glossary").value});renderBatch();
+ while(!batchStop&&loaded&&job.phase!=="completed"){job=await api(id+"/batch/step",{});renderBatch();await cached();}
+ }catch(e){batchError=e.message;$("batch-status").textContent=e.message;try{job=await api(id+"/batch");}catch{}}
+ finally{batchRunning=false;batchStop=false;$("batch-pause").textContent="Tạm dừng";$("batch-pause").disabled=false;controls();renderBatch();if(batchError)$("batch-status").textContent=batchError;}
+};
+$("batch-pause").onclick=()=>{batchStop=true;$("batch-pause").disabled=true;$("batch-pause").textContent="Chờ đoạn hiện tại…";};
+$("glossary").onchange=()=>cached().catch(e=>translationStatus(e.message));
+$("upload").onchange=async()=>{
+ const file=$("upload").files[0];if(!file||batchRunning)return;
+ if(!file.name.toLowerCase().endsWith(".pdf")||file.size>150*1024*1024){status("Chọn PDF tối đa 150 MB.");return;}
+ $("upload").disabled=true;
+ try{
+ if(loaded)await save();
+ const before=await (await fetch("/api/library?kind=book")).json();
+ const r=await fetch("/api/library/import?name="+encodeURIComponent(file.name),{method:"POST",headers:{"Content-Type":"application/octet-stream"},body:file});const data=await r.json();if(!r.ok)throw Error(typeof data.detail==="string"?data.detail:"Không tải được sách.");
+ const after=await (await fetch("/api/library?kind=book")).json(),added=after.find(x=>!before.some(y=>y.id===x.id));
+ if(added)location.href="/study.html?id="+added.id;else status("Sách đã có trong két. Chọn sách trong danh sách để mở.");
+ }catch(e){status(e.message);}finally{$("upload").disabled=false;$("upload").value="";}
+};
+$("scan-probe").onclick=async()=>{
+ if(probing||scanning||!loaded||!$("scan-model").value)return;
+ probing=true;controls();$("scan-probe-status").textContent="Đang kiểm tra model với một ảnh nhỏ…";
+ try{const data=await api("study/scan-probe",{model:$("scan-model").value});$("scan-probe-status").textContent=data.message;}
+ catch(e){$("scan-probe-status").textContent=e.message;}
+ finally{probing=false;controls();}
+};

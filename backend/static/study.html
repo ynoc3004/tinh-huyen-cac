@@ -1,15 +1,23 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tĩnh Tâm Thư Phòng</title><link rel="stylesheet" href="/study.css?v=study-4">
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tĩnh Tâm Thư Phòng</title><link rel="stylesheet" href="/study.css?v=study-5">
 </head><body><header><a href="/library.html">← Tàng Kinh Các</a><strong>Tĩnh Tâm Thư Phòng</strong><div><button id="theme" aria-label="Đổi chế độ ngày đêm">☾ Đêm</button><button id="focus">Chế độ tập trung</button><button id="fullscreen">Toàn màn hình</button>
 </div>
 </header><div class="top"><select id="books" aria-label="Chọn sách"><option>Chọn sách PDF…</option>
-</select><a id="translation" href="/translate.html">Thiết lập dịch toàn sách ↗</a><span id="session">Phiên học · 00:00</span>
-</div><p id="status" role="status">Đang mở tủ sách…</p><div class="navigation"><div><button id="prev">←</button><label>Trang <input id="page" type="number" value="1" min="1">
+</select><button id="translation" type="button">Dịch nhiều trang</button><span id="session">Phiên học · 00:00</span>
+</div><details id="batch-panel" class="batch-panel">
+<summary>Dịch nhiều trang · tiến độ và xuất bản dịch</summary>
+<div class="batch-content">
+<div class="batch-settings"><label>Từ trang<input id="batch-start" type="number" value="1" min="1"></label><label>Đến trang<input id="batch-end" type="number" value="1" min="1"></label><label>Độ dài đoạn<select id="batch-size"><option value="800">800 · nhẹ</option><option value="1500" selected>1.500 · cân bằng</option><option value="2500">2.500 · dài</option></select></label><label><input id="batch-ocr" type="checkbox"> OCR ảnh chữ</label></div>
+<label class="glossary-label">Thuật ngữ tùy chỉnh (Gemini / Ollama)<textarea id="glossary" rows="2" maxlength="4000" placeholder="fork = đòn đôi; pin = ghim; endgame = tàn cuộc"></textarea></label>
+<p class="hint">Dùng AI dịch đã chọn ở khung Bản dịch. Mỗi đoạn tự lưu; có thể tạm dừng và tiếp tục lần sau. Giữ trang mở để dịch liên tục.</p>
+<progress id="batch-progress" max="100" value="0"></progress><p id="batch-progress-label">Chưa bắt đầu</p>
+<div class="batch-actions"><button id="batch-run" disabled>✦ Bắt đầu / tiếp tục</button><button id="batch-pause" hidden>Tạm dừng</button><a id="batch-export" hidden>↓ Xuất bản dịch</a><label class="upload-label">＋ Tải sách PDF<input id="upload" type="file" accept=".pdf" hidden></label></div><p id="batch-status" class="task-status" role="status"></p>
+</div></details>
+<p id="status" role="status">Đang mở tủ sách…</p><div class="navigation"><div><button id="prev">←</button><label>Trang <input id="page" type="number" value="1" min="1">
 </label><span id="total">/ —</span><button id="next">→</button><button id="bookmark">☆ Dấu sách</button><button id="return" hidden>Về dấu</button>
 </div><div><button data-view="original">Bản gốc</button><button data-view="bilingual" class="active">Song ngữ</button><button data-view="text">Chữ tiếng Anh</button>
 </div>
 </div><div class="layout"><main><section class="original pane"><div class="pane-title">NGUYÊN BẢN <small>PDF · giữ nguyên hình bàn cờ</small>
-</div><iframe id="pdf" title="Sách gốc">
-</iframe>
+</div><div class="page-preview"><img id="pdf" alt="Trang sách gốc"></div>
 </section>
 <section id="reading-pane" class="reading pane" aria-busy="false"><div class="pane-title">BẢN DỊCH <select id="model" aria-label="Model dịch">
 </select>
@@ -17,7 +25,7 @@
 </span>
 </div><p id="translation-status" class="task-status" role="status">
 </p><article id="result">Chọn sách để bắt đầu. Bản dịch đã lưu sẽ được mở khi có.</article><section id="editor" hidden><p>Kiểm tra tiếng Anh trước khi dịch. Sửa thứ tự đọc, câu ngắt hoặc chữ nhận nhầm.</p><textarea id="source" rows="15" aria-label="Chữ tiếng Anh">
-</textarea><button id="save-source">Lưu chữ đã sửa</button><button id="download">Tải TXT trang</button>
+</textarea><button id="save-source">Lưu chữ đã sửa</button><button id="translate-selection">Dịch đoạn bôi đen</button><button id="download">Tải TXT trang</button>
 </section>
 </section>
 </main><aside><div class="tabs"><button data-tab="board" class="active">Bàn cờ</button><button data-tab="notes">Ghi chú</button>
@@ -28,7 +36,7 @@
 </div>
 <details class="scan-settings"><summary>AI quét · <span id="scan-model-label">đang tải…</span></summary><div class="model-row"><select id="scan-model" aria-label="AI quét ảnh">
 </select><button id="scan-refresh" type="button" aria-label="Tải lại danh sách AI quét">↻</button>
-</div><small id="scan-model-status">Đang tải danh sách AI quét…</small><p class="hint">Gemini gửi ảnh trang tới Google. Kết quả được lưu để mở lại.</p>
+</div><button id="scan-probe" type="button">Kiểm tra AI với ảnh nhỏ</button><small id="scan-probe-status" class="task-status" role="status"></small><small id="scan-model-status">Đang tải danh sách AI quét…</small><p class="hint">Gemini gửi ảnh trang tới Google. Kết quả được lưu để mở lại.</p>
 </details>
 <p id="scan-status" class="task-status" role="status">
 </p>
@@ -60,7 +68,7 @@
 <div class="footer-note">Một trang. Một ý tưởng. Một thế cờ.<br><small>Đối chiếu bản dịch và quân cờ với sách trước khi học.</small>
 </div>
 </aside>
-</div><script type="module" src="/study.js?v=study-4">
+</div><script type="module" src="/study.js?v=study-5">
 </script>
 </body>
 </html>
