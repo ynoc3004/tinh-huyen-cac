@@ -1,6 +1,8 @@
 """Read all diagrams on a rendered book page using configured Gemini vision."""
 import base64
+import asyncio
 import json
+import random
 import re
 import httpx
 from fastapi import HTTPException
@@ -20,17 +22,33 @@ def validate_placement(value):
             return False
     return value.count('K') == 1 and value.count('k') == 1
 
-async def scan_image(image_bytes, api_key, model):
-    try:
-        async with httpx.AsyncClient(timeout=150, trust_env=False) as client:
-            r = await client.post('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',
+async def _scan_response(image_bytes, api_key, model):
+    # Retry explicit transient server failures on the same selected model.
+    # Quota/key errors and connection timeouts stop without another request.
+    async with httpx.AsyncClient(timeout=150, trust_env=False) as client:
+        for attempt in range(3):
+            response = await client.post('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',
                 headers={'x-goog-api-key':api_key}, json={
                     'contents':[{'role':'user','parts':[{'text':PROMPT}, {'inlineData':{'mimeType':'image/png','data':base64.b64encode(image_bytes).decode()}}]}],
                     'generationConfig':{'temperature':0, 'maxOutputTokens':8192, 'responseMimeType':'application/json'}})
+            if response.status_code not in (502, 503, 504) or attempt == 2:
+                return response, attempt + 1
+            await asyncio.sleep(2 ** (attempt + 1) + random.uniform(0, 0.5))
+
+async def scan_image(image_bytes, api_key, model):
+    try:
+        # Bound the complete request/retry cycle, not each retry separately.
+        r, attempts = await asyncio.wait_for(_scan_response(image_bytes, api_key, model), timeout=180)
         if r.status_code == 429:
             raise HTTPException(429, 'Gemini hết hạn mức hoặc giới hạn tốc độ quét. Đợi rồi thử lại; các kết quả đã lưu vẫn còn.')
-        if r.status_code in (400,401,403,404):
-            raise HTTPException(503, 'Gemini từ chối quét ảnh. Kiểm tra API key và GEMINI_SCAN_MODEL hỗ trợ hình ảnh trong AI Studio.')
+        if r.status_code in (401, 403):
+            raise HTTPException(503, f'Gemini quét ảnh trả HTTP {r.status_code}: khóa hoặc quyền dự án bị từ chối. Kiểm tra khóa và quyền trong AI Studio.')
+        if r.status_code == 404:
+            raise HTTPException(503, f'Model {model} chưa khả dụng cho quét ảnh (HTTP 404). Mở mục AI quét, tải lại danh sách rồi chọn model khác.')
+        if r.status_code == 400:
+            raise HTTPException(503, f'Gemini từ chối yêu cầu quét ảnh bằng {model} (HTTP 400). Model có thể không hỗ trợ ảnh hoặc cấu hình này. Mở mục AI quét để chọn model khác.')
+        if r.status_code in (502, 503, 504):
+            raise HTTPException(503, f'Gemini · {model} trả HTTP {r.status_code} sau {attempts} lần thử. Dịch vụ đang tạm không khả dụng. Mở AI quét để chọn model khác hoặc thử lại sau; kết quả đã lưu vẫn còn.')
         r.raise_for_status()
         candidate = r.json()['candidates'][0]
         if candidate.get('finishReason') != 'STOP':
@@ -60,7 +78,7 @@ async def scan_image(image_bytes, api_key, model):
                            'turn':turn, 'orientation':orientation, 'warning':warning.strip()})
         return output
     except HTTPException: raise
-    except httpx.TimeoutException:
+    except (httpx.TimeoutException, asyncio.TimeoutError):
         raise HTTPException(504,'Quét ảnh quá lâu. Thử lại sau; bản lỗi chưa được lưu.')
     except httpx.HTTPStatusError as e:
         raise HTTPException(503,f'Gemini quét ảnh trả HTTP {e.response.status_code}. Dịch vụ có thể quá tải; thử lại sau.')
@@ -68,3 +86,4 @@ async def scan_image(image_bytes, api_key, model):
         raise HTTPException(503,'Python không kết nối được Gemini để quét ảnh. Kiểm tra HTTPS/proxy.')
     except (ValueError,KeyError,TypeError,IndexError):
         raise HTTPException(502,'Kết quả quét chưa hoàn chỉnh hoặc sai dữ liệu. Thử quét lại; bản lỗi chưa được lưu.')
+

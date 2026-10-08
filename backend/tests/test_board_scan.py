@@ -80,3 +80,52 @@ class ScanTests(test_translation.TranslationTests):
             self.assertFalse(self.client.get('/api/library/translation/study/scan-models').json()['available'])
         self.client.post('/api/library/vault/lock')
         self.assertEqual(self.client.get('/api/library/translation/study/scan-models').status_code,401)
+
+    def test_transient_scan_retry_and_permanent_failures(self):
+        import asyncio
+        import json
+        from fastapi import HTTPException
+        result = {'boards': [{'bbox': [0, 0, 500, 500], 'placement': PLACEMENT}]}
+        responses = []
+        calls = []
+        class Client:
+            def __init__(self, **kwargs): pass
+            async def __aenter__(self): return self
+            async def __aexit__(self, *args): pass
+            async def post(self, url, headers, json):
+                calls.append(url)
+                status = responses.pop(0)
+                return httpx.Response(status, json={'candidates': [{'finishReason': 'STOP',
+                    'content': {'parts': [{'text': __import__('json').dumps(result)}]}}]},
+                    request=httpx.Request('POST', url))
+        sleep = AsyncMock()
+        with patch.object(board_scan.httpx, 'AsyncClient', Client), patch.object(board_scan.asyncio, 'sleep', sleep):
+            responses[:] = [503, 503, 200]
+            out = asyncio.run(board_scan.scan_image(b'png', 'test-only', 'gemini-selected'))
+            self.assertEqual(out[0]['placement'], PLACEMENT)
+            self.assertEqual(len(calls), 3)
+            self.assertEqual(sleep.await_count, 2)
+            self.assertTrue(all('gemini-selected:generateContent' in url for url in calls))
+            for status in [400, 401, 403, 404, 429, 503]:
+                calls.clear(); sleep.reset_mock()
+                responses[:] = [status] * (3 if status == 503 else 1)
+                with self.assertRaises(HTTPException) as error:
+                    asyncio.run(board_scan.scan_image(b'png', 'test-only', 'gemini-selected'))
+                self.assertEqual(len(calls), 3 if status == 503 else 1)
+                self.assertNotIn('test-only', error.exception.detail)
+                if status == 503:
+                    self.assertIn('3 lần', error.exception.detail)
+                    self.assertIn('AI quét', error.exception.detail)
+                else:
+                    self.assertEqual(sleep.await_count, 0)
+
+    def test_failed_rescan_preserves_saved_diagrams(self):
+        from fastapi import HTTPException
+        sample = [{'bbox': [0, 0, 500, 500], 'placement': PLACEMENT,
+                   'turn': 'w', 'orientation': 'white', 'label': '', 'warning': ''}]
+        with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-only'}), patch.object(board_scan, 'scan_image', AsyncMock(return_value=sample)):
+            self.assertEqual(self.client.post(self.base+'/study/boards', json={'page': 1}).status_code, 200)
+        with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-only'}), patch.object(board_scan, 'scan_image', AsyncMock(side_effect=HTTPException(503, 'Unavailable'))):
+            self.assertEqual(self.client.post(self.base+'/study/boards', json={'page': 1, 'force': True}).status_code, 503)
+        saved = self.client.get(self.base+'/study/boards?page=1').json()
+        self.assertEqual(saved['boards'][0]['placement'], PLACEMENT)

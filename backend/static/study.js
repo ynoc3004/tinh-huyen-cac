@@ -143,7 +143,7 @@ function openScan(i,card){
  catch{$("position").value=fen;$("scan-editor").hidden=true;$("scan-status").textContent="FEN nhận diện chưa hợp lệ. Sửa FEN trong mục Nhập thế cờ rồi mở lại.";}
 }
 async function scanPage(force=false){
- if(busy||scanning||!loaded)return;scanning=true;controls();$("scan-status").textContent="Đang quét tất cả hình trên trang "+page+"…";
+ if(busy||scanning||!loaded)return;scanning=true;controls();$("scan-status").textContent="Đang quét tất cả hình trên trang "+page+"… Nếu Gemini tạm quá tải, tự thử lại tối đa 2 lần.";
  try{showScans(await api(id+"/study/boards",{page,force,model:$("scan-model").value}));}catch(e){$("scan-status").textContent=e.message;}finally{scanning=false;controls();}
 }
 $("scan-page").onclick=()=>scanPage();$("scan-again").onclick=()=>scanPage(true);
