@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta id="meta-theme" name="theme-color" content="#0b1210">
 <title>Tĩnh Huyền Các</title>
-<link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="stylesheet" href="/fonts/titles.css">
+<link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1">
+<link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <style>
 :root {
   --bg: #0b1210;
@@ -347,23 +347,8 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
 
 </style>
 <script src="/thien-co.js"></script>
-<script>
-// Chủ đề theo mặt trời: sáng từ lúc mọc đến lúc lặn, tối vào ban đêm (ước lượng cho TP. Hồ Chí Minh, được tinh chỉnh sau khi tải trang)
-try {
-  const n = new Date(), s = window.ThienCo.sunTimes(n, 10.7769, 106.7009);
-  const q = new URLSearchParams(location.search).get("theme");
-  document.documentElement.dataset.theme = q === "light" || q === "dark" ? q : (s && n >= s.sunrise && n < s.sunset ? "light" : "dark");
-} catch (e) { document.documentElement.dataset.theme = "dark"; }
-try {
-  const f = localStorage.getItem("titleFont");
-  if (f) {
-    const r = document.documentElement.style;
-    r.setProperty("--title", f);
-    r.setProperty("--tw", "400");
-  }
-} catch (e) {}
-</script>
-</head>
+
+<link rel="stylesheet" href="/tien-canh.css?v=appearance-1"><script src="/tien-canh.js?v=appearance-1"></script></head>
 <body>
 <div class="sky" id="sky" aria-hidden="true"></div>
 <div class="clouds" aria-hidden="true"><div class="cl"></div><div class="cl"></div><div class="cl"></div></div>
@@ -493,6 +478,7 @@ const TC = window.ThienCo;
 const WX_KINDS = ["clear", "partly", "cloudy", "fog", "rain", "storm", "snow"];
 const WX_CODE = { clear: 0, partly: 2, cloudy: 3, fog: 45, rain: 63, storm: 95, snow: 73 };
 const QUE_TEN = ["Càn", "Tốn", "Khảm", "Cấn", "Khôn", "Chấn", "Ly", "Đoài"];
+window.addEventListener("thc:appearance", () => { if (document.getElementById("tc-day")) refreshWorld(); });
 const fx = { kind: "clear", night: false, light: document.documentElement.dataset.theme === "light", refreshPalette: null };
 const world = { home: { lat: 10.7769, lon: 106.7009, name: "TP. Hồ Chí Minh" }, wx: null, wxErr: "" };
 // Xem thử: /?t=18:25&w=rain (giờ) (loại thời tiết: clear, partly, cloudy, fog, rain, storm, snow), thêm &d=2026-12-21 để đổi ngày
@@ -628,14 +614,16 @@ function refreshWorld() {
   fx.kind = kind; fx.night = ph === "dem";
   // Ban ngày (từ lúc mặt trời mọc đến lúc lặn) nền sáng, ban đêm nền tối
   const isDay = sun ? (now >= sun.sunrise && now < sun.sunset) : ph !== "dem"; // mặt trời đang ở trên đường chân trời
-  const theme = demo && demo.theme ? demo.theme : (sun ? (now >= sun.sunrise && now < sun.sunset ? "light" : "dark") : (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"));
+  const autoTheme = sun ? (now >= sun.sunrise && now < sun.sunset ? "light" : "dark") : (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  const previousLight = fx.light;
+  const theme = window.THCAppearance.resolveTheme(demo && demo.theme ? demo.theme : autoTheme);
+  window.THCAppearance.setAutoTheme(autoTheme);
   if (document.documentElement.dataset.theme !== theme) {
     document.documentElement.dataset.theme = theme;
     document.getElementById("meta-theme").setAttribute("content", theme === "light" ? "#e5ebe4" : "#0b1210");
-    fx.light = theme === "light";
-    if (fx.refreshPalette) { fx.refreshPalette(); setTimeout(fx.refreshPalette, 1900); }
   }
   fx.light = theme === "light";
+  if (previousLight !== fx.light && fx.refreshPalette) { fx.refreshPalette(); setTimeout(fx.refreshPalette, 1900); }
   [...document.body.classList].filter(c => c.startsWith("wx-") || c.startsWith("ph-")).forEach(c => document.body.classList.remove(c));
   document.body.classList.add("wx-" + kind, "ph-" + ph);
   document.getElementById("sky").style.background = SKY[ph];

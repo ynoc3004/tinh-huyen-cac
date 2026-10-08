@@ -1,4 +1,3 @@
-try{const f=localStorage.getItem('titleFont');if(f){document.documentElement.style.setProperty('--title',f);document.documentElement.style.setProperty('--tw','400')}}catch(e){}
 
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const say=t=>$('#msg').textContent=t;

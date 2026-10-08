@@ -1,8 +1,8 @@
 <!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tàng Kinh Các · Tĩnh Huyền Các</title><link rel="stylesheet" href="/fonts/fonts.css"><link rel="stylesheet" href="/fonts/titles.css"><style>
+<title>Tàng Kinh Các · Tĩnh Huyền Các</title><link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1"><style>
 :root{--paper:#e4ebe6;--ink:#1f2b2a;--seal:#a8322a;--mist:#c3d0c8}
 @media(prefers-color-scheme:dark){:root{--paper:#1c2625;--ink:#dfe8e2;--mist:#33443f}}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 "Noto Serif","Times New Roman",Cambria,serif;padding:2rem 1.5rem;max-width:74rem;margin-inline:auto}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 var(--font-body);padding:2rem 1.5rem;max-width:74rem;margin-inline:auto}
 h1{font-size:2.2rem;margin:0 0 .5rem}a{color:var(--ink)}button,input,select,textarea{font:inherit;color:inherit}
 button{background:var(--seal);color:#fff;border:0;padding:.4em 1em;cursor:pointer}button.alt{background:none;color:var(--ink);border:1px solid var(--ink)}
 input,select,textarea{background:transparent;border:1px solid var(--mist);padding:.3em .5em}:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
@@ -42,7 +42,7 @@ details.settings{margin:.6rem 0}details.settings summary{cursor:pointer}details.
 #reader .rt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:40vw}.grow{flex:1}#rb{flex:1;min-height:0;overflow:auto;display:flex}
 #rb iframe{width:100%;height:100%;border:0;background:#fff}#rb img{max-width:100%;max-height:100%;object-fit:contain;margin:auto;cursor:zoom-in}#rb img.full{max-width:none;max-height:none;cursor:zoom-out}
 #rb pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:52rem;width:100%;margin:0 auto;padding:1rem 1.2rem;line-height:1.7;align-self:flex-start}
-</style><script>try{const f=localStorage.getItem("titleFont");if(f){const r=document.documentElement.style;r.setProperty("--title",f);r.setProperty("--tw","400")}}catch(e){}</script><link rel="stylesheet" href="/tien-canh.css"><script src="/tien-canh.js"></script></head><body>
+</style><link rel="stylesheet" href="/tien-canh.css?v=appearance-1"><script src="/thien-co.js"></script><script src="/tien-canh.js?v=appearance-1"></script></head><body>
 <a href="/">← Tĩnh Huyền Các</a><h1>Tàng Kinh Các</h1><div id="msg" role="status"></div>
 <section id="gate" class="gate" hidden>
  <h2 id="gtitle"></h2><p id="gdesc" class="muted"></p>
@@ -57,13 +57,13 @@ details.settings{margin:.6rem 0}details.settings summary{cursor:pointer}details.
 </section>
 <div id="app" hidden>
 <div class="tools" id="tools">
- <a href="/study.html" style="display:inline-block;padding:.5rem .8rem;border:1px solid var(--mist);border-radius:8px">讀 Thư Phòng · Học sách</a>
- <button id="translation-picker" type="button">讀 Dịch Kinh Các · Chọn sách PDF</button>
+ <a href="/study.html" style="display:inline-block;padding:.5rem .8rem;border:1px solid var(--mist);border-radius:8px">▤ Thư Phòng · Học sách</a>
+ <button id="translation-picker" type="button">▤ Dịch Kinh Các · Chọn sách PDF</button>
  <label class="btn" for="upl">+ Thêm file</label><input id="upl" type="file" multiple hidden accept=".pdf,.epub,.png,.jpg,.jpeg,.webp,.pgn,.txt,.md,.docx">
- <button class="alt" id="newfold">＋ Thư mục</button><button class="alt" id="selmode">Chọn nhiều</button>
+ <button class="alt" id="newfold">+ Thư mục</button><button class="alt" id="selmode">Chọn nhiều</button>
  <button class="alt" id="scan" title="Mã hóa các file thường đang nằm trong thư mục liên kết">Mã hóa file có sẵn trong thư mục</button>
  <label class="muted"><input id="delorig" type="checkbox"> xóa bản gốc sau khi mã hóa</label>
- <span class="grow"></span><button class="alt" id="lock">🔒 Khóa ngay</button>
+ <span class="grow"></span><button class="alt" id="lock">Khóa ngay</button>
 </div>
 <details class="settings"><summary>Cài đặt két</summary>
  <p class="muted">Thư mục liên kết: <span class="folder" id="sfolder"></span></p>

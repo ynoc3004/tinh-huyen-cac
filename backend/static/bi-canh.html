@@ -4,19 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Bí Cảnh · Tĩnh Huyền Các</title>
-<link rel="stylesheet" href="/fonts/fonts.css">
-<link rel="stylesheet" href="/fonts/titles.css">
+<link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1">
+<link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <script src="/thien-co.js"></script>
-<script>
-try {
-  const n = new Date(), s = window.ThienCo.sunTimes(n, 10.7769, 106.7009), q = new URLSearchParams(location.search).get("theme");
-  document.documentElement.dataset.theme = q === "light" || q === "dark" ? q : (s && n >= s.sunrise && n < s.sunset ? "light" : "dark");
-} catch (e) { document.documentElement.dataset.theme = "dark"; }
-try { const f = localStorage.getItem("titleFont"); if (f) { document.documentElement.style.setProperty("--title", f); document.documentElement.style.setProperty("--tw", "400"); } } catch (e) {}
-</script>
+
 <link rel="stylesheet" href="/bi-canh.css?v=online-archive-1">
 <link rel="stylesheet" href="/review.css?v=1">
-</head>
+<link rel="stylesheet" href="/tien-canh.css?v=appearance-1"><script src="/tien-canh.js?v=appearance-1"></script></head>
 <body class="archive-page">
 <div class="wrap">
 <header class="site-header"><a class="site-brand" href="/"><svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"><path d="M15 2h18l13 13v18L33 46H15L2 33V15z" opacity=".5"/><circle cx="24" cy="24" r="15"/><path d="M24 9a15 15 0 0 1 0 30a7.5 7.5 0 0 1 0-15a7.5 7.5 0 0 0 0-15" fill="currentColor"/><circle cx="24" cy="16.5" r="2.3" fill="currentColor"/><circle cx="24" cy="31.5" r="2.3" fill="var(--paper)" stroke="none"/></svg><span><strong>Tĩnh Huyền Các</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính"><a href="/">Cổng môn</a><a href="/library.html">Tàng kinh</a><a href="/bi-canh.html" aria-current="page">Bí cảnh</a><a href="/arena.html">Đấu trường</a><button type="button" role="tab" id="tab-history" aria-controls="pane-history" aria-selected="false">Kỳ phổ</button></nav></header>
@@ -44,7 +38,7 @@ try { const f = localStorage.getItem("titleFont"); if (f) { document.documentEle
       <p class="help">Kéo quân tới ô đến, hoặc bấm quân rồi bấm ô đến. Phím tắt: <kbd>H</kbd> gợi ý, <kbd>N</kbd> câu khác.</p>
     </div>
     <div class="panel puzzle-panel">
-      <header class="practice-heading"><div><span class="library-eyebrow">THAM NGỘ KỲ ĐẠO</span><h2>Một nước định càn khôn</h2></div><span class="practice-seal" aria-hidden="true">悟</span></header>
+      <header class="practice-heading"><div><span class="library-eyebrow">THAM NGỘ KỲ ĐẠO</span><h2>Một nước định càn khôn</h2></div><span class="practice-seal" aria-hidden="true">☯</span></header>
       <div id="pz-note"></div>
       <div class="goal" id="pz-goal"></div>
       <p class="focus" id="pz-focus" hidden></p>

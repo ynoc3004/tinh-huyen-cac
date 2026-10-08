@@ -72,8 +72,8 @@ $("translate").onclick=()=>translatePage();$("translate-selection").onclick=()=>
 $("bookmark").onclick=async()=>{if(!loaded)return;state.bookmark=page;try{await save();$("return").hidden=false;status("Đã đánh dấu trang "+page);}catch(e){status(e.message);}};
 $("return").onclick=()=>openPage(Math.min(total,state.bookmark||1));
 $("save-note").onclick=async()=>{if(!loaded)return;try{await save();$("note-status").textContent="Đã lưu ghi chú trong két.";}catch(e){$("note-status").textContent=e.message;}};
-function setView(v){view=v;document.body.dataset.view=v;$("editor").hidden=v!=="text";document.querySelectorAll("[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===v));}
-document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>setView(b.dataset.view));
+function setView(v){view=v;document.body.dataset.view=v;$("editor").hidden=v!=="text";document.querySelectorAll("button[data-view]").forEach(b=>b.classList.toggle("active",b.dataset.view===v));}
+document.querySelectorAll("button[data-view]").forEach(b=>b.onclick=()=>setView(b.dataset.view));
 $("text-toggle").onclick=()=>{$("editor").hidden=!$("editor").hidden;};
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll("[data-tab]").forEach(x=>x.classList.toggle("active",x===b));$("board-tab").hidden=b.dataset.tab!=="board";$("notes-tab").hidden=b.dataset.tab!=="notes";});
 $("focus").onclick=()=>{const on=document.body.classList.toggle("focus");$("focus").textContent=on?"Thoát tập trung":"Chế độ tập trung";};
@@ -130,9 +130,10 @@ const started=Date.now();setInterval(()=>{const m=Math.floor((Date.now()-started
 })();
 
 let readingSize=18,theme="day";
-try{readingSize=Math.min(26,Math.max(15,Number(localStorage.getItem("thc-study-size"))||18));theme=localStorage.getItem("thc-study-theme")==="night"?"night":"day";}catch{}
-function appearance(){document.documentElement.dataset.theme=theme;document.documentElement.style.setProperty("--reading-size",readingSize+"px");$("theme").textContent=theme==="night"?"☀ Ngày":"☾ Đêm";$("theme").setAttribute("aria-pressed",String(theme==="night"));$("text-smaller").disabled=readingSize<=15;$("text-larger").disabled=readingSize>=26;try{localStorage.setItem("thc-study-size",String(readingSize));localStorage.setItem("thc-study-theme",theme);}catch{}}
-$("theme").onclick=()=>{theme=theme==="night"?"day":"night";appearance();};
+try{readingSize=Math.min(26,Math.max(15,Number(localStorage.getItem("thc-study-size"))||18));}catch{}
+function appearance(){if(window.THCAppearance)theme=document.documentElement.dataset.theme==="dark"?"night":"day";else document.documentElement.dataset.theme=theme;document.documentElement.style.setProperty("--reading-size",readingSize+"px");$("theme").textContent=theme==="night"?"☀ Ngày":"☾ Đêm";$("theme").setAttribute("aria-pressed",String(theme==="night"));$("text-smaller").disabled=readingSize<=15;$("text-larger").disabled=readingSize>=26;try{localStorage.setItem("thc-study-size",String(readingSize));}catch{}}
+$("theme").onclick=()=>{if(window.THCAppearance)window.THCAppearance.setTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");else theme=theme==="night"?"day":"night";appearance();};
+window.addEventListener?.("thc:appearance",()=>appearance());
 $("text-smaller").onclick=()=>{readingSize=Math.max(15,readingSize-1);appearance();};
 $("text-larger").onclick=()=>{readingSize=Math.min(26,readingSize+1);appearance();};
 appearance();

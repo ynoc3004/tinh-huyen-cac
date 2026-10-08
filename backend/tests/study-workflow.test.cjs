@@ -9,8 +9,8 @@ class Element {
  const root=path.join(__dirname,'../static');
  const html=fs.readFileSync(path.join(root,'study.html'),'utf8'),elements={};
  for(const [,id] of html.matchAll(/id="([^"]+)"/g))elements[id]=new Element();
- const body=new Element(),docRoot=new Element();
- const document={body,documentElement:docRoot,getElementById:id=>{assert.ok(elements[id],`Missing HTML control: ${id}`);return elements[id]},createElement:()=>new Element(),createElementNS:()=>new Element(),querySelector:()=>new Element(),querySelectorAll:selector=>selector==='.scan-card'?elements['scan-results'].children:[]};
+ const body=new Element(),docRoot=new Element();body.dataset.view='bilingual';
+ const document={body,documentElement:docRoot,getElementById:id=>{assert.ok(elements[id],`Missing HTML control: ${id}`);return elements[id]},createElement:()=>new Element(),createElementNS:()=>new Element(),querySelector:()=>new Element(),querySelectorAll:selector=>selector==='.scan-card'?elements['scan-results'].children:selector==='[data-view]'?[body]:[]};
  const {Chess}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'vendor/chess.js')).toString('base64'));
  let scanResolve,translateResolve,batchResolve,batchJob={},batchSteps=0;const batchWait=new Promise(r=>batchResolve=r);const scanWait=new Promise(r=>scanResolve=r),translateWait=new Promise(r=>translateResolve=r),calls=[];
  const board={placement:'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',turn:'w',orientation:'white',image:'data:image/png;base64,example'};
@@ -31,8 +31,10 @@ class Element {
  return {ok:true,status:200,json:async()=>data};
  };
  const store=new Map(),context={Chess,PIECE_DEFS:'',document,fetch,location:{search:'?id=1'},URLSearchParams,Option:class extends Element{constructor(text,value){super();this.textContent=text;this.value=value;}},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},setInterval(){},setTimeout,Date,console};
+ context.window=context;context.addEventListener=()=>{};
  const code=fs.readFileSync(path.join(root,'study.js'),'utf8').replace(/^import .*;\n/gm,'');vm.runInNewContext(code,context,{filename:'study.js'});
  for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r));
+ assert.equal(body.classList.contains('active'),false,'View selection must not paint the whole document as an active control');
  assert.equal(elements.pdf.src,"/api/library/translation/1/study/page-image?page=1");
  assert.equal(elements.model.value,'deepl:en-vi');assert.equal(elements['scan-model'].value,'local:chessvision');
  assert.equal(elements['scan-download'].href,elements.pdf.src);assert.equal(elements['scan-download'].download,'sach-1-trang-1.png');

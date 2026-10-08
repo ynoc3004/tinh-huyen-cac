@@ -133,3 +133,23 @@ node tests/study-workflow.test.cjs
 API tests dùng PDF/database tạm và phản hồi giả, kiểm tra chọn local không gọi cloud, cache riêng, lỗi quét lại giữ kết quả cũ, ảnh đúng trang và khóa két. Node mô phỏng DOM/API, kiểm tra hai tác vụ độc lập, quét local mặc định, tải ảnh trang và nhập PGN. Model/detector không được tải tự động bởi tests.
 
 Thử thực tế trên PDF London System: nhận diện 20 hình ở các trang PDF 22, 24, 26, 27, 29–44; đã đối chiếu vị trí quân với ảnh. Đây là mẫu một kiểu sách, không đại diện cho mọi PDF. Kiểu quân trong Winning Chess Strategies có trường hợp nhận nhầm; cần hiệu đính hoặc dùng nguồn nhận diện khác.
+
+
+## Diện mạo chung
+
+Tất cả trang dùng `static/tien-canh.css` và `static/tien-canh.js`: màu ngọc/vàng, núi và sương, thanh điều hướng cùng kiểu Cổng môn. Trang chủ giữ hiệu ứng thời tiết và bàn Thiên cơ. Vị trí mặt trời/mặt trăng tính theo chiều cao thực tế của header, kể cả khi đổi font hoặc dùng điện thoại. Menu trên điện thoại cuộn ngang.
+
+Mở **Diện mạo** trên header để chọn **Font toàn hệ thống** hoặc **Thiên sắc**. Font áp dụng cho tiêu đề, nội dung, menu và điều khiển; các tab cùng địa chỉ cập nhật ngay. Trang `/fonts-preview.html` hiển thị mẫu chữ và nút dùng lại mặc định (Charm cho tiêu đề, Noto Serif cho nội dung). Các font được phục vụ từ máy, có khai báo subset cho dấu tiếng Việt. Không cần cài package mới.
+
+Lựa chọn lưu trên trình duyệt bằng `thc-font` và `thc-theme`; lựa chọn font cũ `titleFont` được đọc lại tự động. Thiên sắc mặc định theo mặt trời tại TP. Hồ Chí Minh; chọn ngày/đêm sẽ giữ lựa chọn ở các trang, kể cả trang chủ. Thư Phòng dùng chung thiên sắc, cỡ chữ đọc vẫn chỉnh riêng. Các trang PDF/ảnh giữ nội dung gốc của tài liệu.
+
+Kiểm tra bộ điều khiển diện mạo và các luồng frontend hiện có:
+
+```powershell
+node tests/appearance.test.cjs
+node tests/study-workflow.test.cjs
+node tests/arena-workflow.test.cjs
+node tests/arena-clock.test.cjs
+node tests/tournament-page.test.cjs
+node tests/test_review_math.mjs
+```
