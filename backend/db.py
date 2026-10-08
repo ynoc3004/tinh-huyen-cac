@@ -3,6 +3,10 @@ from contextlib import contextmanager
 from config import DB_PATH
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS cultivation_profile(id INTEGER PRIMARY KEY CHECK(id=1),
+  full_name TEXT NOT NULL DEFAULT '', dao_name TEXT NOT NULL DEFAULT '', birth_date TEXT,
+  birth_time TEXT, hometown TEXT NOT NULL DEFAULT '', goal TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS games(id INTEGER PRIMARY KEY, platform TEXT, ext_id TEXT, played_at INTEGER,
   color TEXT, opponent TEXT, my_rating INT, opp_rating INT, result TEXT, time_class TEXT, pgn TEXT, UNIQUE(platform, ext_id));
 CREATE TABLE IF NOT EXISTS rating_history(id INTEGER PRIMARY KEY, platform TEXT, time_class TEXT, day TEXT, rating INT,

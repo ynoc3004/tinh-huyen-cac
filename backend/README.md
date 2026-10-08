@@ -135,6 +135,14 @@ API tests dùng PDF/database tạm và phản hồi giả, kiểm tra chọn loc
 Thử thực tế trên PDF London System: nhận diện 20 hình ở các trang PDF 22, 24, 26, 27, 29–44; đã đối chiếu vị trí quân với ảnh. Đây là mẫu một kiểu sách, không đại diện cho mọi PDF. Kiểu quân trong Winning Chess Strategies có trường hợp nhận nhầm; cần hiệu đính hoặc dùng nguồn nhận diện khác.
 
 
+## Đạo Lộ
+
+Trang `/dao-lo.html` lưu hồ sơ cá nhân: họ tên, đạo hiệu, sinh thần (ngày dương lịch và giờ sinh nếu biết), quê quán, chí hướng và ghi chú. Các mục đều tùy chọn. Bấm **Lưu hồ sơ** để lưu vào `data/app.db`; hồ sơ dùng chung trên các trình duyệt truy cập cùng backend. Database tự thêm bảng hồ sơ khi khởi động, giữ nguyên dữ liệu cờ hiện có.
+
+**Pháp mạch**, **Đăng thiên lộ** và nút đồng bộ chuyển từ trang chủ sang Đạo Lộ. Quy tắc tính căn cơ và cảnh giới giữ nguyên. Trang chủ vẫn có bàn Thiên cơ, thời tiết và cảnh giới hiện tại. Chọn **Đạo lộ** trên header để mở hồ sơ. API mới: `GET /api/profile`, `PUT /api/profile`.
+
+Kiểm tra lưu hồ sơ và nâng cấp database: `python -m unittest discover -s tests -p "test_profile.py" -v`.
+
 ## Kỳ phổ
 
 Trang `/history.html` dành riêng cho kỳ phổ; Bí Cảnh giữ câu đố, đấu bot và công pháp. Liên kết cũ `/bi-canh.html#history` tự chuyển đến trang mới.

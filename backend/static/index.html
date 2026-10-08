@@ -106,26 +106,10 @@ h1 {
 }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1rem; margin: 1.6rem 0 2.4rem; }
 button { font: inherit; cursor: pointer; }
-#sync {
-  min-height: 44px;
-  padding: 0.5em 1.4em;
-  color: var(--ink);
-  background: color-mix(in srgb, var(--jade) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--jade) 60%, transparent);
-  border-radius: 999px;
-  transition: background 200ms var(--ease-out), transform 120ms var(--ease-out);
-}
-#sync:hover { background: color-mix(in srgb, var(--jade) 26%, transparent); }
-#sync:active { transform: scale(0.97); }
-#sync[disabled] { opacity: 0.6; cursor: progress; }
+.dao-link { display: inline-flex; align-items:center; min-height:44px; color:var(--jade); text-decoration:none; border-bottom:1px solid var(--line); }
+.dao-link:hover { color:var(--gold); border-color:var(--gold); }
 #msg { color: var(--muted); font-size: 0.95rem; }
 a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
-
-/* Bố cục chính */
-#realms { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 4rem; align-items: start; }
-@media (min-width: 880px) {
-  #realms.has-data { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
 
 /* Đan bàn: vòng chín tầng của cảnh giới nằm ở tâm bàn thiên cơ */
 .tc-left { text-align: center; }
@@ -163,47 +147,6 @@ h2 {
   line-height: 1.2;
   margin: 0 0 0.7rem;
 }
-.grid { width: 100%; border-collapse: collapse; margin: 0 0 2.6rem; border-top: 1px solid var(--line); }
-.grid th { padding: 0.55rem 0; text-align: left; font-weight: 400; color: var(--muted); font-size: 0.9rem; }
-.grid th:not(:first-child), .grid td:not(:first-child) { text-align: right; }
-.grid td, .grid tbody th { padding: 0.6rem 0; border-top: 1px solid var(--line); vertical-align: middle; }
-.grid tbody th { color: var(--ink); font-size: 1.02rem; }
-.grid td b { display: block; font-weight: 400; font-size: 1.3rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
-.grid td small { display: block; color: var(--muted); font-size: 0.8rem; line-height: 1.3; }
-.grid td.none { color: var(--muted); }
-.grid td.can-co b { color: var(--gold); }
-.grid td.can-co small { color: var(--ink); }
-.root { display: inline-block; margin-right: 0.4rem; padding: 0 0.5em; background: var(--seal); color: var(--seal-ink); font-size: 0.72rem; line-height: 1.5; border-radius: 3px; vertical-align: 0.1em; }
-.more { margin: -1.6rem 0 2.6rem; }
-.more summary { cursor: pointer; color: var(--muted); font-size: 0.92rem; min-height: 44px; display: flex; align-items: center; }
-.more[open] summary { color: var(--ink); }
-.more .grid { margin: 0; }
-
-/* Đăng thiên lộ */
-.path { list-style: none; margin: 0; padding: 0 0 0 1.5rem; position: relative; }
-.path::before { content: ""; position: absolute; left: 0.43rem; top: 0.7rem; bottom: 0.7rem; width: 1px; background: var(--line); }
-.path li { position: relative; display: flex; justify-content: space-between; gap: 1rem; padding: 0.3rem 0; color: var(--muted); }
-.path li::before {
-  content: "";
-  position: absolute;
-  left: -1.5rem;
-  top: 0.78rem;
-  width: 0.9rem;
-  height: 0.9rem;
-  box-sizing: border-box;
-  border-radius: 50%;
-  background: var(--bg);
-  border: 1px solid var(--muted);
-}
-.path li.done { color: var(--ink); }
-.path li.done::before { background: var(--jade); border-color: var(--jade); }
-.path li.now { color: var(--gold); font-size: 1.1rem; }
-.path li.now::before { background: var(--gold); border-color: var(--gold); box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 22%, transparent); }
-.path .from { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
-
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.empty { color: var(--muted); border: 1px dashed var(--mist); border-radius: 12px; padding: 1.2rem 1.3rem; margin: 0; max-width: 34rem; }
-
 /* Lối đi */
 nav { margin-top: 4rem; padding-top: 1.6rem; border-top: 1px solid var(--line); display: grid; gap: 1.2rem 2.5rem; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); }
 nav a { color: var(--ink); text-decoration: none; }
@@ -318,7 +261,6 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
   .tc-dial #tc-tc { transition: none; }
   :root { transition: none; }
   .brush { animation: none; clip-path: none; }
-  #sync { transition: none; }
 }
 
 
@@ -348,7 +290,7 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
 </style>
 <script src="/thien-co.js"></script>
 
-<link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/tien-canh.js?v=quan-1"></script></head>
+<link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/tien-canh.js?v=dao-lo-1"></script></head>
 <body>
 <div class="sky" id="sky" aria-hidden="true"></div>
 <div class="clouds" aria-hidden="true"><div class="cl"></div><div class="cl"></div><div class="cl"></div></div>
@@ -365,7 +307,7 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
     <div class="seal" aria-hidden="true">Tĩnh<br>Huyền</div>
   </header>
   <div class="toolbar">
-    <button id="sync" type="button">Đồng bộ ván cờ</button>
+    <a class="dao-link" href="/dao-lo.html">Đạo Lộ · Hồ sơ &amp; tu vi →</a>
     <span id="msg" role="status"></span>
   </div>
   <section id="thien-co" aria-label="Thiên cơ">
@@ -375,9 +317,7 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
     </div>
     <div class="tc-info" id="tc-info"></div>
   </section>
-  <section id="realms" aria-live="polite">
-    <p class="empty">Chưa có rating. Thêm LICHESS_USER hoặc CHESSCOM_USER vào file backend/.env, chạy lại máy chủ, rồi bấm Đồng bộ ván cờ.</p>
-  </section>
+
 </div>
 <div class="mist-box" aria-hidden="true"><div class="mist"></div><div class="mist b"></div></div>
 <svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true">
@@ -410,51 +350,6 @@ function realmText(t) {
   return `<p class="can-co-line">Căn cơ là ${esc(speedOf(t))} trên ${esc(platformOf(t))}, ${esc(t.rating)} điểm.</p>
     <p class="next">${nextStep(t)}</p>
     <p class="koan">Tu vi không ở chỗ cao nhất, mà ở mạch thấp nhất còn vững.</p>`;
-}
-const MODE_ORDER = ["bullet", "blitz", "rapid", "daily", "classical", "correspondence"];
-const MAIN_MODES = 3; // đạn, chớp, nhanh luôn hiện; các mode còn lại nằm trong "xem thêm"
-function gridTable(modes, byKey, cols) {
-  const cell = (plat, mode) => {
-    const x = byKey[plat + "/" + mode];
-    if (!x) return `<td class="none">–</td>`;
-    const root = x.is_can_co ? `<span class="root">căn cơ</span>` : "";
-    return `<td class="${x.is_can_co ? "can-co" : ""}"><b>${esc(x.rating)}</b><small>${root}${esc(x.realm)} tầng ${esc(x.tier)}</small></td>`;
-  };
-  const head = `<tr><th scope="col"><span class="sr">Chế độ</span></th>${cols.map(c => `<th scope="col">${esc(PLATFORM[c])}</th>`).join("")}</tr>`;
-  const body = modes.map(m => `<tr><th scope="row">${esc(SPEED[m] || m)}</th>${cols.map(c => cell(c, m)).join("")}</tr>`).join("");
-  return `<table class="grid"><thead>${head}</thead><tbody>${body}</tbody></table>`;
-}
-function meridians(rows) {
-  // Thế cờ (puzzle) không phải mạch đấu cờ nên không đưa vào bảng này.
-  const games = rows.filter(x => String(x.time_class).toLowerCase() !== "puzzle");
-  if (!games.length) return "";
-  const byKey = {}, plats = new Set(), modes = new Set();
-  for (const x of games) {
-    const m = String(x.time_class).toLowerCase();
-    byKey[x.platform + "/" + m] = x;
-    plats.add(x.platform);
-    modes.add(m);
-  }
-  const rank = m => (MODE_ORDER.includes(m) ? MODE_ORDER.indexOf(m) : 99);
-  const all = [...modes].sort((a, b) => rank(a) - rank(b));
-  // Chế độ chính: đạn, chớp, nhanh nếu có dữ liệu; luôn giữ mạch căn cơ trong bảng chính
-  const rootMode = (games.find(x => x.is_can_co) || {}).time_class;
-  const main = all.filter((m, i) => i < MAIN_MODES || m === String(rootMode).toLowerCase());
-  const rest = all.filter(m => !main.includes(m));
-  const cols = ["lichess", "chesscom"].filter(c => plats.has(c)).concat([...plats].filter(c => !PLATFORM[c]));
-  const t = gridTable(main, byKey, cols);
-  const extra = rest.length
-    ? `<details class="more"><summary>Xem thêm ${rest.length} chế độ</summary>${gridTable(rest, byKey, cols)}</details>`
-    : "";
-  return `<h2>Pháp mạch</h2>${t}${extra}`;
-}
-function ladder(tu) {
-  const cur = REALMS.findIndex(r => r[1] === tu.realm);
-  const items = REALMS.map(([min, name], i) => {
-    const cls = i < cur ? "done" : (i === cur ? "now" : "");
-    return `<li class="${cls}"${i === cur ? ` aria-current="step"` : ""}><span>${esc(name)}</span><span class="from">${min ? "từ " + min + " điểm" : "khởi điểm"}</span></li>`;
-  }).join("");
-  return `<h2>Đăng thiên lộ</h2><ol class="path">${items}</ol>`;
 }
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 function ripple() {
@@ -784,46 +679,18 @@ setInterval(loadThienCo, 10 * 60 * 1000);
   document.addEventListener("visibilitychange", () => (document.hidden ? stop() : start()));
   reduceMotion.addEventListener("change", e => { if (e.matches) { stop(); ctx.clearRect(0, 0, w, h); } else start(); });
 })();
-let first = true;
 async function load() {
-  const box = document.getElementById("realms");
   try {
     const res = await fetch("/api/realm");
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
-    const rows = Array.isArray(data) ? data : (data.mach || []);
     const tu = Array.isArray(data) ? (data.slice().sort((a, b) => a.rating - b.rating)[0] || null) : data.tu_vi;
-    if (!tu) { setRealm(null, false); box.classList.remove("has-data"); return; }
-    setRealm(tu, first);
-    box.classList.add("has-data");
-    box.innerHTML = `<div>${meridians(rows)}</div><div>${ladder(tu)}</div>`;
-    first = false;
-  } catch (e) {
+    setRealm(tu, true);
+  } catch {
     setRealm(null, false);
-    box.classList.remove("has-data");
-    box.innerHTML = `<p class="empty">Không tải được rating từ máy chủ. Kiểm tra cửa sổ chạy uvicorn còn mở không, rồi tải lại trang.</p>`;
+    document.getElementById("msg").textContent = "Chưa tải được tu vi. Mở Đạo Lộ để thử lại.";
   }
 }
-document.getElementById("sync").onclick = async function () {
-  const b = this, m = document.getElementById("msg");
-  b.disabled = true;
-  m.textContent = "Đang đồng bộ...";
-  try {
-    const j = await (await fetch("/api/sync", { method: "POST" })).json();
-    const r = j.new_games || {};
-    const notes = [];
-    for (const [k, v] of Object.entries(r.errors || {})) notes.push((PLATFORM[k] || k) + ": " + v);
-    for (const [k, v] of Object.entries(r.skipped || {})) notes.push((PLATFORM[k] || k) + ": " + v);
-    m.textContent = `Ván mới: Chess.com ${r.chesscom ?? 0}, Lichess ${r.lichess ?? 0}` + (notes.length ? ". " + notes.join(". ") : "");
-    first = true;
-    await load();
-    ripple();
-  } catch (e) {
-    m.textContent = "Đồng bộ lỗi. Kiểm tra máy chủ và mạng.";
-  } finally {
-    b.disabled = false;
-  }
-};
 load();
 </script>
 </body>

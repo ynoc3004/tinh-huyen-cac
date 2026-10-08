@@ -1,7 +1,41 @@
 from fastapi import APIRouter
 from db import conn
 from services import sync, realm
+from datetime import date
+from pydantic import BaseModel, Field
 router = APIRouter(prefix="/api")
+
+class CultivationProfile(BaseModel):
+    full_name: str = Field("", max_length=120)
+    dao_name: str = Field("", max_length=120)
+    birth_date: date | None = None
+    birth_time: str | None = Field(None, pattern=r"^(?:[01]\d|2[0-3]):[0-5]\d$")
+    hometown: str = Field("", max_length=200)
+    goal: str = Field("", max_length=1000)
+    notes: str = Field("", max_length=5000)
+
+@router.get("/profile")
+def get_profile():
+    with conn() as c:
+        row = c.execute("SELECT full_name,dao_name,birth_date,birth_time,hometown,goal,notes,updated_at "
+                        "FROM cultivation_profile WHERE id=1").fetchone()
+    return dict(row) if row else {**CultivationProfile().model_dump(), "updated_at": None}
+
+@router.put("/profile")
+def save_profile(profile: CultivationProfile):
+    values = (profile.full_name.strip(), profile.dao_name.strip(),
+              profile.birth_date.isoformat() if profile.birth_date else None, profile.birth_time,
+              profile.hometown.strip(), profile.goal.strip(), profile.notes.strip())
+    with conn() as c:
+        c.execute("""INSERT INTO cultivation_profile(id,full_name,dao_name,birth_date,birth_time,hometown,goal,notes)
+                     VALUES(1,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET
+                     full_name=excluded.full_name,dao_name=excluded.dao_name,birth_date=excluded.birth_date,
+                     birth_time=excluded.birth_time,hometown=excluded.hometown,goal=excluded.goal,
+                     notes=excluded.notes,updated_at=CURRENT_TIMESTAMP""", values)
+        row = c.execute("SELECT full_name,dao_name,birth_date,birth_time,hometown,goal,notes,updated_at "
+                        "FROM cultivation_profile WHERE id=1").fetchone()
+    return dict(row)
+
 @router.post("/sync")
 async def do_sync(): return {"new_games": await sync.sync_all()}
 @router.get("/realm")

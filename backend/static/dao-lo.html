@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0b1210"><title>Đạo Lộ · Tĩnh Huyền Quán</title>
+<link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1"><link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><link rel="stylesheet" href="/dao-lo.css?v=1"><script src="/thien-co.js"></script><script src="/tien-canh.js?v=dao-lo-1"></script></head>
+<body><div class="wrap"><main>
+<header class="dao-heading"><p class="eyebrow">HỒ SƠ · CĂN CƠ · CẢNH GIỚI</p><h1>Đạo Lộ</h1><p>Ghi danh, dưỡng căn cơ, từng bước trên đường tu học.</p></header>
+<section class="profile-layout" aria-labelledby="profile-heading">
+<aside class="identity"><span class="identity-seal" aria-hidden="true">Đạo<br>Lộ</span><p class="eyebrow">ĐẠO HỮU</p><h2 id="profile-name">Đang tải hồ sơ…</h2><p id="profile-full-name"></p><dl><dt>Sinh thần</dt><dd id="profile-birth">Chưa ghi</dd><dt>Quê quán</dt><dd id="profile-hometown">Chưa ghi</dd></dl><p class="identity-motto">Vững căn cơ mới cầu cảnh giới.</p></aside>
+<form id="profile-form" class="profile-panel" aria-busy="true"><div class="section-heading"><h2 id="profile-heading">Hồ sơ tu hành</h2><span id="profile-saved-at"></span></div><p class="hint">Điền những thông tin bạn muốn lưu; có thể để trống các mục chưa rõ.</p>
+<fieldset id="profile-fields" disabled><div class="profile-grid">
+<label>Họ và tên<input id="full-name" name="full_name" autocomplete="name" maxlength="120" placeholder="Họ tên của bạn"></label>
+<label>Đạo hiệu<input id="dao-name" name="dao_name" autocomplete="nickname" maxlength="120" placeholder="Đạo hiệu bạn chọn"></label>
+<label>Sinh thần · ngày sinh dương lịch<input id="birth-date" name="birth_date" type="date" autocomplete="bday"></label>
+<label>Giờ sinh · nếu biết<input id="birth-time" name="birth_time" type="time"></label>
+<label class="wide">Quê quán<input id="hometown" name="hometown" maxlength="200" placeholder="Quê hương của bạn"></label>
+<label class="wide">Chí hướng tu hành<textarea id="goal" name="goal" maxlength="1000" rows="3" placeholder="Mục tiêu học cờ hoặc điều bạn muốn rèn luyện"></textarea></label>
+<label class="wide">Ghi chú<textarea id="notes" name="notes" maxlength="5000" rows="4" placeholder="Khẩu quyết, lời nhắc, dấu mốc đáng nhớ…"></textarea></label>
+</div><div class="profile-actions"><button class="primary" type="submit" id="profile-save">Lưu hồ sơ</button><span id="profile-dirty" class="hint"></span></div></fieldset>
+<p id="profile-status" role="status" aria-live="polite">Đang tải hồ sơ…</p><button type="button" id="profile-retry" hidden>Tải lại hồ sơ</button></form>
+</section>
+<section class="cultivation" aria-labelledby="cultivation-heading"><div class="section-heading"><h2 id="cultivation-heading">Căn cơ &amp; cảnh giới</h2><button type="button" id="sync">Đồng bộ ván cờ</button></div><p id="sync-status" role="status" aria-live="polite"></p><div id="realm-summary" class="realm-summary"></div><p id="realm-status" role="status" aria-live="polite">Đang tải tu vi…</p><button id="realm-retry" type="button" hidden>Tải lại tu vi</button><div id="realms" aria-busy="true"></div></section>
+</main></div><script type="module" src="/dao-lo.js?v=1"></script></body></html>
