@@ -92,14 +92,44 @@ Mọi bản in mặc định khổ A4 ngang.
 
 ## Thư Phòng: quét ảnh và dịch chữ
 
-AI quét ảnh được chọn riêng trong mục **AI quét** bên bàn cờ; lựa chọn dịch chữ vẫn ở khung Bản dịch. Danh sách Gemini lấy từ backend, khóa `GEMINI_API_KEY` không gửi ra trình duyệt. `GEMINI_SCAN_MODEL` đặt model mặc định cho quét; đổi lựa chọn trên web không đổi model dịch. Quét lại thay kết quả lưu của trang, quét thường mở kết quả đã lưu.
+Thư Phòng là màn hình đọc/dịch chung; `translate.html?id=...` chuyển sang `study.html?id=...#batch-panel`. Mục **Dịch nhiều trang** giữ khoảng trang, thuật ngữ, OCR, dừng/tiếp tục và xuất bản dịch. Bản gốc hiển thị ảnh đúng trang đang chọn.
 
-Nút quét và dịch có trạng thái riêng, có thể chạy đồng thời. Đổi sách/trang/OCR tạm khóa khi một tác vụ đang xử lý để kết quả không bị gắn nhầm trang. Chọn ảnh thế cờ để mở bàn cờ; hiệu đính lượt đi/quân và nhập FEN/PGN nằm trong mục mở rộng dưới bàn cờ.
+### Quét local miễn phí
 
-Kiểm tra bổ sung (từ `backend`): `node tests/study-workflow.test.cjs`. Kiểm tra này giả lập DOM và API, xác nhận quét không gọi dịch, model chọn riêng, hai tác vụ đồng thời và sửa quân. Python: `python -m unittest discover -s tests -v`.
+Mặc định nút **Quét trang** dùng [chessvision](https://github.com/harshitpawar64/chessvision) 0.10.0, dự án mã nguồn mở MIT, khác với dịch vụ Chessvision.ai bên dưới. Cần Python 3.11 trở lên. Từ thư mục backend, trong cùng môi trường Python đang chạy server:
 
+```powershell
+python -m pip install -r requirements-scan.txt
+python setup_board_scan.py
+```
 
+Lệnh setup tải model ONNX từ Hugging Face một lần, kiểm tra SHA-256 rồi chạy thử trên CPU. Sau đó quét không cần mạng, API key hoặc phí theo lượt; ảnh sách không gửi ra ngoài. Nếu tải lỗi, setup báo lỗi và trả exit code 1. Có thể đặt `CHESSVISION_MODEL_PATH` tới cùng model đã tải/kiểm chứng để dùng offline. API quét không tự tải model hoặc tự chuyển sang dịch vụ trả phí. Dependencies quét là tùy chọn; các tính năng khác vẫn hoạt động khi chưa cài.
 
-Thư Phòng hiện là màn hình đọc/dịch chung; liên kết `translate.html?id=...` chuyển sang `study.html?id=...#batch-panel`. Mục **Dịch nhiều trang** giữ thiết lập khoảng trang, thuật ngữ, OCR, dừng/tiếp tục và xuất bản dịch. Bản gốc hiển thị ảnh đúng trang được chọn để trình xem PDF riêng không lệch trang với thao tác quét.
+Backend tìm các hình bàn cờ, tận dụng vùng ảnh nhúng trong PDF, kiểm tra mẫu ô trắng/đen và chọn vùng bên trong viền trước khi nhận diện 64 ô. Model chạy CPU với tối đa hai luồng; các lần nhận diện local được xếp tuần tự. Kết quả và ảnh xem trước lưu trong két mã hóa, cache local riêng với cache Gemini. Quét thường mở cache; **Quét lại** chỉ thay cache khi thành công.
 
-Trong **AI quét**, nút **Kiểm tra AI với ảnh nhỏ** gửi một ảnh bàn cờ trống 64×64 được tạo ở backend, không gửi sách. Nó kiểm tra model có nhận yêu cầu ảnh lúc đó hay không, không kiểm chứng độ chính xác nhận quân. Nếu ảnh nhỏ cũng trả HTTP 503, chọn model khác hoặc đợi dịch vụ phục hồi; thử lại không bảo đảm khắc phục lỗi nhà cung cấp.
+Nhận diện vẫn có thể sai, nhất là kiểu quân khác với dữ liệu huấn luyện. Độ tin cậy model không phải tỷ lệ chính xác đã kiểm chứng. Khi mở thế đã quét, các ô có điểm dưới 0,85 có viền vàng; dùng **Hiệu đính thế cờ** để sửa. Ô không có viền vàng vẫn cần đối chiếu. Hướng bàn cờ được ước lượng từ vị trí quân; lượt đi để chưa rõ và tạm chọn Trắng khi mở. Không suy đoán quyền nhập thành/bắt tốt qua đường từ ảnh. Có thể nhập đầy đủ thông tin trong FEN.
+
+Trong **Bộ quét**, **Kiểm tra bộ quét với ảnh nhỏ** chạy ảnh bàn cờ trống 64 ô. Nó kiểm tra model chạy được, không đo độ chính xác trên sách.
+
+### Dùng thêm Chessvision.ai
+
+Mục **Dùng thêm Chessvision.ai** có liên kết [eBook Reader](https://ebook.chessvision.ai) và tiện ích quét ảnh, nút tải PNG đúng trang đang đọc và nhập FEN/PGN về bàn thực hành. Dùng Reader: tự mở/tải PDF, chọn hình trong Study Creator, xuất PGN rồi dùng **Nhập file PGN / FEN** trong app. Hoặc copy một FEN/PGN vào **Nhập thế cờ / ván đấu**. Hiện nhập một ván/thế mỗi lần; nếu xuất nhiều hình, xuất từng hình để mở riêng.
+
+Đây là luồng chuyển kết quả thủ công, không phải API gọi tự động. Chưa tìm thấy API công khai được nhà cung cấp tài liệu hóa để tích hợp nhận diện trực tiếp. App không tự gửi sách, đăng ký hoặc mua thuê bao. [Reader miễn phí chỉ tương tác với hình trên vài trang đầu mỗi sách](https://chessvision.ai/docs/ebook-reader/subscription/); đầy đủ cần thuê bao riêng. Gói này không đi kèm bộ quét local.
+
+### Gemini tùy chọn và dịch chữ
+
+Có thể chọn Gemini trong **Bộ quét** nếu backend có `GEMINI_API_KEY`. Danh sách model lấy từ Google; khóa không gửi ra trình duyệt. `GEMINI_SCAN_MODEL` là model dự phòng cho API cũ gửi tên model trống. Gemini gửi ảnh trang tới Google, có hạn mức/phí tùy tài khoản. Không tự chuyển từ local sang Gemini. Nút kiểm tra ảnh nhỏ với Gemini gọi một yêu cầu để kiểm tra dịch vụ lúc đó; lỗi 503 từ Google vẫn có thể xảy ra.
+
+AI dịch chữ được chọn riêng trong khung Bản dịch. Quét và dịch có trạng thái riêng, chạy đồng thời được. Đổi sách/trang/OCR tạm khóa trong lúc quét/dịch trang để tránh gắn kết quả nhầm trang. Dịch nhiều trang vẫn cho đọc trang và thử thế cờ.
+
+### Kiểm tra bổ sung
+
+```powershell
+python -m unittest discover -s tests -v
+node tests/study-workflow.test.cjs
+```
+
+API tests dùng PDF/database tạm và phản hồi giả, kiểm tra chọn local không gọi cloud, cache riêng, lỗi quét lại giữ kết quả cũ, ảnh đúng trang và khóa két. Node mô phỏng DOM/API, kiểm tra hai tác vụ độc lập, quét local mặc định, tải ảnh trang và nhập PGN. Model/detector không được tải tự động bởi tests.
+
+Thử thực tế trên PDF London System: nhận diện 20 hình ở các trang PDF 22, 24, 26, 27, 29–44; đã đối chiếu vị trí quân với ảnh. Đây là mẫu một kiểu sách, không đại diện cho mọi PDF. Kiểu quân trong Winning Chess Strategies có trường hợp nhận nhầm; cần hiệu đính hoặc dùng nguồn nhận diện khác.

@@ -1,4 +1,4 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tĩnh Tâm Thư Phòng</title><link rel="stylesheet" href="/study.css?v=study-5">
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tĩnh Tâm Thư Phòng</title><link rel="stylesheet" href="/study.css?v=study-6">
 </head><body><header><a href="/library.html">← Tàng Kinh Các</a><strong>Tĩnh Tâm Thư Phòng</strong><div><button id="theme" aria-label="Đổi chế độ ngày đêm">☾ Đêm</button><button id="focus">Chế độ tập trung</button><button id="fullscreen">Toàn màn hình</button>
 </div>
 </header><div class="top"><select id="books" aria-label="Chọn sách"><option>Chọn sách PDF…</option>
@@ -34,10 +34,11 @@
 </div>
 <div class="scan-tools"><button id="scan-page" type="button" disabled>✦ Quét trang hiện tại</button><button id="scan-again" type="button" hidden>Quét lại</button>
 </div>
-<details class="scan-settings"><summary>AI quét · <span id="scan-model-label">đang tải…</span></summary><div class="model-row"><select id="scan-model" aria-label="AI quét ảnh">
-</select><button id="scan-refresh" type="button" aria-label="Tải lại danh sách AI quét">↻</button>
-</div><button id="scan-probe" type="button">Kiểm tra AI với ảnh nhỏ</button><small id="scan-probe-status" class="task-status" role="status"></small><small id="scan-model-status">Đang tải danh sách AI quét…</small><p class="hint">Gemini gửi ảnh trang tới Google. Kết quả được lưu để mở lại.</p>
+<details class="scan-settings"><summary>Bộ quét · <span id="scan-model-label">Local miễn phí</span></summary><div class="model-row"><select id="scan-model" aria-label="Bộ quét ảnh"><option value="local:chessvision">Local · chessvision (miễn phí)</option>
+</select><button id="scan-refresh" type="button" aria-label="Tải lại danh sách bộ quét">↻</button>
+</div><button id="scan-probe" type="button">Kiểm tra bộ quét với ảnh nhỏ</button><small id="scan-probe-status" class="task-status" role="status"></small><small id="scan-model-status">Đang kiểm tra quét local…</small><p id="scan-privacy" class="hint">Local chạy trên máy, không cần API key. Kết quả lưu trong két.</p>
 </details>
+<details class="external-scan"><summary>Dùng thêm Chessvision.ai</summary><p class="hint">Dùng thử vài trang đầu mỗi sách; đầy đủ cần thuê bao riêng. Mở eBook Reader và tự tải PDF lên, hoặc dùng tiện ích trình duyệt để quét ảnh trang.</p><div class="external-actions"><a href="https://ebook.chessvision.ai" target="_blank" rel="noopener noreferrer">Mở eBook Reader ↗</a><a href="https://chessvision.ai" target="_blank" rel="noopener noreferrer">Tiện ích quét ảnh ↗</a><a id="scan-download" download>Tải ảnh trang</a><button id="scan-import" type="button">Nhập FEN / PGN đã quét</button></div><p class="hint">Xuất/copy kết quả ở Chessvision.ai rồi nhập vào bàn cờ dưới đây. App không tự gửi sách tới dịch vụ.</p></details>
 <p id="scan-status" class="task-status" role="status">
 </p>
 <div id="scan-results" aria-label="Các thế cờ trên trang">
@@ -55,9 +56,9 @@
 </label><button id="scan-edit" aria-pressed="false">Sửa quân</button><select id="scan-piece" aria-label="Quân để đặt"><option value="">Xóa quân</option><option value="wK">Vua trắng</option><option value="wQ">Hậu trắng</option><option value="wR">Xe trắng</option><option value="wB">Tượng trắng</option><option value="wN">Mã trắng</option><option value="wP">Tốt trắng</option><option value="bK">Vua đen</option><option value="bQ">Hậu đen</option><option value="bR">Xe đen</option><option value="bB">Tượng đen</option><option value="bN">Mã đen</option><option value="bP">Tốt đen</option>
 </select><button id="scan-play">✓ Thực hành thế đã sửa</button><small>Không suy đoán quyền nhập thành/bắt tốt qua đường. Có thể sửa đầy đủ trong ô FEN bên dưới.</small>
 </div>
-</details><details><summary>Nhập thế cờ / ván đấu</summary><textarea id="position" rows="4" placeholder="Dán FEN hoặc PGN…" aria-label="FEN hoặc PGN">
+</details><details id="position-panel"><summary>Nhập thế cờ / ván đấu</summary><textarea id="position" rows="4" placeholder="Dán FEN hoặc PGN…" aria-label="FEN hoặc PGN">
 </textarea><button id="load-position">Mở trên bàn cờ</button>
-</details><p id="moves">
+</details><input id="pgn-file" type="file" accept=".pgn,.fen,.txt" hidden><button id="import-pgn" type="button">Nhập file PGN / FEN</button><p id="moves">
 </p><button id="download-pgn">Tải PGN thực hành</button><small id="board-status" role="status">
 </small>
 </section>
@@ -68,7 +69,7 @@
 <div class="footer-note">Một trang. Một ý tưởng. Một thế cờ.<br><small>Đối chiếu bản dịch và quân cờ với sách trước khi học.</small>
 </div>
 </aside>
-</div><script type="module" src="/study.js?v=study-5">
+</div><script type="module" src="/study.js?v=study-6">
 </script>
 </body>
 </html>

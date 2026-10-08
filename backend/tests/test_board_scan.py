@@ -16,21 +16,21 @@ class ScanTests(test_translation.TranslationTests):
             self.assertEqual(r.status_code,200,r.text)
             self.assertEqual(len(r.json()['boards']),2)
             self.assertTrue(base64.b64decode(r.json()['boards'][0]['image'].split(',')[1]).startswith(b'\x89PNG'))
-            self.assertTrue(self.client.post(self.base+'/study/boards',json={'page':1}).json()['cached'])
+            self.assertTrue(self.client.post(self.base+'/study/boards',json={'model':'gemini-selected','page':1}).json()['cached'])
             self.assertEqual(mock.await_count,1)
             self.assertEqual(mock.call_args.args[2], "gemini-selected")
             self.assertEqual(self.client.post(self.base+"/study/boards",json={"page":2,"model":"../../bad"}).status_code,422)
-            self.assertEqual(self.client.get(self.base+'/study/boards?page=3').status_code,400)
-            self.assertEqual(self.client.post(self.base+'/study/boards',json={'page':3}).status_code,400)
-            self.assertEqual(len(self.client.get(self.base+'/study/boards?page=1').json()['boards']),2)
+            self.assertEqual(self.client.get(self.base+'/study/boards?engine=gemini&page=3').status_code,400)
+            self.assertEqual(self.client.post(self.base+'/study/boards',json={'model':'gemini-selected','page':3}).status_code,400)
+            self.assertEqual(len(self.client.get(self.base+'/study/boards?engine=gemini&page=1').json()['boards']),2)
         with patch.dict(os.environ,{'GEMINI_API_KEY':''}):
-            self.assertTrue(self.client.post(self.base+'/study/boards',json={'page':1}).json()['cached'])
-            self.assertEqual(self.client.post(self.base+'/study/boards',json={'page':2}).status_code,503)
+            self.assertTrue(self.client.post(self.base+'/study/boards',json={'model':'gemini-selected','page':1}).json()['cached'])
+            self.assertEqual(self.client.post(self.base+'/study/boards',json={'model':'gemini-selected','page':2}).status_code,503)
         paths=list((__import__('routers.library',fromlist=['x'])._blob_dir()/'translations').glob('*.thc'))
         self.assertTrue(paths)
         self.assertNotIn(PLACEMENT.encode(),b''.join(p.read_bytes() for p in paths))
         self.client.post('/api/library/vault/lock')
-        self.assertEqual(self.client.get(self.base+'/study/boards?page=1').status_code,401)
+        self.assertEqual(self.client.get(self.base+'/study/boards?engine=gemini&page=1').status_code,401)
     def test_placement_validation(self):
         self.assertTrue(board_scan.validate_placement(PLACEMENT))
         for s in ['8/8/8/8/8/8/8/8','9/8/8/8/8/8/8/Kk','88/8/8/8/8/8/8/Kk','<script>',None]:
@@ -74,7 +74,7 @@ class ScanTests(test_translation.TranslationTests):
         with patch.dict(os.environ, {'GEMINI_API_KEY':'test-only'}), patch.object(board_scan.httpx,'AsyncClient',Client):
             result = self.client.get('/api/library/translation/study/scan-models')
             self.assertEqual(result.status_code, 200, result.text)
-            self.assertEqual(result.json()['models'], ['gemini-example-flash'])
+            self.assertEqual(result.json()['models'], ['local:chessvision', 'gemini-example-flash'])
             self.assertNotIn('test-only', result.text)
         with patch.dict(os.environ, {'GEMINI_API_KEY':''}):
             self.assertFalse(self.client.get('/api/library/translation/study/scan-models').json()['available'])
@@ -124,10 +124,10 @@ class ScanTests(test_translation.TranslationTests):
         sample = [{'bbox': [0, 0, 500, 500], 'placement': PLACEMENT,
                    'turn': 'w', 'orientation': 'white', 'label': '', 'warning': ''}]
         with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-only'}), patch.object(board_scan, 'scan_image', AsyncMock(return_value=sample)):
-            self.assertEqual(self.client.post(self.base+'/study/boards', json={'page': 1}).status_code, 200)
+            self.assertEqual(self.client.post(self.base+'/study/boards', json={'model':'gemini-selected','page': 1}).status_code, 200)
         with patch.dict(os.environ, {'GEMINI_API_KEY': 'test-only'}), patch.object(board_scan, 'scan_image', AsyncMock(side_effect=HTTPException(503, 'Unavailable'))):
-            self.assertEqual(self.client.post(self.base+'/study/boards', json={'page': 1, 'force': True}).status_code, 503)
-        saved = self.client.get(self.base+'/study/boards?page=1').json()
+            self.assertEqual(self.client.post(self.base+'/study/boards', json={'model':'gemini-selected','page': 1, 'force': True}).status_code, 503)
+        saved = self.client.get(self.base+'/study/boards?engine=gemini&page=1').json()
         self.assertEqual(saved['boards'][0]['placement'], PLACEMENT)
 
     def test_page_preview_matches_selected_page_and_vault_guard(self):

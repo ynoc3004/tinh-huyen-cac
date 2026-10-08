@@ -1,0 +1,3 @@
+# Optional local chess diagram recognition (Python >= 3.11).
+# Install inside the same virtual environment as the backend.
+chessvision==0.10.0

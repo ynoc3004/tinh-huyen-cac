@@ -1,7 +1,7 @@
 import {Chess} from "/vendor/chess.js";
 import {PIECE_DEFS} from "/vendor/pieces.js?v=paint-2";
 const $=id=>document.getElementById(id),id=Number(new URLSearchParams(location.search).get("id"));
-let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual";
+let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual";
 function status(t){$("status").textContent=t;}
 async function api(path,body,method="POST"){
  const r=await fetch("/api/library/translation/"+path,body===undefined?{}:{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -11,7 +11,8 @@ async function api(path,body,method="POST"){
 function controls(){
  const navigating=busy||translating||scanning;
  $("scan-page").disabled=busy||scanning||probing||!loaded;$("scan-again").disabled=busy||scanning||probing||!loaded;
- $("scan-model").disabled=busy||scanning||probing;$("scan-refresh").disabled=scanning||probing;$("scan-probe").disabled=busy||scanning||probing||!loaded||!$("scan-model").value;
+ $("scan-model").disabled=busy||scanning||probing||loadingScanModels;$("scan-refresh").disabled=scanning||probing||loadingScanModels;$("scan-probe").disabled=busy||scanning||probing||!loaded||!$("scan-model").value;
+ $("scan-import").disabled=!loaded;$("import-pgn").disabled=!loaded;$("scan-download").hidden=!loaded;
  for(const name of ["prev","next","page","ocr","books"])$(name).disabled=navigating||!loaded;
  for(const name of ["translate","translate-selection","save-source","source"])$(name).disabled=busy||translating||batchRunning||!loaded;
  $("prev").disabled=navigating||!loaded||page<=1;$("next").disabled=navigating||!loaded||page>=total;
@@ -46,6 +47,7 @@ async function openPage(n,initial=false){
  const data=await api(id+"/page?page="+n+"&ocr="+$("ocr").checked);
  page=data.page;total=data.pages;loaded=true;$("page").value=page;$("total").textContent="/ "+total;
  document.title=data.title+" · Thư Phòng";$("pdf").src="/api/library/translation/"+id+"/study/page-image?page="+page;$("pdf").alt="Trang "+page+" · "+data.title;
+ $("scan-download").href=$("pdf").src;$("scan-download").download="sach-"+id+"-trang-"+page+".png";
  $("source").value=data.text;savedSource=data.text;translationStatus("");clearScan();await openScans();await cached();await save();
  status(data.text?"Trang "+page+" · chữ tiếng Anh có thể hiệu đính trước khi dịch.":"Trang không có chữ. Bật OCR nếu đây là trang scan.");
  }catch(e){status(e.message);}finally{busy=false;controls();}
@@ -79,13 +81,13 @@ $("fullscreen").onclick=async()=>{try{if(document.fullscreenElement)await docume
 function download(text,name,type="text/plain"){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 $("download").onclick=()=>{if(loaded)download("=== Trang "+page+" ===\n\n"+$("source").value,"sach-"+id+"-trang-"+page+".en.txt");};
 $("books").onchange=async()=>{if(!$("books").value)return;try{if(loaded){await save();if(savedSource!==$("source").value)await api(id+"/study/source",{page,text:$("source").value});}location.href="/study.html?id="+$("books").value;}catch(e){status(e.message);}};
-const chess=new Chess();let flip=false,selected=null;
+const chess=new Chess();let flip=false,selected=null,reviewSquares=new Set();
 const defs=document.createElementNS("http://www.w3.org/2000/svg","svg");defs.setAttribute("width","0");defs.setAttribute("height","0");defs.style.position="absolute";defs.innerHTML="<defs>"+PIECE_DEFS+"</defs>";document.body.append(defs);
 function render(){
  $("board").replaceChildren();const ranks=flip?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1],files=flip?"hgfedcba":"abcdefgh";
  const legal=selected?chess.moves({square:selected,verbose:true}).map(m=>m.to):[];
  for(const r of ranks)for(const f of files){
-  const sq=f+r,p=chess.get(sq),b=document.createElement("button");b.className="square"+(("abcdefgh".indexOf(f)+r)%2===1?" dark":"")+(selected===sq?" selected":"")+(legal.includes(sq)?" target":"");
+  const sq=f+r,p=chess.get(sq),b=document.createElement("button");b.className="square"+(("abcdefgh".indexOf(f)+r)%2===1?" dark":"")+(selected===sq?" selected":"")+(legal.includes(sq)?" target":"")+(reviewSquares.has(sq)?" needs-review":"");
   b.setAttribute("aria-label",sq+(p?" "+p.color+p.type:""));b.title=sq;
   if(p)b.innerHTML='<svg viewBox="0 0 45 45" aria-hidden="true"><use href="#'+p.color+p.type.toUpperCase()+'"/></svg>';
   b.onclick=()=>move(sq);$("board").append(b);
@@ -98,13 +100,16 @@ function move(sq){
  if(selected){try{
  const candidates=chess.moves({square:selected,verbose:true}).filter(m=>m.to===sq);let promotion="q";
  if(candidates.some(m=>m.promotion)){promotion=(prompt("Phong cấp: q (Hậu), r (Xe), b (Tượng), n (Mã)","q")||"").toLowerCase();if(!["q","r","b","n"].includes(promotion))return;}
- const m=chess.move({from:selected,to:sq,promotion});if(m){selected=null;render();return;}
+ const m=chess.move({from:selected,to:sq,promotion});if(m){selected=null;reviewSquares.clear();render();return;}
  }catch{}}
  const p=chess.get(sq);selected=p&&p.color===chess.turn()?sq:null;render();
 }
 $("undo").onclick=()=>{if(editingScan)return;chess.undo();selected=null;render();};$("flip").onclick=()=>{flip=!flip;render();};
-$("reset").onclick=()=>{stopScanEdit();chess.reset();selected=null;render();};
-$("load-position").onclick=()=>{try{const text=$("position").value.trim(),trial=new Chess();if(text.split("/").length===8&&!text.includes("\n"))trial.load(text);else trial.loadPgn(text);if(!text)throw Error();stopScanEdit();chess.loadPgn(trial.pgn());selected=null;render();$("board-status").textContent="Đã mở thế cờ."; }catch{$("board-status").textContent="FEN hoặc PGN không hợp lệ. Kiểm tra ký hiệu quân và nước đi.";}};
+$("reset").onclick=()=>{stopScanEdit();chess.reset();selected=null;reviewSquares.clear();render();};
+$("load-position").onclick=()=>{try{let text=$("position").value.trim();const trial=new Chess();if(text.split("/").length===8&&!text.includes("\n")){if(!text.includes(" "))text+=" w - - 0 1";trial.load(text);}else trial.loadPgn(text);if(!text)throw Error();stopScanEdit();chess.loadPgn(trial.pgn());selected=null;reviewSquares.clear();render();$("board-status").textContent="Đã mở thế cờ / ván đấu. Kiểm tra lượt đi và quân với sách."; }catch{$("board-status").textContent="FEN hoặc PGN không hợp lệ. Kiểm tra ký hiệu quân và nước đi.";}};
+$("scan-import").onclick=()=>{$("position-panel").open=true;$("position").focus();$("position-panel").scrollIntoView({behavior:"smooth",block:"nearest"});};
+$("import-pgn").onclick=()=>$("pgn-file").click();
+$("pgn-file").onchange=async()=>{const file=$("pgn-file").files[0];if(!file)return;try{if(file.size>2*1024*1024)throw Error("Chọn file PGN/FEN tối đa 2 MB.");$("position").value=await file.text();$("position-panel").open=true;$("load-position").click();}catch(e){$("board-status").textContent=e.message;}finally{$("pgn-file").value="";}};
 $("download-pgn").onclick=()=>download(chess.pgn(),"thu-phong-thuc-hanh.pgn");render();setView("bilingual");controls();
 const started=Date.now();setInterval(()=>{const m=Math.floor((Date.now()-started)/60000),s=Math.floor((Date.now()-started)/1000)%60;$("session").textContent="Phiên học · "+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");},1000);
 (async()=>{try{
@@ -135,10 +140,13 @@ appearance();
 let scannedBoards=[],editingScan=false;
 function stopScanEdit(){editingScan=false;$("scan-edit").textContent="Sửa quân";$("scan-edit").setAttribute("aria-pressed","false");}
 function clearScan(){scannedBoards=[];$("scan-results").replaceChildren();$("scan-status").textContent="Bấm quét để tìm các hình bàn cờ trên trang.";$("scan-again").hidden=true;$("scan-editor").hidden=true;$("scan-editor").open=false;$("scan-selected").textContent="Bàn cờ thực hành";stopScanEdit();}
-async function openScans(){try{const data=await api(id+"/study/boards?page="+page);if(data.boards!==null)showScans(data);else if(!data.available)$("scan-status").textContent="Quét ảnh cần khóa Gemini ở backend; DeepL chỉ dịch chữ.";}catch(e){$("scan-status").textContent=e.message;}}
+const LOCAL_SCAN="local:chessvision";
+function scanEngine(){return $("scan-model").value&&$("scan-model").value!==LOCAL_SCAN?"gemini":"local";}
+let scanRevision=0;
+async function openScans(){const revision=++scanRevision,requestedPage=page,engine=scanEngine();try{const data=await api(id+"/study/boards?page="+page+"&engine="+engine);if(revision!==scanRevision||requestedPage!==page||engine!==scanEngine()||scanning)return;if(data.boards!==null)showScans(data);else if(!data.available)$("scan-status").textContent=data.message||"Bộ quét chưa sẵn sàng. Mở mục Bộ quét để kiểm tra.";}catch(e){if(revision===scanRevision)$("scan-status").textContent=e.message;}}
 function showScans(data){
  scannedBoards=data.boards||[];$("scan-results").replaceChildren();$("scan-again").hidden=false;
- $("scan-status").textContent=scannedBoards.length?"Tìm thấy "+scannedBoards.length+" hình · "+(data.cached?"đã lưu":"vừa quét")+". Chọn hình để mở và kiểm tra quân.":"Không nhận diện được hình bàn cờ trên trang này. Có thể quét lại nếu sách có hình.";
+ $("scan-status").textContent=scannedBoards.length?"Tìm thấy "+scannedBoards.length+" hình · "+(data.engine==="local"?"Local · ":"Gemini · ")+(data.cached?"đã lưu":"vừa quét")+". Chọn hình để mở và kiểm tra quân.":"Không nhận diện được hình bàn cờ trên trang này. Thử Chessvision.ai hoặc nhập FEN/PGN nếu sách có hình.";
  scannedBoards.forEach((b,i)=>{const card=document.createElement("button");card.type="button";card.className="scan-card";card.setAttribute("aria-pressed","false");const img=document.createElement("img");img.src=b.image;img.alt="Hình bàn cờ "+(i+1)+" từ trang "+page;const label=document.createElement("span");label.textContent="Thế "+(i+1)+(b.label?" · "+b.label:"");const note=document.createElement("small");note.textContent=b.warning||"";card.title=b.warning||"Mở thế cờ trên bàn thực hành";card.append(img,label,note);card.onclick=()=>openScan(i,card);$("scan-results").append(card);});
 }
 function openScan(i,card){
@@ -147,34 +155,36 @@ function openScan(i,card){
  $("scan-editor").hidden=false;$("scan-editor").open=false;$("scan-selected").textContent="Thế "+(i+1)+" · trang "+page;$("scan-turn").value=b.turn==="b"?"b":"w";
  if(!b.placement){$("scan-status").textContent="Hình này chưa đọc được quân. Nhập FEN đúng từ sách trong mục Nhập thế cờ.";$("scan-editor").hidden=true;return;}
  const fen=b.placement+" "+$("scan-turn").value+" - - 0 1";
- try{const trial=new Chess(fen);chess.load(trial.fen());selected=null;flip=b.orientation==="black";render();$("position").value=fen;$("scan-status").textContent="Đã mở thế "+(i+1)+(b.turn==="unknown"?" · chưa rõ lượt đi, tạm chọn Trắng.":".")+" Kiểm tra quân trước khi đánh.";}
+ try{const trial=new Chess(fen);chess.load(trial.fen());selected=null;flip=b.orientation==="black";reviewSquares=new Set(b.review_squares||[]);render();$("position").value=fen;$("scan-status").textContent="Đã mở thế "+(i+1)+(b.turn==="unknown"?" · chưa rõ lượt đi, tạm chọn Trắng.":".")+" Kiểm tra quân trước khi đánh."+(reviewSquares.size?" Các ô viền vàng cần đối chiếu; mở Hiệu đính để sửa.":"");}
  catch{$("position").value=fen;$("scan-editor").hidden=true;$("scan-status").textContent="FEN nhận diện chưa hợp lệ. Sửa FEN trong mục Nhập thế cờ rồi mở lại.";}
 }
 async function scanPage(force=false){
- if(busy||scanning||probing||!loaded)return;scanning=true;controls();$("scan-status").textContent="Đang quét tất cả hình trên trang "+page+"… Nếu Gemini tạm quá tải, tự thử lại tối đa 2 lần.";
+ if(busy||scanning||probing||!loaded)return;scanRevision++;scanning=true;controls();$("scan-status").textContent=scanEngine()==="local"?"Đang nhận diện hình bàn cờ trên CPU · trang "+page+"…":"Đang gửi ảnh trang "+page+" tới Gemini… Nếu tạm quá tải, tự thử lại tối đa 2 lần.";
  try{showScans(await api(id+"/study/boards",{page,force,model:$("scan-model").value}));}catch(e){$("scan-status").textContent=e.message;document.querySelector(".scan-settings").open=true;}finally{scanning=false;controls();}
 }
 $("scan-page").onclick=()=>scanPage();$("scan-again").onclick=()=>scanPage(true);
 $("scan-edit").onclick=()=>{editingScan=!editingScan;selected=null;$("scan-edit").textContent=editingScan?"Đang sửa · bấm để dừng":"Sửa quân";$("scan-edit").setAttribute("aria-pressed",String(editingScan));$("scan-status").textContent=editingScan?"Chọn quân trong danh sách rồi bấm ô để đặt; chọn Xóa quân để xóa.":"Đã dừng sửa quân. Bấm Thực hành thế đã sửa để kiểm tra.";render();};
-$("scan-play").onclick=()=>{const parts=chess.fen().split(" ");parts[1]=$("scan-turn").value;parts[2]="-";parts[3]="-";const fen=parts.join(" ");try{const trial=new Chess(fen);chess.load(trial.fen());stopScanEdit();selected=null;render();$("position").value=fen;$("scan-status").textContent="Đã mở thế đã hiệu đính. Có thể thử biến hoặc tải PGN.";}catch{$("scan-status").textContent="Thế đã sửa chưa hợp lệ. Kiểm tra đủ một vua mỗi bên và vị trí tốt.";}};
+$("scan-play").onclick=()=>{const parts=chess.fen().split(" ");parts[1]=$("scan-turn").value;parts[2]="-";parts[3]="-";const fen=parts.join(" ");try{const trial=new Chess(fen);chess.load(trial.fen());stopScanEdit();selected=null;reviewSquares.clear();render();$("position").value=fen;$("scan-status").textContent="Đã mở thế đã hiệu đính. Có thể thử biến hoặc tải PGN.";}catch{$("scan-status").textContent="Thế đã sửa chưa hợp lệ. Kiểm tra đủ một vua mỗi bên và vị trí tốt.";}};
 
-let loadingScanModels=false;
+let localScanState=null;
+function scanSettings(){const local=scanEngine()==="local";$("scan-model-label").textContent=local?"Local miễn phí":$("scan-model").value;$("scan-model-status").textContent=local?(localScanState?.message||"Đang kiểm tra quét local…"):"Gemini dùng API key ở backend, hạn mức/phí tùy tài khoản Google.";$("scan-privacy").textContent=local?"Local chạy trên máy, không gửi ảnh ra ngoài. Kết quả lưu trong két.":"Gemini gửi ảnh trang tới Google. Kết quả lưu trong két.";}
 async function loadScanModels(){
- if(loadingScanModels)return;loadingScanModels=true;$("scan-refresh").disabled=true;
+ if(loadingScanModels||scanning||probing)return;loadingScanModels=true;controls();
  try{
+ const localTask=api("study/scan-local").then(data=>{localScanState=data;scanSettings();}).catch(e=>{$("scan-model-status").textContent=e.message;});
  const data=await api("study/scan-models");
- let preferred=$("scan-model").value;try{preferred=localStorage.getItem("thc-scan-model")||preferred;}catch{}
- $("scan-model").replaceChildren(...data.models.map(x=>new Option(x,x)));
+ if(scanning||probing){await localTask;return;}
+ let preferred=LOCAL_SCAN;try{preferred=localStorage.getItem("thc-scan-engine-v2")||preferred;}catch{}
+ $("scan-model").replaceChildren(...data.models.map(x=>new Option(x===LOCAL_SCAN?"Local · chessvision (miễn phí)":x,x)));
  if(data.models.includes(preferred))$("scan-model").value=preferred;
  else if(data.models.includes(data.default))$("scan-model").value=data.default;
- $("scan-model-label").textContent=$("scan-model").value||"chưa có model";
+ scanSettings();clearScan();if(loaded)await openScans();await localTask;
  controls();
- $("scan-model-status").textContent=!data.available?"Chưa đặt GEMINI_API_KEY ở backend.":data.warning||"AI quét ảnh được chọn riêng với AI dịch chữ.";
  }catch(e){$("scan-model-status").textContent=e.message;}
- finally{loadingScanModels=false;$("scan-refresh").disabled=scanning||probing;}
+ finally{loadingScanModels=false;controls();}
 }
 $("scan-refresh").onclick=()=>loadScanModels();
-$("scan-model").onchange=()=>{$("scan-probe-status").textContent="";$("scan-model-label").textContent=$("scan-model").value;try{localStorage.setItem("thc-scan-model",$("scan-model").value);}catch{}};
+$("scan-model").onchange=async()=>{scanRevision++;$("scan-probe-status").textContent="";scanSettings();clearScan();try{localStorage.setItem("thc-scan-engine-v2",$("scan-model").value);}catch{}if(loaded)await openScans();};
 
 $("translation").onclick=()=>{$("batch-panel").open=!$("batch-panel").open;};
 function initializeBatch(){

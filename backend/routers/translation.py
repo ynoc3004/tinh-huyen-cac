@@ -6,6 +6,7 @@ import time
 import json
 import re
 import secrets
+from typing import Literal
 import xml.etree.ElementTree as ET
 from pathlib import Path
 import httpx
@@ -498,14 +499,26 @@ _scan_locks = {}
 class ScanPage(BaseModel):
     page: int = Field(ge=1)
     force: bool = False
-    model: str = Field(default='', max_length=120, pattern=r'^(gemini-[a-zA-Z0-9.\-]+)?$')
+    model: str = Field(default='local:chessvision', max_length=120, pattern=r'^(local:chessvision|gemini-[a-zA-Z0-9.\-]+)?$')
 
 class ScanProbe(BaseModel):
-    model: str = Field(min_length=1, max_length=120, pattern=r'^gemini-[a-zA-Z0-9.\-]+$')
+    model: str = Field(min_length=1, max_length=120, pattern=r'^(local:chessvision|gemini-[a-zA-Z0-9.\-]+)$')
+
+@router.get('/study/scan-local')
+async def scan_local_status(key: bytes = Depends(library.guard)):
+    from services import local_board_scan
+    return await asyncio.to_thread(local_board_scan.status)
 
 @router.post('/study/scan-probe')
 async def scan_probe(body: ScanProbe, key: bytes = Depends(library.guard)):
     from services import board_scan
+    if body.model == 'local:chessvision':
+        from services import local_board_scan
+        try:
+            return await asyncio.to_thread(local_board_scan.probe)
+        except Exception as error:
+            raise HTTPException(503, str(error) if isinstance(error, RuntimeError) else
+                                'Không chạy được model local. Chạy python setup_board_scan.py để kiểm tra.')
     api_key = os.getenv('GEMINI_API_KEY', '').strip()
     if not api_key:
         raise HTTPException(503, 'Backend chưa có GEMINI_API_KEY. Đặt khóa rồi khởi động lại server.')
@@ -518,7 +531,7 @@ async def scan_models(key: bytes = Depends(library.guard)):
     fallback = [default] if re.fullmatch(r'gemini-[a-zA-Z0-9.\-]+', default) else []
     api_key = os.getenv('GEMINI_API_KEY', '').strip()
     if not api_key:
-        return {'models': fallback, 'default': default, 'available': False}
+        return {'models': ['local:chessvision'], 'default': 'local:chessvision', 'available': False}
     try:
         names = []
         token = None
@@ -540,9 +553,10 @@ async def scan_models(key: bytes = Depends(library.guard)):
                 token = data.get('nextPageToken')
                 if not token:
                     break
-        return {'models': list(dict.fromkeys(names)) or fallback, 'default': default, 'available': True}
+        return {'models': ['local:chessvision'] + (list(dict.fromkeys(names)) or fallback),
+                'default': 'local:chessvision', 'available': True}
     except (httpx.HTTPError, ValueError, TypeError, KeyError):
-        return {'models': fallback, 'default': default, 'available': True,
+        return {'models': ['local:chessvision'] + fallback, 'default': 'local:chessvision', 'available': True,
                 'warning': 'Chưa tải được danh sách AI. Có thể thử model cấu hình sẵn hoặc tải lại danh sách.'}
 
 @router.get('/{item_id}/study/page-image')
@@ -558,30 +572,39 @@ def study_page_image(item_id: int, page: int = 1, key: bytes = Depends(library.g
         return Response(image.tobytes('png'), media_type='image/png', headers={'Cache-Control': 'no-store'})
 
 @router.get('/{item_id}/study/boards')
-def cached_boards(item_id: int, page: int = 1, key: bytes = Depends(library.guard)):
+def cached_boards(item_id: int, page: int = 1, engine: Literal['local', 'gemini'] = 'local', key: bytes = Depends(library.guard)):
     row = book(item_id)
     with document(row, key) as doc:
         if not 1 <= page <= len(doc):
             raise HTTPException(400, 'Số trang không hợp lệ')
-    saved = read_cache(cache_path(row, key, 'board-scan-v1:' + str(page)), key)
-    return {**saved, 'cached': True} if saved else {'boards':None, 'page':page, 'available':bool(os.getenv('GEMINI_API_KEY','').strip())}
+    identity = ('board-local-v1:' if engine == 'local' else 'board-scan-v1:') + str(page)
+    saved = read_cache(cache_path(row, key, identity), key)
+    if saved:
+        return {**saved, 'engine': engine, 'cached': True}
+    if engine == 'local':
+        from services import local_board_scan
+        state = local_board_scan.status()
+        return {'boards': None, 'page': page, 'engine': engine, 'available': state['ready'], 'message': state['message']}
+    return {'boards':None, 'page':page, 'engine':engine, 'available':bool(os.getenv('GEMINI_API_KEY','').strip()),
+            'message': 'Gemini cần GEMINI_API_KEY ở backend; có thể chọn Local miễn phí.'}
 
 @router.post('/{item_id}/study/boards')
 async def scan_boards(item_id: int, body: ScanPage, key: bytes = Depends(library.guard)):
     import base64
     from services import board_scan
     row = book(item_id)
-    path = cache_path(row, key, 'board-scan-v1:' + str(body.page))
+    model = body.model or os.getenv('GEMINI_SCAN_MODEL', GEMINI_MODEL)
+    engine = 'local' if model == 'local:chessvision' else 'gemini'
+    path = cache_path(row, key, ('board-local-v1:' if engine == 'local' else 'board-scan-v1:') + str(body.page))
     lock = _scan_locks.setdefault(row['blob'], asyncio.Lock())
     if lock.locked():
         raise HTTPException(409, 'Đang quét sách này ở một tab khác. Đợi hoàn thành rồi mở kết quả đã lưu.')
     async with lock:
         saved = read_cache(path, key)
         if saved and not body.force:
-            return {**saved, 'cached':True}
+            return {**saved, 'engine':engine, 'cached':True}
         api_key = os.getenv('GEMINI_API_KEY','').strip()
-        model = body.model or os.getenv('GEMINI_SCAN_MODEL',GEMINI_MODEL)
-        if not api_key or not re.fullmatch(r'gemini-[a-zA-Z0-9.\-]+',model):
+        if engine == 'gemini' and (not api_key or not re.fullmatch(r'gemini-[a-zA-Z0-9.\-]+',model)):
             raise HTTPException(503,'Quét hình cần GEMINI_API_KEY và model hỗ trợ ảnh. DeepL chỉ dịch chữ. Đặt khóa Gemini rồi khởi động lại backend.')
         with document(row, key) as doc:
             if not 1 <= body.page <= len(doc):
@@ -593,7 +616,25 @@ async def scan_boards(item_id: int, body: ScanPage, key: bytes = Depends(library
             png=pix.tobytes('png')
             if len(png)>10*1024*1024:
                 raise HTTPException(413,'Trang ảnh quá lớn để quét. Hãy dùng bản PDF nhẹ hơn.')
-            boards=await board_scan.scan_image(png, api_key, model)
+            if engine == 'local':
+                from services import local_board_scan
+                # Embedded diagram bounds improve detection on busy book pages.
+                proposals = []
+                rect = pdf_page.rect
+                for info in pdf_page.get_image_info():
+                    region = pymupdf.Rect(info['bbox']) & rect
+                    if region.height >= 50 and region.width >= 50 and .75 <= region.width / region.height <= 1.33:
+                        proposals.append([(region.y0 - rect.y0) * 1000 / rect.height,
+                                          (region.x0 - rect.x0) * 1000 / rect.width,
+                                          (region.y1 - rect.y0) * 1000 / rect.height,
+                                          (region.x1 - rect.x0) * 1000 / rect.width])
+                try:
+                    boards = await asyncio.to_thread(local_board_scan.scan_image, png, proposals[:64])
+                except Exception as error:
+                    raise HTTPException(503, str(error) if isinstance(error, RuntimeError) else
+                                        'Không chạy được quét local. Chạy python setup_board_scan.py để kiểm tra.')
+            else:
+                boards=await board_scan.scan_image(png, api_key, model)
             for board in boards:
                 top,left,bottom,right=board['bbox']
                 rect=pdf_page.rect
@@ -602,6 +643,6 @@ async def scan_boards(item_id: int, body: ScanPage, key: bytes = Depends(library
                 scale=min(2.5,420/max(clip.width,clip.height))
                 preview=pdf_page.get_pixmap(matrix=pymupdf.Matrix(scale,scale),clip=clip,colorspace=pymupdf.csRGB,alpha=False)
                 board['image']='data:image/png;base64,'+base64.b64encode(preview.tobytes('png')).decode()
-        out={'page':body.page,'boards':boards,'model':model,'available':True}
+        out={'page':body.page,'boards':boards,'model':model,'engine':engine,'available':True}
         write_cache(path,key,out)
         return {**out,'cached':False}
