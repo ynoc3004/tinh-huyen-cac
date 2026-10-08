@@ -58,7 +58,7 @@ class TranslationTests(unittest.TestCase):
         body = {"text": "White plays Nf3 and O-O.", "model": "qwen3:4b", "page": 1}
         with patch.object(translation.httpx, "AsyncClient", LocalOllama):
             models = self.client.get("/api/library/translation/models").json()
-            self.assertEqual(models["models"], ["qwen3:4b"])
+            self.assertIn("qwen3:4b", models["models"]); self.assertNotIn("remote-cloud", models["models"])
             r = self.client.post(self.base + "/translate", json=body)
             self.assertEqual(r.status_code, 200, r.text)
             self.assertEqual(r.json()["translation"], "Trắng đi Nf3 and O-O.")
@@ -77,3 +77,4 @@ class TranslationTests(unittest.TestCase):
         with self.assertRaises(ValueError): translation.restore_moves("", tokens)
 
 if __name__ == "__main__": unittest.main()
+

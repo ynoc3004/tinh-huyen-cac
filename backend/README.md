@@ -88,3 +88,13 @@ Mọi bản in mặc định khổ A4 ngang.
 - **Mật khẩu:** tự khóa sau 15 phút không hoạt động (`VAULT_IDLE_MIN`), nhập sai 5 lần sẽ bị chặn tạm thời. **Quên mật khẩu = mất dữ liệu**, không có cách khôi phục.
 - **Thêm file:** nút “+ Thêm file” hoặc kéo thả. File thường đã nằm sẵn trong thư mục: “Mã hóa file có sẵn trong thư mục” (tùy chọn xóa bản gốc sau khi đã giải mã kiểm tra khớp).
 - **Giới hạn:** tên file, ghi chú và nhãn lưu ở `data/app.db` dạng chưa mã hóa. Cần sao lưu cả thư mục két lẫn `data/app.db`. Cần `pip install -r requirements.txt` lại để có thư viện `cryptography`.
+
+
+## Thư Phòng: quét ảnh và dịch chữ
+
+AI quét ảnh được chọn riêng trong mục **AI quét** bên bàn cờ; lựa chọn dịch chữ vẫn ở khung Bản dịch. Danh sách Gemini lấy từ backend, khóa `GEMINI_API_KEY` không gửi ra trình duyệt. `GEMINI_SCAN_MODEL` đặt model mặc định cho quét; đổi lựa chọn trên web không đổi model dịch. Quét lại thay kết quả lưu của trang, quét thường mở kết quả đã lưu.
+
+Nút quét và dịch có trạng thái riêng, có thể chạy đồng thời. Đổi sách/trang/OCR tạm khóa khi một tác vụ đang xử lý để kết quả không bị gắn nhầm trang. Chọn ảnh thế cờ để mở bàn cờ; hiệu đính lượt đi/quân và nhập FEN/PGN nằm trong mục mở rộng dưới bàn cờ.
+
+Kiểm tra bổ sung (từ `backend`): `node tests/study-workflow.test.cjs`. Kiểm tra này giả lập DOM và API, xác nhận quét không gọi dịch, model chọn riêng, hai tác vụ đồng thời và sửa quân. Python: `python -m unittest discover -s tests -v`.
+

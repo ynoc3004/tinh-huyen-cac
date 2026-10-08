@@ -498,6 +498,41 @@ _scan_locks = {}
 class ScanPage(BaseModel):
     page: int = Field(ge=1)
     force: bool = False
+    model: str = Field(default='', max_length=120, pattern=r'^(gemini-[a-zA-Z0-9.\-]+)?$')
+
+@router.get('/study/scan-models')
+async def scan_models(key: bytes = Depends(library.guard)):
+    """Discover Gemini choices independently of the translation provider."""
+    default = os.getenv('GEMINI_SCAN_MODEL', GEMINI_MODEL)
+    fallback = [default] if re.fullmatch(r'gemini-[a-zA-Z0-9.\-]+', default) else []
+    api_key = os.getenv('GEMINI_API_KEY', '').strip()
+    if not api_key:
+        return {'models': fallback, 'default': default, 'available': False}
+    try:
+        names = []
+        token = None
+        async with httpx.AsyncClient(timeout=20, trust_env=False) as client:
+            for _ in range(10):
+                params = {'pageSize': 100}
+                if token:
+                    params['pageToken'] = token
+                response = await client.get('https://generativelanguage.googleapis.com/v1beta/models',
+                                            headers={'x-goog-api-key': api_key}, params=params)
+                response.raise_for_status()
+                data = response.json()
+                for item in data.get('models', []):
+                    name = item.get('name', '').removeprefix('models/')
+                    if (re.fullmatch(r'gemini-[a-zA-Z0-9.\-]+', name)
+                            and 'generateContent' in item.get('supportedGenerationMethods', [])
+                            and not any(part in name for part in ('image', 'tts', 'audio', 'robotics', 'computer-use'))):
+                        names.append(name)
+                token = data.get('nextPageToken')
+                if not token:
+                    break
+        return {'models': list(dict.fromkeys(names)) or fallback, 'default': default, 'available': True}
+    except (httpx.HTTPError, ValueError, TypeError, KeyError):
+        return {'models': fallback, 'default': default, 'available': True,
+                'warning': 'Chưa tải được danh sách AI. Có thể thử model cấu hình sẵn hoặc tải lại danh sách.'}
 
 @router.get('/{item_id}/study/boards')
 def cached_boards(item_id: int, page: int = 1, key: bytes = Depends(library.guard)):
@@ -522,7 +557,7 @@ async def scan_boards(item_id: int, body: ScanPage, key: bytes = Depends(library
         if saved and not body.force:
             return {**saved, 'cached':True}
         api_key = os.getenv('GEMINI_API_KEY','').strip()
-        model = os.getenv('GEMINI_SCAN_MODEL',GEMINI_MODEL)
+        model = body.model or os.getenv('GEMINI_SCAN_MODEL',GEMINI_MODEL)
         if not api_key or not re.fullmatch(r'gemini-[a-zA-Z0-9.\-]+',model):
             raise HTTPException(503,'Quét hình cần GEMINI_API_KEY và model hỗ trợ ảnh. DeepL chỉ dịch chữ. Đặt khóa Gemini rồi khởi động lại backend.')
         with document(row, key) as doc:
