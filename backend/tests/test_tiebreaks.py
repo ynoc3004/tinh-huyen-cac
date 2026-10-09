@@ -24,11 +24,11 @@ class TiebreakTests(unittest.TestCase):
             self.assertIn(k, st[0])
         self.assertEqual(st[0]["wins"], 1)
 
-    def test_bye_uses_virtual_opponent(self):
+    def test_bye_uses_2026_capped_dummy_opponent(self):
         g = [(1, 2, "1-0", 1), (3, None, None, 1), (2, 3, "0-1", 2), (1, None, None, 2)]
         st = {s["student_id"]: s for s in pairing.standings(g)}
         self.assertEqual(st[1]["bh"], 1.0)   # 0 (người 2) + đối thủ ảo 1.0
-        self.assertEqual(st[3]["bh"], 0.5)   # đối thủ ảo 0.5 + 0 (người 2)
+        self.assertEqual(st[3]["bh"], 1.0)   # min(2 điểm bản thân, 0.5 * 2 vòng) + 0 (người 2)
         self.assertEqual(st[1]["wins"], 1)   # bye không tính là ván thắng
 
     def test_three_tuple_input_still_works(self):

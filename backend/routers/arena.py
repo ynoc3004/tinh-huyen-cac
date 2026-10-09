@@ -1,5 +1,8 @@
 import random
+import json
+from math import ceil
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from db import conn
 from services import pairing
@@ -7,6 +10,96 @@ from config import ADMIN_PASSWORD
 
 router = APIRouter(prefix="/api")
 NAMES = ["Thiên", "Địa", "Huyền", "Hoàng", "Vũ", "Trụ", "Hồng", "Hoang"]
+
+
+def _ids(c, gid):
+    return [r[0] for r in c.execute(
+        "SELECT student_id FROM tournament_players WHERE group_id=? UNION "
+        "SELECT student_id FROM stage_players WHERE group_id=? ORDER BY student_id", (gid, gid))]
+
+
+def _group(c, gid, active=False):
+    g = c.execute("SELECT g.*,s.format,s.ord,s.tournament_id,t.seed,t.kind,t.status "
+                  "FROM groups g JOIN stages s ON s.id=g.stage_id JOIN tournaments t ON t.id=s.tournament_id "
+                  "WHERE g.id=?", (gid,)).fetchone()
+    if not g:
+        raise HTTPException(404, "Không tìm thấy bảng")
+    if active and g["status"] == "finished":
+        raise HTTPException(409, "Giải đã kết thúc; lịch đấu và kết quả đã khóa")
+    if active and g["ord"] == 1 and g["kind"] != "arena" and c.execute(
+        "SELECT 1 FROM stages WHERE tournament_id=? AND ord>1", (g["tournament_id"],)).fetchone():
+        raise HTTPException(409, "Vòng bảng đã khóa sau khi lập chung kết")
+    return g
+
+
+def _round_limit(g, count):
+    return g["swiss_rounds"] or pairing.recommended_swiss_rounds(count)
+
+
+def _table(c, g, rows):
+    ids = _ids(c, g["id"])
+    if g["format"] == "knockout":
+        return pairing.knockout_standings([tuple(r) for r in rows], ids)
+    return pairing.standings([tuple(r) for r in rows], g["format"], ids,
+                            _round_limit(g, len(ids)) if g["format"] == "swiss" else None)
+
+
+def _audit(c, tid, action, details):
+    c.execute("INSERT INTO tournament_events(tournament_id,action,details) VALUES(?,?,?)",
+              (tid, action, json.dumps(details, ensure_ascii=False)))
+
+
+def _audit_pairs(c, g, action):
+    _audit(c, g["tournament_id"], action, {
+        "group_id": g["id"], "format": g["format"], "seed": g["seed"],
+        "algorithm": "berger-v2" if g["format"] == "round_robin" else "seeded-bracket-v2" if g["format"] == "knockout" else "club-matching-v2",
+        "swiss_rounds": _round_limit(g, len(_ids(c, g["id"]))) if g["format"] == "swiss" else None,
+        "players": [dict(r) for r in c.execute("SELECT id,name,rating,club FROM students WHERE id IN ("
+                    "SELECT student_id FROM tournament_players WHERE group_id=? UNION "
+                    "SELECT student_id FROM stage_players WHERE group_id=?) ORDER BY id", (g["id"], g["id"]))],
+        "pairings": [dict(r) for r in c.execute("SELECT * FROM pairings WHERE group_id=? ORDER BY round,board", (g["id"],))],
+    })
+
+
+def _swiss(ids, hist, ratings, seed):
+    try:
+        return pairing.swiss_pair(ids, hist, ratings, seed)
+    except pairing.PairingError as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+def _complete_group(c, g):
+    rows = c.execute("SELECT * FROM pairings WHERE group_id=? ORDER BY round,board", (g["id"],)).fetchall()
+    if not rows or any(p["black_id"] is not None and p["result"] not in pairing.SCORE for p in rows):
+        raise HTTPException(409, f"Bảng {g['name']} chưa ghép cặp hoặc chưa nhập đủ kết quả")
+    last = rows[-1]["round"]
+    ids = _ids(c, g["id"])
+    if g["format"] == "swiss" and last < _round_limit(g, len(ids)):
+        raise HTTPException(409, f"Bảng {g['name']} chưa đấu đủ số vòng Swiss đã chốt")
+    if g["format"] in ("swiss", "round_robin"):
+        expected = _round_limit(g, len(ids)) if g["format"] == "swiss" else len(ids) - 1 + len(ids) % 2
+        if last != expected:
+            raise HTTPException(409, f"Bảng {g['name']} không khớp số vòng dự kiến")
+        for rnd in range(1, last + 1):
+            participants = [x for p in rows if p["round"] == rnd for x in (p["white_id"], p["black_id"]) if x is not None]
+            if sorted(participants) != sorted(ids):
+                raise HTTPException(409, f"Bảng {g['name']}, vòng {rnd}: lịch thiếu hoặc trùng người")
+    if g["format"] == "knockout":
+        final = [p for p in rows if p["round"] == last]
+        if len(final) != 1 or final[0]["result"] not in ("1-0", "0-1"):
+            raise HTTPException(409, f"Bảng {g['name']} chưa có kết quả chung kết phân định thắng thua")
+    return rows
+
+
+def _champion(rows):
+    if not rows:
+        return None
+    last = max(p["round"] for p in rows)
+    final = [p for p in rows if p["round"] == last]
+    if len(final) != 1 or final[0]["black_id"] is None:
+        return None
+    p = final[0]
+    return p["white_id"] if p["result"] == "1-0" else p["black_id"] if p["result"] == "0-1" else None
 
 
 class Student(BaseModel):
@@ -51,7 +144,9 @@ class NewTour(BaseModel):
 
 @router.post("/tournaments")
 def create(b: NewTour):
-    fmt = b.format if b.format in ("round_robin", "swiss") else "round_robin"
+    if not b.name.strip() or b.format not in ("round_robin", "swiss") or b.split_mode not in ("random", "seeded"):
+        raise HTTPException(400, "Tên giải, thể thức hoặc cách chia bảng không hợp lệ")
+    fmt = b.format
     with conn() as c:
         if b.student_ids is not None:
             b.student_ids = _student_ids(c, b.student_ids)
@@ -65,7 +160,7 @@ def create(b: NewTour):
         ).fetchall()
         if not rows:
             raise HTTPException(400, "Chưa có học viên")
-        n = b.group_count or max(1, round(len(rows) / (b.group_size or 8)))
+        n = b.group_count or max(1, ceil(len(rows) / (b.group_size or 8)))
         if n > len(rows):
             raise HTTPException(400, "Số bảng nhiều hơn số người")
         seed = random.randrange(1 << 31)
@@ -94,6 +189,7 @@ def create(b: NewTour):
                     "student_ids": ids,
                 }
             )
+        _audit(c, t, "create", {"seed": seed, "mode": b.split_mode, "groups": out})
     return {"tournament_id": t, "seed": seed, "format": fmt, "groups": out}
 
 
@@ -119,6 +215,7 @@ def move(tid: int, b: Move):
             raise HTTPException(404, "Học viên không nằm trong giải")
         if not c.execute("SELECT 1 FROM groups g JOIN stages s ON s.id=g.stage_id WHERE g.id=? AND s.tournament_id=? AND s.ord=1", (b.group_id, tid)).fetchone():
             raise HTTPException(400, "Bảng đích không thuộc vòng bảng của giải")
+        _group(c, b.group_id, active=True)
         if c.execute("SELECT 1 FROM pairings WHERE group_id IN (?,?)", (source["group_id"], b.group_id)).fetchone():
             raise HTTPException(409, "Chỉ chuyển bảng trước khi ghép cặp")
         c.execute(
@@ -135,7 +232,7 @@ def get_tour(tid: int):
         if not t:
             raise HTTPException(404)
         gs = c.execute(
-            "SELECT g.id,g.name,s.ord,s.format FROM groups g JOIN stages s ON s.id=g.stage_id "
+            "SELECT g.id,g.name,g.swiss_rounds,s.ord,s.format FROM groups g JOIN stages s ON s.id=g.stage_id "
             "WHERE s.tournament_id=? ORDER BY g.id",
             (tid,),
         ).fetchall()
@@ -163,106 +260,65 @@ def get_tour(tid: int):
 def pair(gid: int, force: bool = False):
     """Sinh lịch: vòng tròn = tất cả vòng; Swiss = chỉ vòng 1 (vòng sau dùng /swiss-next)."""
     with conn() as c:
-        fmt = c.execute(
-            "SELECT s.format FROM stages s JOIN groups g ON g.stage_id=s.id WHERE g.id=?",
-            (gid,),
-        ).fetchone()
-        fmt = (fmt["format"] if fmt else "round_robin") or "round_robin"
-        ids = [
-            r["student_id"]
-            for r in c.execute(
-                "SELECT student_id FROM tournament_players WHERE group_id=? "
-                "UNION SELECT student_id FROM stage_players WHERE group_id=?",
-                (gid, gid),
-            )
-        ]
-        if not ids:
-            raise HTTPException(400, "Bảng chưa có người")
+        c.execute("BEGIN IMMEDIATE")
+        g = _group(c, gid, active=True)
+        fmt = g["format"]
+        ids = _ids(c, gid)
+        if len(ids) < 2:
+            raise HTTPException(400, "Cần ít nhất 2 người trong bảng để ghép cặp")
         if fmt not in ("round_robin", "swiss"):
             raise HTTPException(400, "Hãy dùng API ghép cặp đúng thể thức")
-        if not force and c.execute(
-            "SELECT 1 FROM pairings WHERE group_id=? AND black_id IS NOT NULL AND result IS NOT NULL AND result!=''",
-            (gid,),
-        ).fetchone():
-            raise HTTPException(409, "Đã có kết quả; chỉ ghép lại khi xác nhận force=true")
-        c.execute("DELETE FROM pairings WHERE group_id=?", (gid,))
+        existing = c.execute("SELECT 1 FROM pairings WHERE group_id=?", (gid,)).fetchone()
+        if existing and not force:
+            raise HTTPException(409, "Đã có lịch đấu; chỉ ghép lại khi xác nhận force=true")
         if fmt == "swiss":
-            ratings = {
-                r["id"]: r["rating"]
-                for r in c.execute(
-                    f"SELECT id,rating FROM students WHERE id IN ({','.join('?' * len(ids))})",
-                    ids,
-                )
-            }
-            rnd = pairing.swiss_pair(ids, [], ratings)
+            limit = _round_limit(g, len(ids))
+            if limit > len(ids) - 1 + len(ids) % 2:
+                raise HTTPException(400, "Số vòng Swiss vượt số đối thủ/ván nghỉ có thể ghép không tái đấu")
+            ratings = {r["id"]: r["rating"] for r in c.execute("SELECT id,rating FROM students")}
+            rounds = [_swiss(ids, [], ratings, g["seed"] or 0)]
+            c.execute("UPDATE groups SET swiss_rounds=? WHERE id=?", (limit, gid))
+        else:
+            # Draw pairing numbers once, reproducibly, before applying the Berger schedule.
+            random.Random((g["seed"] or 0) + gid).shuffle(ids)
+            rounds = pairing.round_robin(ids)
+            limit = len(rounds)
+        if existing:
+            _audit_pairs(c, g, "schedule_before_reset")
+        c.execute("DELETE FROM pairings WHERE group_id=?", (gid,))
+        for r, rnd in enumerate(rounds, 1):
             for board, (w, b) in enumerate(rnd, 1):
-                c.execute(
-                    "INSERT INTO pairings(group_id,round,board,white_id,black_id,result) VALUES(?,?,?,?,?,?)",
-                    (gid, 1, board, w, b, "bye" if b is None else None),
-                )
-            return {
-                "format": "swiss",
-                "round": 1,
-                "rounds": pairing.recommended_swiss_rounds(len(ids)),
-            }
-        # round_robin
-        for r, rnd in enumerate(pairing.round_robin(ids), 1):
-            for board, (w, b) in enumerate(rnd, 1):
-                c.execute(
-                    "INSERT INTO pairings(group_id,round,board,white_id,black_id,result) VALUES(?,?,?,?,?,?)",
-                    (gid, r, board, w, b, "bye" if b is None else None),
-                )
-        return {"format": "round_robin", "rounds": len(ids) - 1 + len(ids) % 2}
+                c.execute("INSERT INTO pairings(group_id,round,board,white_id,black_id,result) VALUES(?,?,?,?,?,?)",
+                          (gid, r, board, w, b, "bye" if b is None else None))
+        _audit_pairs(c, _group(c, gid), "pair_round_1" if fmt == "swiss" else "pair_round_robin")
+        return {"format": fmt, "round": 1, "rounds": limit}
 
 
 @router.post("/groups/{gid}/swiss-next")
 def swiss_next(gid: int):
     """Hệ Thụy Sĩ: tạo vòng tiếp theo sau khi vòng hiện tại đã có đủ kết quả."""
     with conn() as c:
-        fmt = c.execute(
-            "SELECT s.format FROM stages s JOIN groups g ON g.stage_id=s.id WHERE g.id=?",
-            (gid,),
-        ).fetchone()
-        if not fmt or fmt["format"] != "swiss":
+        c.execute("BEGIN IMMEDIATE")
+        g = _group(c, gid, active=True)
+        if g["format"] != "swiss":
             raise HTTPException(400, "Bảng này không dùng hệ Thụy Sĩ")
-        ids = [
-            r["student_id"]
-            for r in c.execute(
-                "SELECT student_id FROM tournament_players WHERE group_id=? "
-                "UNION SELECT student_id FROM stage_players WHERE group_id=?",
-                (gid, gid),
-            )
-        ]
-        last = c.execute("SELECT MAX(round) m FROM pairings WHERE group_id=?", (gid,)).fetchone()["m"]
+        ids = _ids(c, gid)
+        last = c.execute("SELECT MAX(round) FROM pairings WHERE group_id=?", (gid,)).fetchone()[0]
         if not last:
             raise HTTPException(400, "Chưa có vòng nào — hãy bấm Ghép cặp trước")
-        if last >= pairing.recommended_swiss_rounds(len(ids)):
-            raise HTTPException(409, "Đã đủ số vòng Thụy Sĩ")
-        open_games = c.execute(
-            "SELECT 1 FROM pairings WHERE group_id=? AND round=? AND black_id IS NOT NULL AND (result IS NULL OR result='')",
-            (gid, last),
-        ).fetchone()
-        if open_games:
-            raise HTTPException(400, f"Vòng {last} còn bàn chưa có kết quả")
-        hist = [
-            (r["white_id"], r["black_id"], r["result"])
-            for r in c.execute("SELECT white_id,black_id,result FROM pairings WHERE group_id=?", (gid,))
-        ]
-        ratings = {
-            r["id"]: r["rating"]
-            for r in c.execute(
-                f"SELECT id,rating FROM students WHERE id IN ({','.join('?' * len(ids))})",
-                ids,
-            )
-        }
+        if last >= _round_limit(g, len(ids)):
+            raise HTTPException(409, "Đã đủ số vòng Thụy Sĩ đã chốt")
+        if c.execute("SELECT 1 FROM pairings WHERE group_id=? AND black_id IS NOT NULL AND (result IS NULL OR result='')", (gid,)).fetchone():
+            raise HTTPException(400, f"Vòng {last} hoặc vòng trước còn bàn chưa có kết quả")
+        hist = [tuple(r) for r in c.execute("SELECT white_id,black_id,result FROM pairings WHERE group_id=? ORDER BY round,board", (gid,))]
+        ratings = {r["id"]: r["rating"] for r in c.execute("SELECT id,rating FROM students")}
         nxt = last + 1
-        rnd = pairing.swiss_pair(ids, hist, ratings, seed=nxt * 9973)
+        rnd = _swiss(ids, hist, ratings, seed=g["seed"] or 0)
         for board, (w, b) in enumerate(rnd, 1):
-            c.execute(
-                "INSERT INTO pairings(group_id,round,board,white_id,black_id,result) VALUES(?,?,?,?,?,?)",
-                (gid, nxt, board, w, b, "bye" if b is None else None),
-            )
-        return {"round": nxt, "boards": len(rnd)}
+            c.execute("INSERT INTO pairings(group_id,round,board,white_id,black_id,result) VALUES(?,?,?,?,?,?)",
+                      (gid, nxt, board, w, b, "bye" if b is None else None))
+        _audit_pairs(c, g, "pair_swiss_round")
+        return {"round": nxt, "boards": len(rnd), "rounds": _round_limit(g, len(ids))}
 
 
 @router.get("/groups/{gid}/pairings")
@@ -287,7 +343,7 @@ def _metric(v: int | None) -> int | None:
     return int(v)
 
 
-def _update_pairing_result(c, pid: int, b: Result):
+def _update_pairing_result(c, pid: int, b: Result, arena_only=False):
     if b.result not in pairing.SCORE:
         raise HTTPException(400, "Kết quả phải là 1-0, 0-1 hoặc 1/2")
     p = c.execute("SELECT * FROM pairings WHERE id=?", (pid,)).fetchone()
@@ -295,6 +351,14 @@ def _update_pairing_result(c, pid: int, b: Result):
         raise HTTPException(404, "Không tìm thấy ván đấu")
     if p["black_id"] is None:
         raise HTTPException(400, "Không nhập kết quả cho ván nghỉ")
+    g = _group(c, p["group_id"], active=False)
+    if (g["kind"] == "arena") != arena_only:
+        raise HTTPException(400, "Hãy dùng API kết quả đúng loại giải")
+    if g["kind"] != "arena":
+        _group(c, p["group_id"], active=True)
+    if b.result != p["result"] and g["format"] in ("swiss", "knockout") and c.execute(
+        "SELECT 1 FROM pairings WHERE group_id=? AND round>?", (p["group_id"], p["round"])).fetchone():
+        raise HTTPException(409, "Không sửa kết quả vòng trước sau khi đã ghép vòng sau; lịch đấu phụ thuộc kết quả này")
     values = {
         "white_technical_errors": _metric(b.white_technical_errors),
         "black_technical_errors": _metric(b.black_technical_errors),
@@ -308,19 +372,17 @@ def _update_pairing_result(c, pid: int, b: Result):
         (b.result, merged["white_technical_errors"], merged["black_technical_errors"],
          merged["white_tactics_created"], merged["black_tactics_created"], pid),
     )
+    _audit(c, g["tournament_id"], "result", {"pairing_id": pid, "before": dict(p),
+           "after": {"result": b.result, **merged}})
     return p
 
 
 @router.put("/pairings/{pid}")
 def set_result(pid: int, b: Result):
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
         _update_pairing_result(c, pid, b)
     return {"ok": True}
-
-
-def _group_fmt(c, gid):
-    r = c.execute("SELECT s.format FROM groups g JOIN stages s ON s.id=g.stage_id WHERE g.id=?", (gid,)).fetchone()
-    return r["format"] if r and r["format"] in pairing.TIEBREAK_ORDER else "swiss"
 
 
 class BulkItem(Result):
@@ -339,6 +401,7 @@ def set_results_bulk(gid: int, b: BulkResults):
     if len({i.id for i in b.items}) != len(b.items):
         raise HTTPException(400, "Có ván bị gửi trùng")
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
         for it in b.items:
             p = c.execute("SELECT group_id FROM pairings WHERE id=?", (it.id,)).fetchone()
             if not p or p["group_id"] != gid:
@@ -350,12 +413,13 @@ def set_results_bulk(gid: int, b: BulkResults):
 @router.get("/groups/{gid}/standings")
 def standings(gid: int):
     with conn() as c:
+        g = _group(c, gid)
         rows = c.execute("SELECT white_id,black_id,result,round FROM pairings WHERE group_id=?", (gid,)).fetchall()
-        fmt = _group_fmt(c, gid)
         names = {r["id"]: r["name"] for r in c.execute("SELECT id,name FROM students")}
+        table = _table(c, g, rows)
     return [
         {**s, "name": names.get(s["student_id"])}
-        for s in pairing.standings([tuple(r) for r in rows], fmt)
+        for s in table
     ]
 
 
@@ -363,6 +427,22 @@ def standings(gid: int):
 def list_tours():
     with conn() as c:
         return [dict(r) for r in c.execute("SELECT id,name,date,status FROM tournaments ORDER BY id DESC")]
+
+
+@router.get("/tournaments/{tid}/audit")
+def tournament_audit(tid: int, download: bool = False):
+    with conn() as c:
+        t = c.execute("SELECT * FROM tournaments WHERE id=?", (tid,)).fetchone()
+        if not t:
+            raise HTTPException(404, "Không tìm thấy giải")
+        events = [{**dict(r), "details": json.loads(r["details"])} for r in c.execute(
+            "SELECT id,action,details,at FROM tournament_events WHERE tournament_id=? ORDER BY id", (tid,))]
+        payload = {"tournament": dict(t), "events": events,
+                   "notice": "Nhật ký bắt đầu từ phiên bản có tính năng này; không phải biên bản có chữ ký hoặc chứng nhận FIDE."}
+    if download:
+        return Response(json.dumps(payload, ensure_ascii=False, indent=2), media_type="application/json",
+                        headers={"Content-Disposition": f'attachment; filename="tournament-{tid}-audit.json"'})
+    return payload
 
 
 class Finals(BaseModel):
@@ -373,8 +453,16 @@ class Finals(BaseModel):
 @router.post("/tournaments/{tid}/finals")
 def finals(tid: int, b: Finals):
     """Lấy N người đầu mỗi bảng vào chung kết."""
-    fmt = b.format if b.format in ("knockout", "round_robin", "swiss") else "knockout"
+    if b.format not in ("knockout", "round_robin", "swiss"):
+        raise HTTPException(400, "Thể thức chung kết không hợp lệ")
+    fmt = b.format
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
+        t = c.execute("SELECT status,kind FROM tournaments WHERE id=?", (tid,)).fetchone()
+        if not t:
+            raise HTTPException(404, "Không tìm thấy giải")
+        if t["status"] == "finished" or t["kind"] == "arena":
+            raise HTTPException(409, "Không lập chung kết cho giải đã kết thúc hoặc Arena")
         if c.execute("SELECT 1 FROM stages WHERE tournament_id=? AND ord=2", (tid,)).fetchone():
             raise HTTPException(400, "Đã có vòng chung kết")
         gs = c.execute(
@@ -383,12 +471,13 @@ def finals(tid: int, b: Finals):
         ).fetchall()
         q = []
         for g in gs:
-            rows = c.execute(
-                "SELECT white_id,black_id,result,round FROM pairings WHERE group_id=?", (g["id"],)
-            ).fetchall()
-            if not rows or any(r["black_id"] and not r["result"] for r in rows):
-                raise HTTPException(400, "Còn bảng chưa ghép cặp hoặc chưa đấu xong")
-            q += pairing.standings([tuple(r) for r in rows], _group_fmt(c, g["id"]))[: b.per_group]
+            info = _group(c, g["id"])
+            _complete_group(c, info)
+            rows = c.execute("SELECT white_id,black_id,result,round FROM pairings WHERE group_id=?", (g["id"],)).fetchall()
+            st = _table(c, info, rows)
+            if len(st) > b.per_group and st[b.per_group - 1]["rank"] == st[b.per_group]["rank"]:
+                raise HTTPException(409, f"Bảng {info['name']} còn đồng hạng tại suất vào chung kết; cần trọng tài phân định theo thể lệ")
+            q += st[: b.per_group]
         if len(q) < 2:
             raise HTTPException(400, "Cần ít nhất 2 người vào chung kết")
         q.sort(key=lambda s: (s["rank"], -s["points"], -s["sb"]))
@@ -399,6 +488,7 @@ def finals(tid: int, b: Finals):
         g = c.execute("INSERT INTO groups(stage_id,name) VALUES(?,'Chung kết')", (st,)).lastrowid
         for i, s in enumerate(q, 1):
             c.execute("INSERT INTO stage_players VALUES(?,?,?)", (g, s["student_id"], i))
+        _audit(c, tid, "finals", {"group_id": g, "format": fmt, "qualifiers": q})
     return {"group_id": g, "players": len(q), "format": fmt}
 
 
@@ -414,6 +504,10 @@ def bracket(n):
 def next_round(gid: int):
     """Loại trực tiếp: vòng đầu theo hạt giống; vòng sau lấy người thắng."""
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
+        g = _group(c, gid, active=True)
+        if g["format"] != "knockout":
+            raise HTTPException(400, "Bảng này không dùng loại trực tiếp")
         last = c.execute("SELECT MAX(round) m FROM pairings WHERE group_id=?", (gid,)).fetchone()["m"]
         if not last:
             ids = [
@@ -422,6 +516,8 @@ def next_round(gid: int):
                     "SELECT student_id FROM stage_players WHERE group_id=? ORDER BY seed", (gid,)
                 )
             ]
+            if len(ids) < 2:
+                raise HTTPException(400, "Cần ít nhất 2 người trong nhánh đấu")
             size = 1
             while size < len(ids):
                 size *= 2
@@ -457,6 +553,7 @@ def next_round(gid: int):
                 "INSERT INTO pairings(group_id,round,board,white_id,black_id,result) VALUES(?,?,?,?,?,?)",
                 (gid, rnd, board, w, b, "bye" if b is None else None),
             )
+        _audit_pairs(c, g, "pair_knockout_round")
     return {"round": rnd}
 
 
@@ -485,7 +582,9 @@ def draw(b: DrawReq):
     players = [(r["id"], r["rating"], r["club"]) for r in rows if keep is None or r["id"] in keep]
     if len(players) < 2:
         raise HTTPException(400, "Cần ít nhất 2 học viên")
-    n = b.group_count or max(1, round(len(players) / (b.group_size or 8)))
+    if b.mode not in ("pots", "random") or b.format not in ("round_robin", "swiss"):
+        raise HTTPException(400, "Cách bốc thăm hoặc thể thức không hợp lệ")
+    n = b.group_count or max(1, ceil(len(players) / (b.group_size or 8)))
     if n > len(players):
         raise HTTPException(400, "Số bảng nhiều hơn số người")
     seed = b.seed if b.seed is not None else random.randrange(1 << 31)
@@ -509,6 +608,7 @@ class FromDraw(BaseModel):
     group_names: list[str] | None = None
     group_formats: list[str] | None = None
     notes: str = ""
+    avoid_club: bool | None = None
 
 
 @router.post("/tournaments/from-draw")
@@ -524,6 +624,9 @@ def from_draw(b: FromDraw):
     if b.group_formats is not None and (len(b.group_formats) != len(groups) or any(f not in ("round_robin", "swiss") for f in b.group_formats)):
         raise HTTPException(400, "Thể thức bảng không hợp lệ hoặc không khớp số bảng")
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
+        if not b.name.strip() or b.format not in ("round_robin", "swiss") or b.mode not in ("pots", "random", "manual"):
+            raise HTTPException(400, "Tên giải, thể thức hoặc cách bốc thăm không hợp lệ")
         if not set(ids) <= {r["id"] for r in c.execute("SELECT id FROM students")}:
             raise HTTPException(400, "Có học viên không tồn tại")
         t = c.execute(
@@ -545,6 +648,10 @@ def from_draw(b: FromDraw):
             ).lastrowid
             for sid in g_ids:
                 c.execute("INSERT INTO tournament_players VALUES(?,?,?)", (t, sid, g))
+        _audit(c, t, "confirm_draw", {"seed": b.seed, "mode": b.mode, "avoid_club": b.avoid_club,
+               "algorithm": "draw-pots-v2", "groups": b.groups,
+               "group_names": b.group_names, "group_formats": b.group_formats,
+               "players": [dict(r) for r in c.execute("SELECT id,name,rating,club FROM students ORDER BY id") if r["id"] in ids]})
     return {"tournament_id": t, "format": fmt}
 
 
@@ -557,6 +664,7 @@ class TournamentInfo(BaseModel):
 @router.patch("/tournaments/{tid}")
 def update_tournament(tid: int, b: TournamentInfo):
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
         if not c.execute("SELECT 1 FROM tournaments WHERE id=?", (tid,)).fetchone():
             raise HTTPException(404, "Không tìm thấy giải")
         for key in b.model_fields_set:
@@ -564,6 +672,7 @@ def update_tournament(tid: int, b: TournamentInfo):
             if key == "name" and (value is None or not value.strip()):
                 raise HTTPException(400, "Tên giải không được trống")
             c.execute(f"UPDATE tournaments SET {key}=? WHERE id=?", (value, tid))
+        _audit(c, tid, "info", b.model_dump(exclude_unset=True))
     return {"ok": True}
 
 
@@ -581,6 +690,8 @@ def add_group(tid: int, b: GroupInfo):
             raise HTTPException(404, "Không tìm thấy giải")
         if t["kind"] == "arena" or t["status"] == "finished":
             raise HTTPException(409, "Không thêm bảng cho Arena hoặc giải đã kết thúc")
+        if c.execute("SELECT 1 FROM stages WHERE tournament_id=? AND ord>1", (tid,)).fetchone():
+            raise HTTPException(409, "Vòng bảng đã khóa sau khi lập chung kết")
         st = c.execute("SELECT id FROM stages WHERE tournament_id=? AND ord=1 AND format=?", (tid, b.format)).fetchone()
         if b.format not in ("round_robin", "swiss"):
             raise HTTPException(400, "Thể thức bảng không hợp lệ")
@@ -593,6 +704,7 @@ def add_group(tid: int, b: GroupInfo):
 class GroupUpdate(BaseModel):
     name: str | None = None
     format: str | None = None
+    swiss_rounds: int | None = Field(default=None, ge=1)
 
 
 @router.patch("/groups/{gid}")
@@ -603,6 +715,12 @@ def rename_group(gid: int, b: GroupUpdate):
         raise HTTPException(400, "Thể thức bảng không hợp lệ")
     with conn() as c:
         c.execute("BEGIN IMMEDIATE")
+        info = _group(c, gid, active=True)
+        if "swiss_rounds" in b.model_fields_set:
+            if (b.format or info["format"]) != "swiss" or c.execute("SELECT 1 FROM pairings WHERE group_id=?", (gid,)).fetchone():
+                raise HTTPException(409, "Chỉ chốt số vòng Swiss trước khi ghép vòng 1")
+            c.execute("UPDATE groups SET swiss_rounds=? WHERE id=?", (b.swiss_rounds, gid))
+            _audit(c, info["tournament_id"], "swiss_rounds", {"group_id": gid, "rounds": b.swiss_rounds})
         g = c.execute("SELECT s.tournament_id,s.ord,s.format,t.status,t.kind FROM groups g JOIN stages s ON s.id=g.stage_id JOIN tournaments t ON t.id=s.tournament_id WHERE g.id=?", (gid,)).fetchone()
         if not g:
             raise HTTPException(404, "Không tìm thấy bảng")
@@ -701,27 +819,34 @@ def replace_group_players(gid: int, b: GroupPlayers):
 def finish_tour(tid: int):
     """Kết thúc giải: đánh dấu finished và trả bảng xếp hạng tất cả các bảng."""
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
         t = c.execute("SELECT * FROM tournaments WHERE id=?", (tid,)).fetchone()
         if not t:
             raise HTTPException(404)
-        c.execute("UPDATE tournaments SET status='finished' WHERE id=?", (tid,))
         gs = c.execute(
             "SELECT g.id,g.name,s.ord,s.format FROM groups g JOIN stages s ON s.id=g.stage_id "
             "WHERE s.tournament_id=? ORDER BY s.ord,g.id",
             (tid,),
         ).fetchall()
+        if t["kind"] != "arena":
+            if not gs:
+                raise HTTPException(409, "Giải chưa có bảng thi đấu")
+            for g in gs:
+                _complete_group(c, _group(c, g["id"]))
+        c.execute("UPDATE tournaments SET status='finished' WHERE id=?", (tid,))
+        _audit(c, tid, "finish", {"previous_status": t["status"]})
         names = {r["id"]: r["name"] for r in c.execute("SELECT id,name FROM students")}
         out = []
         for g in gs:
             rows = c.execute(
                 "SELECT white_id,black_id,result,round FROM pairings WHERE group_id=?", (g["id"],)
             ).fetchall()
-            st = pairing.standings([tuple(r) for r in rows], g["format"])
+            st = _table(c, _group(c, g["id"]), rows)
             for s in st:
                 s["name"] = names.get(s["student_id"])
             champion = None
-            if g["format"] == "knockout" and st:
-                champion = st[0].get("name")
+            if g["format"] == "knockout":
+                champion = names.get(_champion(rows))
             out.append({
                 "group_id": g["id"],
                 "name": g["name"],
@@ -751,7 +876,7 @@ def tour_results(tid: int):
             rows = c.execute(
                 "SELECT white_id,black_id,result,round FROM pairings WHERE group_id=?", (g["id"],)
             ).fetchall()
-            st = pairing.standings([tuple(r) for r in rows], g["format"])
+            st = _table(c, _group(c, g["id"]), rows)
             for s in st:
                 s["name"] = names.get(s["student_id"])
             out.append({
@@ -760,6 +885,7 @@ def tour_results(tid: int):
                 "ord": g["ord"],
                 "format": g["format"],
                 "standings": st,
+                "champion": names.get(_champion(rows)) if g["format"] == "knockout" else None,
             })
     return {"tournament_id": tid, "name": t["name"], "status": t["status"], "groups": out}
 
@@ -780,8 +906,8 @@ class NewArena(BaseModel):
 @router.post("/arenas")
 def create_arena(b: NewArena):
     """Tạo giải đấu trường (chưa start)."""
-    if b.duration_min < 5:
-        raise HTTPException(400, "Thời lượng tối thiểu 5 phút")
+    if not b.name.strip():
+        raise HTTPException(400, "Tên đấu trường không được trống")
     with conn() as c:
         ids = _student_ids(c, b.student_ids)
         t = c.execute(
@@ -810,9 +936,12 @@ class ArenaPlayers(BaseModel):
 def arena_add_players(tid: int, b: ArenaPlayers):
     """Thêm đối thủ vào đấu trường (kể cả đang chạy)."""
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
         t = c.execute("SELECT * FROM tournaments WHERE id=? AND kind='arena'", (tid,)).fetchone()
         if not t:
             raise HTTPException(404, "Không tìm thấy đấu trường")
+        if t["status"] == "finished":
+            raise HTTPException(409, "Đấu trường đã kết thúc")
         g = c.execute(
             "SELECT g.id FROM groups g JOIN stages s ON s.id=g.stage_id WHERE s.tournament_id=?",
             (tid,),
@@ -841,6 +970,7 @@ def arena_add_players(tid: int, b: ArenaPlayers):
 def arena_remove_player(tid: int, sid: int):
     """Loại đối thủ khỏi đấu trường (không xóa kết quả đã đấu)."""
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
         t = c.execute("SELECT * FROM tournaments WHERE id=? AND kind='arena'", (tid,)).fetchone()
         if not t:
             raise HTTPException(404)
@@ -860,6 +990,7 @@ def arena_remove_player(tid: int, sid: int):
 def arena_start(tid: int):
     """Bắt đầu đếm giờ đấu trường."""
     with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
         t = c.execute("SELECT * FROM tournaments WHERE id=? AND kind='arena'", (tid,)).fetchone()
         if not t:
             raise HTTPException(404)
@@ -899,7 +1030,9 @@ def arena_pair(tid: int):
         if t["ends_at"]:
             try:
                 end = datetime.fromisoformat(t["ends_at"])
-                if datetime.now().astimezone() >= end.replace(tzinfo=end.tzinfo):
+                if end.tzinfo is None:
+                    end = end.replace(tzinfo=datetime.now().astimezone().tzinfo)
+                if datetime.now().astimezone() >= end:
                     c.execute("UPDATE tournaments SET status='finished' WHERE id=?", (tid,))
                     c.commit()  # raise bên dưới sẽ rollback nếu chưa commit
                     raise HTTPException(400, "Đã hết thời gian đấu trường")
@@ -928,14 +1061,13 @@ def arena_pair(tid: int):
         # lịch sử để tránh tái đấu gần đây nếu có thể
         hist = [
             (r["white_id"], r["black_id"], r["result"])
-            for r in c.execute("SELECT white_id,black_id,result FROM pairings WHERE group_id=?", (gid,))
+            for r in c.execute("SELECT white_id,black_id,result FROM pairings WHERE group_id=? ORDER BY round,board", (gid,))
         ]
         ratings = {
             r["id"]: r["rating"]
             for r in c.execute("SELECT id,rating FROM students")
         }
-        # dùng swiss_pair trên nhóm waiting
-        rnd = pairing.swiss_pair(waiting, hist, ratings)
+        rnd = pairing.arena_pair(waiting, hist, ratings, seed=t["seed"] or 0)
         last_round = c.execute("SELECT MAX(round) m FROM pairings WHERE group_id=?", (gid,)).fetchone()["m"] or 0
         nxt = last_round + 1
         paired = 0
@@ -957,6 +1089,7 @@ def arena_pair(tid: int):
             (gid, nxt),
         ).fetchall()
         boards = [{"pairing_id": r["id"], "white_id": r["white_id"], "black_id": r["black_id"]} for r in rows]
+        _audit(c, tid, "pair_arena", {"round": nxt, "boards": boards})
     return {"paired": paired, "round": nxt, "boards": boards}
 
 
@@ -964,7 +1097,8 @@ def arena_pair(tid: int):
 def arena_set_result(pid: int, b: Result):
     """Nhập/sửa kết quả ván arena và lưu chỉ số kỹ thuật/chiến thuật."""
     with conn() as c:
-        p = _update_pairing_result(c, pid, b)
+        c.execute("BEGIN IMMEDIATE")
+        p = _update_pairing_result(c, pid, b, arena_only=True)
         # tìm tournament_id
         row = c.execute(
             "SELECT s.tournament_id FROM groups g JOIN stages s ON s.id=g.stage_id WHERE g.id=?",
@@ -1028,7 +1162,7 @@ def get_arena(tid: int):
                 "SELECT white_id,black_id,result,round FROM pairings WHERE group_id=?", (gid,)
             ).fetchall()
             names = {r["id"]: r["name"] for r in c.execute("SELECT id,name FROM students")}
-            st = pairing.standings([tuple(r) for r in hist])
+            st = pairing.standings([tuple(r) for r in hist], "arena", [p["student_id"] for p in players])
             for s in st:
                 s["name"] = names.get(s["student_id"])
         else:

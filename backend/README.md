@@ -69,11 +69,28 @@ Repo gốc nằm trong `backend/.git`. Bản sửa giữ repo và đã tạo com
 
 Trong Tạo giải mới, chọn Tự tạo bảng: nhập U6/U7 mỗi tên một dòng hoặc để trống để thêm bảng sau. Mỗi bảng chọn người riêng, không cần biết trước số lượng. Bốc thăm tự động vẫn có trong Cách tạo bảng. Mở giải để sửa tên bảng, thêm người trước khi ghép, và lưu thể lệ/ghi chú. Cập nhật tính năng này cần thay db.py, routers/arena.py và hai trang static/arena.html, static/arena-live.html trong backend, sau đó khởi động lại server. Giữ nguyên database đang dùng.
 
-## Xếp hạng và hệ số phụ (FIDE)
+## Bốc thăm, ghép cặp và hệ số phụ
 
-Điểm bằng nhau được phân hạng theo 5 hệ số phụ: ĐĐ (đối đầu), BH-C1 (Buchholz bỏ 1), BH (Buchholz), SB (Sonneborn-Berger), Thắng (số ván thắng trên bàn cờ).
-Thụy Sĩ: ĐĐ › BH-C1 › BH › SB › Thắng. Vòng tròn: ĐĐ › SB › Thắng › BH-C1 › BH. ĐĐ chỉ áp dụng khi mọi người trong nhóm bằng điểm đã đấu với nhau.
-Ván nghỉ (bye) dùng đối thủ ảo theo quy định FIDE. Ván chưa có kết quả không được tính vào hệ số.
+Bốc thăm chia bảng dùng mã seed và thứ tự đầu vào chuẩn hóa, có thể tái tạo khi danh sách, rating, đơn vị, tùy chọn và phiên bản thuật toán không đổi. Số người tối đa/bảng dùng làm trần; nếu ấn định số bảng thì số bảng được ưu tiên. Tránh cùng đơn vị là nỗ lực giảm xung đột, không bảo đảm tuyệt đối. Xem lại bảng, hạt giống và cảnh báo trước khi chốt.
+
+Swiss dùng ghép toàn bộ bằng Blossom: không tái đấu, không lặp bye, không 3 ván cùng màu liên tiếp, chênh số ván trắng/đen tối đa 2; ưu tiên điểm gần nhau rồi cân bằng màu. Đây là thuật toán riêng **chưa được kiểm định FIDE Dutch**, không có ngoại lệ màu cho topscorer vòng cuối hoặc lịch sử float theo Dutch. Nếu không có lịch hợp lệ, trả lỗi và không ghi vòng; cần trọng tài xử lý, ứng dụng không tự nới điều kiện. Arena dùng logic riêng: được tái đấu, ưu tiên tránh gặp lại gần đây và cân màu, người lẻ tiếp tục chờ không có điểm.
+
+Chốt số vòng Swiss trong thiết lập bảng trước vòng 1 (mặc định `ceil(log2(n))`). Vòng sau chỉ được ghép khi toàn bộ kết quả cũ đầy đủ. Không sửa kết quả Swiss/loại trực tiếp sau khi ghép vòng phụ thuộc; vẫn được sửa chỉ số với cùng kết quả. Không lập chung kết hoặc kết thúc giải khi chưa đủ vòng/kết quả. Vòng bảng khóa khi lập chung kết; giải thường khóa khi kết thúc. Muốn ghép lại từ đầu phải xác nhận; lịch cũ được chụp vào nhật ký trước khi xóa.
+
+Thứ tự hệ số phụ của ứng dụng cần được ghi trong thể lệ trước khi thi đấu:
+
+- Swiss: ĐĐ › BH-C1 › BH › SB › Thắng.
+- Vòng tròn: ĐĐ › SB › Thắng (không dùng Buchholz).
+- Thắng là số ván thắng trên bàn, không tính bye. Swiss bye được 1 điểm; nghỉ vòng tròn được 0 điểm.
+- Swiss bye dùng đối thủ giả bằng điểm bản thân, tối đa nửa số vòng đã chốt, theo điều 16.4.2 của quy định hệ số phụ FIDE áp dụng từ 1/3/2026. Ván chưa có kết quả chưa tính điểm.
+- Khi các hệ số vẫn bằng nhau, ứng dụng hiển thị đồng hạng; không dùng ID học viên để quyết định suất vào chung kết. Nếu đồng hạng vắt qua mốc tuyển chọn, cần phân định theo thể lệ; hiện chưa có giao diện nhập quyết định playoff/bốc thăm phân hạng.
+- Loại trực tiếp xếp hạng theo mức tiến trong nhánh, nhà vô địch là người thắng ván chung kết, không phải người có tổng điểm cao nhất. Ván hòa chưa xác định người đi tiếp.
+
+Nút **Tải nhật ký giải** xuất JSON chứa mã bốc thăm, danh sách/rating tại thời điểm ghép, lịch, kết quả trước/sau sửa và thời gian. Nhật ký được lưu trong SQLite cùng giao dịch; có thể tải lại sau khi khởi động lại. Nhật ký bắt đầu từ bản cập nhật này, không tái tạo lịch sử trước đó, không phải biên bản ký số/chống sửa database. Sao lưu toàn bộ database trước giải.
+
+Trước giải chính thức cần chạy thử trọn giải với danh sách thực. Giải tính rating FIDE cần trọng tài kiểm tra và bộ ghép được kiểm định; bản hiện tại chưa hỗ trợ bỏ cuộc, vào muộn, xin nghỉ nửa điểm hoặc kết quả bỏ cuộc riêng, xuất báo cáo TRF, hay phân hạng playoff. Tài liệu đối chiếu: [FIDE Dutch 2026](https://handbook.fide.com/chapter/C0403202602), [FIDE tie-break 2026](https://handbook.fide.com/chapter/TieBreakRegulations032026).
+
+Sau khi cập nhật, chạy `python -m pip install -r requirements.txt` (có thêm NetworkX), rồi khởi động lại server. Database cũ được thêm cột số vòng và bảng nhật ký tự động; không cần tạo lại.
 
 ## Xác nhận hàng loạt và in
 

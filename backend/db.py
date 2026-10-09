@@ -39,10 +39,14 @@ CREATE TABLE IF NOT EXISTS puzzle_log(id INTEGER PRIMARY KEY, puzzle_id TEXT, ra
 CREATE TABLE IF NOT EXISTS arena_players(tournament_id INT REFERENCES tournaments(id) ON DELETE CASCADE,
   student_id INT REFERENCES students(id), status TEXT DEFAULT 'waiting',
   PRIMARY KEY(tournament_id, student_id));
+CREATE TABLE IF NOT EXISTS tournament_events(id INTEGER PRIMARY KEY,
+  tournament_id INT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+  action TEXT NOT NULL, details TEXT NOT NULL, at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 """
 
 # migrate columns if DB already exists without them
 MIGRATE = [
+    "ALTER TABLE groups ADD COLUMN swiss_rounds INT",
     "ALTER TABLE tournaments ADD COLUMN notes TEXT DEFAULT ''",
     "ALTER TABLE tournaments ADD COLUMN kind TEXT DEFAULT 'classic'",
     "ALTER TABLE tournaments ADD COLUMN duration_min INT",
@@ -74,6 +78,7 @@ def init():
     with conn() as c:
         c.executescript(SCHEMA)
         c.execute("CREATE INDEX IF NOT EXISTS idx_pairings_group ON pairings(group_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_tournament_events_tour ON tournament_events(tournament_id,id)")
         for sql in MIGRATE:
             try:
                 c.execute(sql)
