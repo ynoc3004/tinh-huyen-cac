@@ -5,16 +5,25 @@ export function speechChunks(text){
  // Short utterances avoid long-reading limits in some desktop speech engines.
  return sentences.flatMap(sentence=>Array.from(sentence.matchAll(/.{1,40}/gu),m=>m[0]));
 }
-export function chineseVoice(voices){
+const FEMALE_NAMES=['xiaoxiao','xiaoyi','yaoyao','huihui','hanhan','yating'];
+const VOICE_STORAGE='thc:dao-voice:v1';
+export function femaleVoiceName(voice){
+ const name=String(voice.name||'').toLowerCase();
+ return FEMALE_NAMES.find(n=>name.includes(n))||null;
+}
+export function voiceChoiceKey(voice){return JSON.stringify([voice.voiceURI||'',voice.name||'',voice.lang||'']);}
+export function chineseVoices(voices){
  const language=v=>String(v.lang||'').toLowerCase().replace(/_/g,'-');
  const supported=v=>/^(zh(?:$|-)|cmn(?:$|-))/.test(language(v))&&!/^(zh-hk|yue)/.test(language(v));
- const rank=v=>{const lang=language(v);return (lang==='zh-cn'||lang.startsWith('cmn')?0:lang==='zh-tw'?2:4)+(v.localService?0:1);};
- return voices.filter(supported).sort((a,b)=>rank(a)-rank(b))[0]||null;
+ const rank=v=>{const lang=language(v),female=femaleVoiceName(v);return (female?FEMALE_NAMES.indexOf(female)*10:100)+(lang==='zh-cn'||lang.startsWith('cmn')?0:lang==='zh-tw'?2:4)+(v.localService?0:1);};
+ return voices.filter(supported).sort((a,b)=>rank(a)-rank(b));
 }
+export function chineseVoice(voices){return chineseVoices(voices)[0]||null;}
 export function mountDaoSpeech(root,env=globalThis){
- const button=root.querySelector('[data-dao-speak]'),label=root.querySelector('[data-dao-speak-label]'),status=root.querySelector('[data-dao-audio-status]'),text=root.querySelector('[data-dao-han]');
+ const button=root.querySelector('[data-dao-speak]'),label=root.querySelector('[data-dao-speak-label]'),status=root.querySelector('[data-dao-audio-status]'),text=root.querySelector('[data-dao-han]'),select=root.querySelector('[data-dao-voice]');
  if(!button||!label||!status||!text)return {stop(){},destroy(){}};
  const synth=env.speechSynthesis,Utterance=env.SpeechSynthesisUtterance;
+ let preferred='';try{preferred=env.localStorage?.getItem(VOICE_STORAGE)||'';}catch{/* Reading remains available with blocked storage. */}
  let current=null,active=false,waitingVoice=false,generation=0,startedTimer=null;
  function state(playing){
   active=playing;button.setAttribute('aria-pressed',String(playing));
@@ -28,16 +37,27 @@ export function mountDaoSpeech(root,env=globalThis){
   current=null;state(false);if(wasActive)synth?.cancel();status.textContent=message;
  }
  if(!synth||typeof Utterance!=='function'){
-  button.disabled=true;status.textContent='Trình duyệt này chưa hỗ trợ đọc thành tiếng.';
-  return {stop,destroy(){button.onclick=null;}};
+  button.disabled=true;if(select)select.disabled=true;status.textContent='Trình duyệt này chưa hỗ trợ đọc thành tiếng.';
+  return {stop,destroy(){button.onclick=null;if(select)select.onchange=null;}};
  }
  function refreshVoices(){
-  if(waitingVoice&&chineseVoice(synth.getVoices())){waitingVoice=false;status.textContent='Giọng tiếng Trung đã sẵn sàng. Bấm loa để nghe.';}
+  let voices;try{voices=chineseVoices(synth.getVoices());}catch{return;}
+  if(select){
+   const option=(value,text)=>{const node=env.document.createElement('option');node.value=value;node.textContent=text;return node;};
+   select.replaceChildren(option('','Tự chọn · ưu tiên giọng nữ'),...voices.map(v=>option(voiceChoiceKey(v),v.name+(femaleVoiceName(v)?' · Nữ':'')+' · '+v.lang)));
+   select.value=voices.some(v=>voiceChoiceKey(v)===preferred)?preferred:'';select.disabled=!voices.length;
+  }
+  if(waitingVoice&&voices.length){waitingVoice=false;status.textContent='Giọng tiếng Trung đã sẵn sàng. Bấm loa để nghe.';}
  }
+ if(select)select.onchange=()=>{
+  preferred=select.value;
+  try{env.localStorage?.setItem(VOICE_STORAGE,preferred);}catch{/* Keep this choice for the current page even when storage is blocked. */}
+  stop('Đã đổi giọng đọc. Bấm loa để nghe.');
+ };
  function play(){
   if(active){stop('Đã dừng đọc.');return;}
   let voice;
-  try{voice=chineseVoice(synth.getVoices());}catch{status.textContent='Không lấy được giọng đọc. Hãy thử lại.';return;}
+  try{const voices=chineseVoices(synth.getVoices());voice=voices.find(v=>voiceChoiceKey(v)===preferred)||voices[0]||null;}catch{status.textContent='Không lấy được giọng đọc. Hãy thử lại.';return;}
   if(!voice){waitingVoice=true;status.textContent='Chưa có giọng tiếng Trung. Thêm giọng Chinese trong cài đặt giọng nói của máy rồi thử lại.';return;}
   const chunks=speechChunks(text.textContent);if(!chunks.length){status.textContent='Chưa có Hán văn để đọc.';return;}
   waitingVoice=false;const token=++generation;state(true);status.textContent='Đang chuẩn bị giọng đọc…';
@@ -59,7 +79,7 @@ export function mountDaoSpeech(root,env=globalThis){
  function leaving(){if(active)stop();}
  button.onclick=play;state(false);synth.addEventListener?.('voiceschanged',refreshVoices);
  // Trigger voice discovery early; some browsers populate the list asynchronously.
- try{synth.getVoices();}catch{/* Retry on the user's click. */}
+ refreshVoices();
  env.document.addEventListener('visibilitychange',hidden);env.addEventListener('pagehide',leaving);
- return {stop,destroy(){stop();button.onclick=null;synth.removeEventListener?.('voiceschanged',refreshVoices);env.document.removeEventListener('visibilitychange',hidden);env.removeEventListener('pagehide',leaving);}};
+ return {stop,destroy(){stop();button.onclick=null;if(select)select.onchange=null;synth.removeEventListener?.('voiceschanged',refreshVoices);env.document.removeEventListener('visibilitychange',hidden);env.removeEventListener('pagehide',leaving);}};
 }

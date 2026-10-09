@@ -145,7 +145,7 @@ Font chữ Hán Noto Serif TC được đóng gói cùng website, thu gọn theo
 
 Kiểm tra dữ liệu và lịch luân phiên: `node tests/daily-dao.test.mjs`.
 
-Nút **Nghe Hán văn** dưới tiêu đề chương đọc phần chữ đang hiển thị bằng giọng tiếng Trung của trình duyệt/máy; bấm lại để dừng. Không tự phát, không cần API key hoặc thêm package. Trang chọn giọng Chinese phù hợp, ưu tiên giọng zh-CN local; nếu chưa có thì báo để thêm giọng trong cài đặt giọng nói của máy. Tùy giọng được cung cấp, phát âm thanh có thể cần mạng. Đây là cách đọc tiếng Trung, không phải phiên âm Hán Việt.
+Nút **Nghe Hán văn** dưới tiêu đề chương đọc phần chữ đang hiển thị bằng giọng tiếng Trung của trình duyệt/máy; bấm lại để dừng. Không tự phát, không cần API key hoặc thêm package. Ô **Giọng đọc** liệt kê các giọng Chinese do trình duyệt cung cấp và lưu lựa chọn trên trình duyệt. Mặc định ưu tiên các giọng nữ nhận diện được theo tên: Xiaoxiao, Xiaoyi, Yaoyao, Huihui, Hanhan, Yating; chỉ hiển thị những giọng thật sự có trong `getVoices()`. Giọng Natural/Neural không được đảm bảo có trên mọi máy. Đổi giọng khi đang đọc sẽ dừng; bấm loa lại để nghe giọng mới. Không thêm dịch vụ TTS bên ngoài; nếu chưa có thì báo để thêm giọng trong cài đặt giọng nói của máy. Tùy giọng được cung cấp, phát âm thanh có thể cần mạng. Đây là cách đọc tiếng Trung, không phải phiên âm Hán Việt.
 
 Chương được chia thành các đoạn ngắn, đọc lần lượt đầy đủ. Rời/ẩn trang hoặc chuyển chương lúc qua nửa đêm sẽ dừng đọc; bấm loa lại sẽ đọc chương đang hiển thị. Lỗi phát hoặc giọng không phản hồi đưa nút về trạng thái có thể thử lại. Kiểm tra nút loa: `node tests/dao-speech.test.mjs`.
 

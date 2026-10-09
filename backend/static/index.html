@@ -144,6 +144,8 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-
 .daily-dao [data-dao-status] { margin:.4rem 0 0; color:var(--muted); font-size:.72rem; }
 .daily-dao [data-dao-status]:empty { display:none; }
 .daily-dao .dao-speak { display:inline-flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; margin-top:.85rem; padding:.4rem .65rem; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--jade); font:inherit; font-size:.78rem; cursor:pointer; }
+.daily-dao .dao-voice { display:grid; gap:.3rem; margin-top:.75rem; font-size:.72rem; color:var(--muted); }
+.daily-dao .dao-voice select { min-height:44px; width:100%; max-width:22rem; padding:.4rem .5rem; border:1px solid var(--line); border-radius:.45rem; background:var(--paper); color:var(--ink); font:inherit; font-size:.72rem; }
 .daily-dao .dao-speak svg { width:1.1rem; height:1.1rem; flex-shrink:0; }
 .daily-dao .dao-speak:hover,.daily-dao .dao-speak[aria-pressed="true"] { color:var(--gold); border-color:var(--gold); background:color-mix(in srgb,var(--gold) 8%,transparent); }
 .daily-dao .dao-speak:disabled { opacity:.55; cursor:default; }
@@ -340,6 +342,7 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
         <button class="dao-speak" type="button" data-dao-speak aria-pressed="false" aria-label="Nghe Hán văn bằng tiếng Trung" title="Đọc chương đang hiển thị bằng tiếng Trung">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4 6 8H3v8h3l5 4V4Z"/><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg><span data-dao-speak-label>Nghe Hán văn</span>
         </button>
+        <label class="dao-voice">Giọng đọc<select data-dao-voice aria-label="Chọn giọng đọc Hán văn"><option value="">Tự chọn · ưu tiên giọng nữ</option></select></label>
         <p data-dao-audio-status role="status" aria-live="polite"></p>
       </div>
       <div class="daily-dao-reading">
@@ -722,6 +725,6 @@ async function load() {
 }
 load();
 </script>
-<script type="module" src="/daily-dao.js?v=speech-2"></script>
+<script type="module" src="/daily-dao.js?v=voice-3"></script>
 </body>
 </html>

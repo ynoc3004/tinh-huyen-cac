@@ -1,4 +1,4 @@
-import {mountDaoSpeech} from "/dao-speech.js?v=1";
+import {mountDaoSpeech} from "/dao-speech.js?v=voices-2";
 // One chapter per civil day in Vietnam, shared by every visitor.
 export const START_DATE='2026-10-09';
 const DAY=86400000;
