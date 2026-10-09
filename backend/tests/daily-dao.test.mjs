@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const source=await readFile(new URL('../static/daily-dao.js',import.meta.url),'utf8');
-const {chapterNumber,nextDayDelay,validateChapters,START_DATE}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const {chapterNumber,nextDayDelay,validateChapters,START_DATE}=await import('data:text/javascript;base64,'+Buffer.from(source.replace('"/dao-speech.js?v=1"',JSON.stringify(new URL('../static/dao-speech.js',import.meta.url).href))).toString('base64'));
 const data=JSON.parse(await readFile(new URL('../static/dao-duc-kinh.json',import.meta.url),'utf8'));
 assert.equal(validateChapters(data),data);
 assert.equal(START_DATE,data.start_date);

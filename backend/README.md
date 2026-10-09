@@ -145,6 +145,10 @@ Font chữ Hán Noto Serif TC được đóng gói cùng website, thu gọn theo
 
 Kiểm tra dữ liệu và lịch luân phiên: `node tests/daily-dao.test.mjs`.
 
+Nút **Nghe Hán văn** dưới tiêu đề chương đọc phần chữ đang hiển thị bằng giọng tiếng Trung của trình duyệt/máy; bấm lại để dừng. Không tự phát, không cần API key hoặc thêm package. Trang chọn giọng Chinese phù hợp, ưu tiên giọng zh-CN local; nếu chưa có thì báo để thêm giọng trong cài đặt giọng nói của máy. Tùy giọng được cung cấp, phát âm thanh có thể cần mạng. Đây là cách đọc tiếng Trung, không phải phiên âm Hán Việt.
+
+Chương được chia thành các đoạn ngắn, đọc lần lượt đầy đủ. Rời/ẩn trang hoặc chuyển chương lúc qua nửa đêm sẽ dừng đọc; bấm loa lại sẽ đọc chương đang hiển thị. Lỗi phát hoặc giọng không phản hồi đưa nút về trạng thái có thể thử lại. Kiểm tra nút loa: `node tests/dao-speech.test.mjs`.
+
 ## Đạo Lộ
 
 Trang `/dao-lo.html` lưu hồ sơ cá nhân: họ tên, đạo hiệu, sinh thần (ngày dương lịch và giờ sinh nếu biết), quê quán, chí hướng và ghi chú. Các mục đều tùy chọn. Bấm **Lưu hồ sơ** để lưu vào `data/app.db`; hồ sơ dùng chung trên các trình duyệt truy cập cùng backend. Database tự thêm bảng hồ sơ khi khởi động, giữ nguyên dữ liệu cờ hiện có.

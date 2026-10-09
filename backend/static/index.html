@@ -143,6 +143,12 @@ a:focus-visible, button:focus-visible { outline: 3px solid var(--gold); outline-
 .daily-dao .dao-source a:hover { color:var(--gold); }
 .daily-dao [data-dao-status] { margin:.4rem 0 0; color:var(--muted); font-size:.72rem; }
 .daily-dao [data-dao-status]:empty { display:none; }
+.daily-dao .dao-speak { display:inline-flex; align-items:center; justify-content:center; gap:.45rem; min-height:44px; margin-top:.85rem; padding:.4rem .65rem; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--jade); font:inherit; font-size:.78rem; cursor:pointer; }
+.daily-dao .dao-speak svg { width:1.1rem; height:1.1rem; flex-shrink:0; }
+.daily-dao .dao-speak:hover,.daily-dao .dao-speak[aria-pressed="true"] { color:var(--gold); border-color:var(--gold); background:color-mix(in srgb,var(--gold) 8%,transparent); }
+.daily-dao .dao-speak:disabled { opacity:.55; cursor:default; }
+.daily-dao [data-dao-audio-status] { margin:.5rem 0 0; font-size:.72rem; color:var(--muted); }
+.daily-dao [data-dao-audio-status]:empty { display:none; }
 
 /* Pháp mạch */
 h2 {
@@ -331,6 +337,10 @@ nav a.small b { font-family: var(--font-body); font-size: 0.95rem; color: var(--
       <div class="daily-dao-heading">
         <h3 data-dao-title>Đạo Đức Kinh · Chương 1 / 81</h3>
         <p class="dao-source"><a data-dao-source href="https://nhantu.net/TonGiao/DaoDucKinh/DDK01.htm" target="_blank" rel="noopener noreferrer">Hán văn · Nhân Tử</a></p>
+        <button class="dao-speak" type="button" data-dao-speak aria-pressed="false" aria-label="Nghe Hán văn bằng tiếng Trung" title="Đọc chương đang hiển thị bằng tiếng Trung">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4 6 8H3v8h3l5 4V4Z"/><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></svg><span data-dao-speak-label>Nghe Hán văn</span>
+        </button>
+        <p data-dao-audio-status role="status" aria-live="polite"></p>
       </div>
       <div class="daily-dao-reading">
         <p class="han" data-dao-han lang="zh-Hant">道 可 道 非 常 道. 名 可 名 非 常 名. 無 名 天 地 之 始; 有 名 萬 物 之 母. 故 常 無 欲 以 觀 其 妙; 常 有 欲, 以 觀 其 徼. 此 兩 者 同 出 而 異 名. 同 謂 之 玄. 玄 之 又 玄. 眾 妙 之 門.</p>
@@ -712,6 +722,6 @@ async function load() {
 }
 load();
 </script>
-<script type="module" src="/daily-dao.js?v=1"></script>
+<script type="module" src="/daily-dao.js?v=speech-2"></script>
 </body>
 </html>

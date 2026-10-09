@@ -1,3 +1,4 @@
+import {mountDaoSpeech} from "/dao-speech.js?v=1";
 // One chapter per civil day in Vietnam, shared by every visitor.
 export const START_DATE='2026-10-09';
 const DAY=86400000;
@@ -25,7 +26,8 @@ export function validateChapters(data){
 }
 export function mountDailyDao(root){
  const title=root.querySelector('[data-dao-title]'),text=root.querySelector('[data-dao-han]'),source=root.querySelector('[data-dao-source]'),status=root.querySelector('[data-dao-status]');
- let dataset=null,timer=null;
+ const speech=mountDaoSpeech(root);
+ let dataset=null,timer=null,displayed=null;
  async function read(){
   if(!dataset)dataset=fetch('/dao-duc-kinh.json?v=1').then(r=>{if(!r.ok)throw Error('Không tải được Hán văn.');return r.json();}).then(validateChapters).catch(e=>{dataset=null;throw e;});
   return dataset;
@@ -34,6 +36,7 @@ export function mountDailyDao(root){
  async function update(){
   try{
    const data=await read(),number=chapterNumber(new Date(),data.start_date),chapter=data.chapters[number-1];
+   if(displayed!==null&&displayed!==number)speech.stop();displayed=number;
    title.textContent='Đạo Đức Kinh · Chương '+number+' / 81';
    text.textContent=chapter.han;source.href=chapter.source;source.textContent='Hán văn · Nhân Tử';status.textContent='';
   }catch{status.textContent='Chưa tải được chương hôm nay. Đang hiển thị chương '+(title.textContent.match(/Chương (\d+)/)?.[1]||1)+'.';}
@@ -41,7 +44,7 @@ export function mountDailyDao(root){
  }
  const visible=()=>{if(!document.hidden)update();};
  addEventListener('pageshow',update);document.addEventListener('visibilitychange',visible);update();
- return ()=>{clearTimeout(timer);removeEventListener('pageshow',update);document.removeEventListener('visibilitychange',visible);};
+ return ()=>{speech.destroy();clearTimeout(timer);removeEventListener('pageshow',update);document.removeEventListener('visibilitychange',visible);};
 }
 if(typeof document!=='undefined'){
  const root=document.querySelector('[data-daily-dao]');if(root)mountDailyDao(root);
