@@ -17,14 +17,16 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-width:52rem;wid
 const $=s=>document.querySelector(s),B=$('#b'),id=+new URLSearchParams(location.search).get('id'),url='/api/library/file/'+id;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const msg=h=>B.innerHTML='<div class="msg">'+h+'</div>';
-const K={'.pdf':'pdf','.png':'img','.jpg':'img','.jpeg':'img','.webp':'img','.txt':'txt','.md':'txt','.pgn':'txt'};
+const K={'.pdf':'pdf','.png':'img','.jpg':'img','.jpeg':'img','.webp':'img','.txt':'txt','.md':'txt'};
 (async()=>{
  if(!id)return msg('Thiếu mã tài liệu.');
  const r=await fetch('/api/library/item/'+id).catch(()=>null);
  if(!r)return msg('Không kết nối được máy chủ.');
  if(r.status===401)return msg('Tàng Kinh Các đang khóa.<p><a class="btn" href="/library.html">Mở khóa</a></p>Mở khóa xong, tải lại trang này.');
  if(!r.ok)return msg('Không tìm thấy tài liệu (có thể đã bị xóa hoặc chuyển đi).');
- const i=await r.json(),k=K[(i.ext||'').toLowerCase()];
+ const i=await r.json();
+ if((i.ext||'').toLowerCase()==='.pgn'){location.replace('/review.html?item='+id);return;}
+ const k=K[(i.ext||'').toLowerCase()];
  document.title=i.title+' · Tàng Kinh Các';$('#t').textContent=i.title;$('#dl').href=url+'?download=true';$('#dl').hidden=false;
  setInterval(()=>fetch('/api/library/item/'+id).then(x=>{if(x.status===401)location.reload()}).catch(()=>{}),30000); // giữ két không tự khóa khi đang đọc
  if(k==='pdf'){$('#translate-book').href='/translate.html?id='+id;$('#translate-book').hidden=false;}

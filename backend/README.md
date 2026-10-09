@@ -179,3 +179,19 @@ node tests/arena-clock.test.cjs
 node tests/tournament-page.test.cjs
 node tests/test_review_math.mjs
 ```
+
+## Phân tích tài liệu PGN
+
+Tệp `.pgn` trong Tàng Kinh Các mở thẳng `/review.html?item=ID`. Đường dẫn đọc cũ `/reader.html?id=ID` cũng tự chuyển sang bàn phân tích sau khi kiểm tra tài liệu và khóa két. Định dạng PNG vẫn là ảnh, không phải kỳ phổ.
+
+Stockfish local tự phân tích khi mở PGN hoặc nhập/dán một ván mới. Bàn cờ có thanh ưu thế, phím ← →, đảo bàn, nhận diện khai cuộc, nhãn chất lượng từng nước và ba phương án. **Diễn biến ưu thế** cập nhật trong lúc tính; bấm biểu đồ hoặc kéo thanh chọn thời điểm để xem lại. Đồ thị giới hạn ±6 điểm; phần đánh giá vẫn hiển thị điểm thực hoặc chiếu hết. Thống kê chỉ tính những nước đã phân tích; gợi ý trước nước vừa đi lấy từ Stockfish ở thế trước đó. Điểm chính xác là ước tính của app, không phải công thức Chess.com.
+
+Có thể chọn mức nhanh/tiêu chuẩn/chuyên sâu, dừng rồi tiếp tục. Kết quả tự lưu trên trình duyệt; mở lại một ván đã phân tích đủ sẽ khôi phục ngay. Để tính lại hoặc đổi mức, bấm **Phân tích lại**. Không thêm package, API key hoặc dịch vụ trả phí.
+
+Nhập mỗi lần một ván, tối đa 2 MB. PGN trống, sai nước, nhiều ván hoặc tài liệu khác định dạng sẽ báo lỗi trước khi chạy engine. Hỗ trợ BOM, chú thích, nhánh phụ và PGN bắt đầu từ FEN. Khi mở tài liệu, trang giữ phiên két hoạt động lúc đang xem; két khóa hoặc file bị xóa sẽ dừng engine và ẩn bàn cờ.
+
+Kiểm tra luồng PGN, chuyển trang đọc cũ, khóa két, tự phân tích, cache, đồ thị và dừng engine:
+
+```powershell
+node tests/pgn-review.test.cjs
+```

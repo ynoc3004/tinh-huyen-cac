@@ -3,17 +3,18 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Kỳ Phổ Tham Ngộ · Tĩnh Huyền Quán</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
-<link rel="stylesheet" href="/bi-canh.css?v=review-1"><link rel="stylesheet" href="/review.css?v=annotations-6">
+<link rel="stylesheet" href="/bi-canh.css?v=review-1"><link rel="stylesheet" href="/review.css?v=pgn-review-7">
 <link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/thien-co.js"></script><script src="/tien-canh.js?v=dao-lo-1"></script></head>
 <body class="review-page"><main class="review-shell">
 <header class="site-header"><a class="site-brand" href="/"><svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"><path d="M15 2h18l13 13v18L33 46H15L2 33V15z" opacity=".5"/><circle cx="24" cy="24" r="15"/><path d="M24 9a15 15 0 0 1 0 30a7.5 7.5 0 0 1 0-15a7.5 7.5 0 0 0 0-15" fill="currentColor"/><circle cx="24" cy="16.5" r="2.3" fill="currentColor"/><circle cx="24" cy="31.5" r="2.3" fill="var(--paper)" stroke="none"/></svg><span><strong>Tĩnh Huyền Quán</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính"><a href="/">Cổng môn</a><a href="/library.html">Tàng kinh</a><a href="/bi-canh.html">Bí cảnh</a><a href="/arena.html">Đấu trường</a><a href="/history.html">Kỳ phổ</a><a href="/review.html" aria-current="page">Phân tích</a></nav></header>
-<div class="review-heading"><div><span class="review-eyebrow">ÔN KỲ PHỔ · NGỘ KỲ ĐẠO</span><h1 id="game-title">Phân tích ván cờ</h1></div><a class="back-link" href="/history.html">← Về kỳ phổ</a></div>
+<div class="review-heading"><div><span class="review-eyebrow">ÔN KỲ PHỔ · NGỘ KỲ ĐẠO</span><h1 id="game-title">Phân tích ván cờ</h1></div><a id="review-back" class="back-link" href="/history.html">← Về kỳ phổ</a></div>
 <div class="import-toolbar"><span>Tham ngộ kỳ phổ của riêng bạn</span><button type="button" id="open-import">+ Nhập PGN để phân tích</button></div>
 <dialog id="import-dialog" class="pgn-import-dialog"><form id="import-form"><div class="import-title"><h2>Nhập kỳ phổ</h2><button type="button" id="close-import" aria-label="Đóng">×</button></div><p>Tải file PGN hoặc dán nội dung kỳ phổ để phân tích bằng Stockfish.</p>
 <label for="pgn-file">Chọn file PGN</label><input id="pgn-file" type="file" accept=".pgn,.txt,application/x-chess-pgn,text/plain"><span class="import-divider">hoặc dán nội dung</span>
 <label for="pgn-text">Nội dung PGN</label><textarea id="pgn-text" rows="7" placeholder='[White "Bạn"]&#10;[Black "Đối thủ"]&#10;&#10;1. e4 e5 2. Nf3 Nc6 *' spellcheck="false"></textarea>
 <p id="import-status" role="status">Mỗi lần nhập một ván cờ · Tối đa 2 MB.</p><div class="review-actions"><button type="submit" id="confirm-import">Mở bàn phân tích</button><button type="button" id="cancel-import">Hủy</button></div></form></dialog>
 <p id="loading" class="game-meta" role="status">Đang mở kỳ phổ…</p>
+<p id="library-unlock" hidden><a class="back-link" href="/library.html">← Mở khóa Tàng Kinh Các rồi mở lại tệp PGN</a></p>
 <div id="workspace" hidden><div class="review-layout">
 <section class="board-column" aria-label="Bàn phân tích">
 <div class="opening-banner"><span id="opening-code" class="eco-badge">—</span><div><strong id="opening-name">Đang nhận diện khai cuộc…</strong><small id="opening-source"></small></div></div>
@@ -22,10 +23,19 @@
 <div class="player-strip"><span id="bottom-dot" class="player-dot white" aria-hidden="true"></span><strong id="bottom-player">Trắng</strong><span id="bottom-color" class="player-color">Quân trắng</span></div>
 <div class="review-controls"><div class="step-controls"><button id="first" title="Về đầu" aria-label="Về đầu">|←</button><button id="prev" title="Nước trước · phím trái" aria-label="Nước trước">←</button><span id="position" aria-live="polite"></span><button id="next" title="Nước sau · phím phải" aria-label="Nước sau">→</button><button id="last" title="Về cuối" aria-label="Về cuối">→|</button></div><button id="flip">⇅ Đảo bàn</button></div>
 <p class="board-hint">Dùng phím ← → hoặc chọn nước đi để xem lại kỳ phổ.</p>
+<section class="evaluation-chart" aria-label="Biểu đồ ưu thế toàn ván">
+<div class="moves-heading"><h3>Diễn biến ưu thế</h3><span>Điểm theo phía Trắng</span></div>
+<div class="chart-scale"><span>Trắng +6</span><span>Cân bằng</span><span>Đen −6</span></div>
+<svg id="evaluation-chart" viewBox="0 0 1000 180" preserveAspectRatio="none" role="img" aria-label="Biểu đồ đánh giá Stockfish, chưa phân tích"></svg>
+<label class="chart-position" for="chart-ply">Chọn thời điểm <span id="chart-label">Bắt đầu ván</span></label>
+<input type="range" id="chart-ply" min="0" max="0" value="0" step="1" aria-label="Chọn nước đi trên biểu đồ">
+<p id="chart-status" class="board-hint">Biểu đồ cập nhật trong lúc phân tích. Bấm vào biểu đồ hoặc kéo thanh để xem nước đi.</p>
+</section>
 </section>
 <aside class="review-panel" aria-label="Kết quả phân tích">
 <div class="panel-heading"><div><span class="review-eyebrow">STOCKFISH · LOCAL</span><h2>Tham ngộ kỳ cuộc</h2></div><span class="engine-badge">Phân tích</span></div>
 <div class="accuracy-grid"><div><span><i class="player-dot white" aria-hidden="true"></i> Trắng</span><strong id="accuracy-white">—</strong><small>Độ chính xác</small></div><div><span><i class="player-dot black" aria-hidden="true"></i> Đen</span><strong id="accuracy-black">—</strong><small>Độ chính xác</small></div></div>
+<div id="review-counts" class="review-counts" aria-label="Thống kê chất lượng nước đi"></div>
 <details class="accuracy-method"><summary>Điểm ước tính được tính thế nào?</summary><p>Trung bình 100 × exp(−mức giảm đánh giá / 200), tính bằng centipawn theo bên đi. Đây là điểm ước tính của ứng dụng, không phải điểm Chess.com. Kết quả phụ thuộc thời gian tính; nước hy sinh và thế chiếu hết cần xem thêm phương án.</p></details>
 <div class="analysis-settings"><label for="quality">Mức phân tích</label><select id="quality"><option value="250">Nhanh · 0,25 giây / thế</option><option value="750" selected>Tiêu chuẩn · 0,75 giây / thế</option><option value="2000">Chuyên sâu · 2 giây / thế</option></select></div>
 <div class="review-actions engine-actions"><button id="analyze">▶ Phân tích toàn ván</button><button id="stop" disabled>■ Dừng</button></div>
@@ -35,4 +45,4 @@
 <section class="moves-section" aria-label="Nước đi"><div class="moves-heading"><h3>Kỳ phổ</h3><span>Chọn nước để xem thế cờ</span></div><div class="move-table-header"><span>#</span><span>Trắng</span><span>Đen</span></div><div id="move-list" class="review-moves"></div><div class="move-legend"><span><i class="good-dot"></i> Chuẩn xác / tốt</span><span><i class="mistake-dot"></i> Chưa chính xác</span><span><i class="blunder-dot"></i> Sai lầm</span></div></section>
 <div class="review-actions archive-actions"><button id="save">↓ Lưu vào Tàng Kinh Các</button><button id="download" title="Tải kỳ phổ về máy">Tải PGN</button></div>
 </aside></div></div>
-</main><script type="module" src="/review.js?v=annotations-6"></script></body></html>
+</main><script type="module" src="/review.js?v=pgn-review-7"></script></body></html>

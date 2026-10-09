@@ -94,3 +94,16 @@ body.review-page{margin:0;background:radial-gradient(ellipse at 0 0,#cfded480,tr
 .review-panel .position-insight{margin:2px 0 12px;padding:12px;background:var(--panel)}.review-panel .evaluation-block{min-width:76px}.review-panel .evaluation{font-size:20px}
 .review-panel .engine-variations{margin:0 0 15px;padding:10px;background:var(--panel);box-shadow:none}.review-panel .pv-line summary{font-size:11px}.review-panel .moves-heading{gap:8px}
 @media(max-width:700px){.board-move-badge{width:24px;height:24px;font-size:13px}}
+
+/* PGN review timeline: both mouse/touch selection and a keyboard range control. */
+.evaluation-chart{position:relative;margin:16px 0 24px;padding:14px 16px 10px 62px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.evaluation-chart .moves-heading{flex-wrap:wrap;gap:4px;margin:0 0 12px}.evaluation-chart .moves-heading span{font-size:10px}
+#evaluation-chart{display:block;width:100%;height:140px;cursor:crosshair;overflow:visible}
+.chart-white{fill:#f6f4e8}.chart-black{fill:#d0dcd2}.chart-zero{stroke:#728573;stroke-dasharray:5 5;stroke-width:1}.chart-line{fill:none;stroke:var(--jade);stroke-width:2.5;vector-effect:non-scaling-stroke;stroke-linejoin:round}.chart-cursor{stroke:var(--gold);stroke-width:1.5;vector-effect:non-scaling-stroke}.chart-dot{fill:var(--seal);stroke:var(--paper);stroke-width:2;vector-effect:non-scaling-stroke}
+.chart-scale{position:absolute;top:59px;left:10px;bottom:92px;display:flex;flex-direction:column;justify-content:space-between;font-size:9px;color:var(--muted)}
+.chart-position{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--muted);margin:7px 0 0}.chart-position span{color:var(--ink)}
+#chart-ply{display:block;width:100%;accent-color:var(--jade);cursor:pointer;margin:7px 0}
+.evaluation-chart .board-hint{font-size:10px;text-align:left;margin:5px 0}
+.review-counts{margin:12px 0}.review-counts table{width:100%;border-collapse:collapse;font-size:11px}.review-counts caption{text-align:left;color:var(--muted);font-size:10px;margin-bottom:5px}.review-counts th{font-weight:400;text-align:left}.review-counts td,.review-counts thead th:not(:first-child){text-align:center}.review-counts td,.review-counts th{padding:4px;border-bottom:1px solid var(--line)}
+#best-line{color:var(--jade);font-size:11px;overflow-wrap:anywhere}
+@media(max-width:600px){.evaluation-chart{padding-left:52px}.chart-scale{left:6px;font-size:8px}.chart-position{font-size:10px}}

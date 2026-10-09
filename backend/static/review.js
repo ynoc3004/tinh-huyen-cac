@@ -2,11 +2,12 @@
 import {Chess} from "/vendor/chess.js";
 import {PIECE_DEFS} from "/vendor/pieces.js?v=paint-2";
 import {savePgnToLibrary} from "/save-pgn.js?v=1";
+import {parseReviewPgn,evaluationPoints,MAX_PGN_BYTES} from "/review-pgn.js?v=1";
 import {moveReview,meanAccuracy} from "/review-math.js";
 const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>"&#"+c.charCodeAt(0)+";");
 let pgn="",moves=[],fens=[],index=0,flip=false,scores=[],reviews=[],worker=null,run=0,busy=false,players={w:"Trắng",b:"Đen"};
 let openingByPly=[],openingHeader=null;
-let cacheKey="",cachedQuality=0,cacheFailed=false;
+let cacheKey="",cachedQuality=0,cacheFailed=false,engineCancel=null,vaultTimer=null;
 
 function formatScore(s){return s.mate!==null?(s.cp<0?"−":"")+"M"+Math.abs(s.mate):(s.cp>=0?"+":"")+(s.cp/100).toFixed(2);}
 function sanLine(fen,pv){
@@ -85,7 +86,8 @@ function draw(){
  let text=index?moves[index-1].san:"Khai cuộc";
  if(index&&reviews[index-1])text+=" · "+reviews[index-1].label+" · Mất "+(reviews[index-1].loss/100).toFixed(2)+" điểm";
  $("move-comment").textContent=text;
- $("best-line").textContent="";drawVariations(score);
+ const previous=scores[index-1];
+ $("best-line").textContent=index&&previous?.pv?.length?"Gợi ý trước nước vừa đi: "+sanLine(fens[index-1],previous.pv.slice(0,6)):"";drawVariations(score);drawChart();
  let rows="",group=null;
  for(let i=0;i<moves.length;i++){
   const m=moves[i],number=new Chess(fens[i]).fen().split(" ")[5],r=reviews[i],quality=r?(r.loss>200?"blunder":r.loss>100?"mistake":r.loss>50?"inaccurate":"good"):"";
@@ -96,22 +98,65 @@ function draw(){
  $("move-list").innerHTML=rows;
 
 }
-function summary(){for(const color of ["w","b"]){const v=meanAccuracy(reviews,color);$(color==="w"?"accuracy-white":"accuracy-black").textContent=v===null?"—":v.toFixed(1)+"%";}}
+function drawChart(){
+ const points=evaluationPoints(scores,moves.length),line=points.map(p=>p.x+","+p.y).join(" ");
+ const x=10+980*index/Math.max(1,moves.length),point=points[index];
+ $("evaluation-chart").innerHTML='<path class="chart-white" d="M10 15H990V90H10Z"/><path class="chart-black" d="M10 90H990V165H10Z"/><path class="chart-zero" d="M10 90H990"/>'+
+  (line?'<polyline class="chart-line" points="'+line+'"/>':"")+'<path class="chart-cursor" d="M'+x+' 15V165"/>'+(point?'<circle class="chart-dot" cx="'+point.x+'" cy="'+point.y+'" r="5"/>':"");
+ const label=index?new Chess(fens[index-1]).fen().split(" ")[5]+(moves[index-1].color==="w"?". ":"… ")+moves[index-1].san:"Bắt đầu ván";
+ $("chart-ply").max=moves.length;$("chart-ply").value=index;$("chart-ply").setAttribute("aria-valuetext",label);
+ $("chart-label").textContent=label;
+ $("evaluation-chart").setAttribute("aria-label","Ưu thế Stockfish: "+Math.max(0,scores.length-1)+" / "+moves.length+" nước đã phân tích. Đang xem "+label+(scores[index]?", "+formatScore(scores[index]):", chưa phân tích"));
+ $("chart-status").textContent=scores.length?"Đã phân tích "+Math.max(0,scores.length-1)+" / "+moves.length+" nước · Bấm biểu đồ để xem lại · Giới hạn hiển thị ±6 điểm.":"Biểu đồ cập nhật trong lúc phân tích. Bấm vào biểu đồ hoặc kéo thanh để xem nước đi.";
+}
+function summary(){
+ for(const color of ["w","b"]){const v=meanAccuracy(reviews,color);$(color==="w"?"accuracy-white":"accuracy-black").textContent=v===null?"—":v.toFixed(1)+"%";}
+ const buckets=[{label:"Chuẩn xác / tốt",min:0,max:50,kind:"good"},{label:"Chưa chính xác",min:50,max:100,kind:"inaccurate"},{label:"Sai lầm",min:100,max:200,kind:"mistake"},{label:"Sai lầm lớn",min:200,max:Infinity,kind:"blunder"}];
+ $("review-counts").innerHTML='<table><caption>Chất lượng nước đi đã phân tích</caption><thead><tr><th scope="col">Nước đi</th><th scope="col">Trắng</th><th scope="col">Đen</th></tr></thead><tbody>'+buckets.map(b=>'<tr><th scope="row" class="'+b.kind+'">'+b.label+'</th>'+["w","b"].map(color=>'<td>'+reviews.filter(r=>r.color===color&&(b.min===0?r.loss>=0:r.loss>b.min)&&r.loss<=b.max).length+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
+}
+function watchVault(item){
+ clearInterval(vaultTimer);
+ vaultTimer=setInterval(async()=>{
+  if(document.hidden)return;
+  try{
+   const r=await fetch("/api/library/item/"+encodeURIComponent(item),{cache:"no-store"});
+   if(r.status===401||r.status===404){
+    clearInterval(vaultTimer);vaultTimer=null;$("stop").onclick();
+    $("workspace").hidden=true;$("library-unlock").hidden=r.status!==401;
+    $("loading").textContent=r.status===401?"Tàng Kinh Các đang khóa. Mở khóa rồi mở lại tệp PGN.":"Tài liệu đã bị xóa. Hãy chọn một kỳ phổ khác.";
+    pgn="";moves=[];fens=[];scores=[];reviews=[];$("review-board").innerHTML="";$("move-list").innerHTML="";
+   }
+  }catch{/* A temporary network outage does not discard the current game. */}
+ },30000);
+}
 async function load(){
  try{
   const q=new URLSearchParams(location.search);let r;
-  if(q.has("item"))r=await fetch("/api/library/file/"+encodeURIComponent(q.get("item")));
+  if(q.has("item")){
+   const item=q.get("item");
+   if(!/^[1-9]\d*$/.test(item))throw Error("Mã tài liệu không hợp lệ.");
+   $("review-back").href="/library.html";$("review-back").textContent="← Về Tàng Kinh Các";
+   const metadata=await fetch("/api/library/item/"+item,{cache:"no-store"});
+   if(metadata.status===401){$("library-unlock").hidden=false;throw Error("Tàng Kinh Các đang khóa. Mở khóa rồi mở lại tệp PGN.");}
+   if(!metadata.ok)throw Error("Không tìm thấy tài liệu.");
+   const info=await metadata.json();
+   if((info.ext||"").toLowerCase()!==".pgn")throw Error("Tài liệu này không phải PGN. Hãy mở từ Tàng Kinh Các.");
+   if(info.size>MAX_PGN_BYTES)throw Error("PGN lớn hơn 2 MB. Hãy xuất riêng một ván.");
+   r=await fetch("/api/library/file/"+item,{cache:"no-store"});
+  }
   else if(q.has("source")&&q.has("game"))r=await fetch("/api/game-archive/"+encodeURIComponent(q.get("source"))+"/"+encodeURIComponent(q.get("game")));
   else {$("loading").textContent="Nhập file PGN hoặc dán kỳ phổ để bắt đầu phân tích.";$("import-dialog").showModal();return;}
+  if(r.status===401)$("library-unlock").hidden=false;
   if(!r.ok)throw Error(r.status===401?"Tàng Kinh Các đang khóa. Mở khóa rồi tải lại trang.":"Không đọc được kỳ phổ.");
   if(q.has("item"))pgn=await r.text();else {const g=await r.json();pgn=g.pgn;flip=g.user_color==="b";}
   if(!pgn?.trim())throw Error("Ván này chưa có PGN.");
   await showGame();
+  if(q.has("item")){watchVault(q.get("item"));autoAnalyze();}
  }catch(e){$("loading").textContent=e.message;}
 }
 
 async function showGame(parsed=null){
-  const c=parsed||new Chess();if(!parsed)c.loadPgn(pgn);moves=c.history({verbose:true});const headers=c.getHeaders();
+  const validated=parsed?{board:parsed,pgn}:parseReviewPgn(pgn);pgn=validated.pgn;const c=validated.board;moves=c.history({verbose:true});const headers=c.getHeaders();
   scores=[];reviews=[];openingByPly=[];openingHeader=null;cacheKey="";cachedQuality=0;cacheFailed=false;index=0;
   $("analyze").textContent="▶ Phân tích toàn ván";$("analysis-progress").value=0;$("analysis-status").textContent="Sẵn sàng · Stockfish chạy trên máy của bạn.";summary();
   players={w:headers.White||"Trắng",b:headers.Black||"Đen"};
@@ -124,23 +169,23 @@ $("open-import").onclick=()=>$("import-dialog").showModal();
 $("close-import").onclick=$("cancel-import").onclick=()=>$("import-dialog").close();
 $("pgn-file").onchange=()=>{$("import-status").textContent=$("pgn-file").files[0]?"Đã chọn "+$("pgn-file").files[0].name:"Mỗi lần nhập một ván cờ · Tối đa 2 MB.";$("pgn-text").value="";};
 $("pgn-text").oninput=()=>{if($("pgn-text").value.trim())$("pgn-file").value="";};
+function autoAnalyze(){
+ if(scores.length===fens.length&&scores.every(s=>Array.isArray(s.lines)))return;
+ $("analyze").click();
+}
 $("import-form").onsubmit=async e=>{
  e.preventDefault();$("confirm-import").disabled=true;
  try{
   const file=$("pgn-file").files[0];
   if(file&&file.size>2*1024*1024)throw Error("File lớn hơn 2 MB. Hãy xuất riêng một ván.");
-  const raw=(file?await file.text():$("pgn-text").value).replace(/^\uFEFF/,"").trim();
-  if(!raw)throw Error("Hãy chọn file hoặc dán nội dung PGN.");
-  if(new TextEncoder().encode(raw).length>2*1024*1024)throw Error("PGN lớn hơn 2 MB.");
-  if((raw.match(/^\[Event\s/gm)||[]).length>1)throw Error("File chứa nhiều ván. Hãy xuất riêng ván muốn phân tích.");
-  const parsed=new Chess();
-  try{parsed.loadPgn(raw);}catch{throw Error("PGN không hợp lệ hoặc có nước đi sai. Hãy kiểm tra nội dung kỳ phổ.");}
-  if(!parsed.history().length)throw Error("Kỳ phổ chưa có nước đi để phân tích.");
+  const validated=parseReviewPgn(file?await file.text():$("pgn-text").value);
+  const raw=validated.pgn,parsed=validated.board;
   if(busy)$("stop").onclick();
+  clearInterval(vaultTimer);vaultTimer=null;$("library-unlock").hidden=true;
   pgn=raw;flip=false;
   await showGame(parsed);
   history.replaceState(null,"","/review.html");
-  $("import-dialog").close();$("import-status").textContent="Đã nhập kỳ phổ.";
+  $("import-dialog").close();$("import-status").textContent="Đã nhập kỳ phổ.";autoAnalyze();
  }catch(err){$("import-status").textContent=err.message;}
  finally{$("confirm-import").disabled=false;}
 };
@@ -149,14 +194,16 @@ function engineStart(){
  return new Promise((resolve,reject)=>{
   worker=new Worker("/vendor/stockfish/stockfish-19-lite-single.js");
   const timer=setTimeout(()=>reject(Error("Stockfish khởi động quá lâu.")),30000);
+  engineCancel=()=>{clearTimeout(timer);reject(Error("Đã dừng phân tích."));};
   worker.onerror=()=>{clearTimeout(timer);reject(Error("Không chạy được Stockfish."));};
-  worker.onmessage=e=>{const s=String(e.data);if(s==="uciok"){worker.postMessage("setoption name Threads value 1");worker.postMessage("setoption name Hash value 32");worker.postMessage("setoption name MultiPV value 3");worker.postMessage("isready");}else if(s==="readyok"){clearTimeout(timer);resolve();}};
+  worker.onmessage=e=>{const s=String(e.data);if(s==="uciok"){worker.postMessage("setoption name Threads value 1");worker.postMessage("setoption name Hash value 32");worker.postMessage("setoption name MultiPV value 3");worker.postMessage("isready");}else if(s==="readyok"){clearTimeout(timer);engineCancel=null;resolve();}};
   worker.postMessage("uci");
  });
 }
 function evaluate(fen,ms){
  return new Promise((resolve,reject)=>{
   let score=null;const lines=new Map();let latestDepth=0,completeLines=[];const timer=setTimeout(()=>reject(Error("Stockfish không trả kết quả.")),15000);
+  engineCancel=()=>{clearTimeout(timer);reject(Error("Đã dừng phân tích."));};
   worker.onerror=()=>{clearTimeout(timer);reject(Error("Stockfish gặp lỗi."));};
   worker.onmessage=e=>{
    const s=String(e.data);
@@ -167,7 +214,7 @@ function evaluate(fen,ms){
     const candidate={cp:(m[1]==="cp"?n:(n>=0?10000:-10000))*sign,mate:m[1]==="mate"?n:null,pv:pv?pv[1].split(" "):[],depth};
     if(rank>=1&&rank<=3){if(rank===1&&depth>latestDepth){lines.clear();latestDepth=depth;}if(depth===latestDepth)lines.set(rank,candidate);if(rank===1)score={...candidate};if(lines.size===Math.min(3,new Chess(fen).moves().length))completeLines=[...lines.entries()].sort((a,b)=>a[0]-b[0]).map(x=>x[1]);}
    }
-   if(s.startsWith("bestmove")){clearTimeout(timer);
+   if(s.startsWith("bestmove")){clearTimeout(timer);engineCancel=null;
     const c=new Chess(fen);
     if(c.isCheckmate())score={cp:c.turn()==="w"?-10000:10000,mate:0,pv:[]};
     else if(c.isDraw())score={cp:0,mate:null,pv:[]};
@@ -196,14 +243,17 @@ $("analyze").onclick=async()=>{
   }
   $("analysis-status").textContent="Đã phân tích toàn bộ ván. "+savedStatus();
  }catch(e){if(token===run)$("analysis-status").textContent=e.message;}
- finally{if(token===run){busy=false;$("analyze").disabled=false;$("stop").disabled=true;worker?.terminate();worker=null;$("quality").disabled=false;$("analyze").textContent=analyzeLabel();}}
+ finally{if(token===run){busy=false;$("analyze").disabled=false;$("stop").disabled=true;worker?.terminate();worker=null;engineCancel=null;$("quality").disabled=false;$("analyze").textContent=analyzeLabel();}}
 };
-$("stop").onclick=()=>{run++;worker?.terminate();worker=null;busy=false;$("analyze").disabled=false;$("stop").disabled=true;$("quality").disabled=false;$("analyze").textContent="▶ Tiếp tục phân tích";$("analysis-status").textContent="Đã dừng. "+savedStatus();};
+$("stop").onclick=()=>{run++;engineCancel?.();engineCancel=null;worker?.terminate();worker=null;busy=false;$("analyze").disabled=false;$("stop").disabled=true;$("quality").disabled=false;$("analyze").textContent="▶ Tiếp tục phân tích";$("analysis-status").textContent="Đã dừng. "+savedStatus();};
 $("prev").onclick=()=>{index=Math.max(0,index-1);draw();};$("next").onclick=()=>{index=Math.min(moves.length,index+1);draw();};
 $("first").onclick=()=>{index=0;draw();};$("last").onclick=()=>{index=moves.length;draw();};
 $("flip").onclick=()=>{flip=!flip;draw();};
 $("move-list").onclick=e=>{const b=e.target.closest("[data-index]");if(b){index=Number(b.dataset.index);draw();$("move-list").querySelector('[aria-current="step"]')?.scrollIntoView({block:"nearest"});}};
+$("chart-ply").oninput=()=>{index=Number($("chart-ply").value);draw();};
+$("evaluation-chart").onclick=e=>{if(!fens.length)return;const rect=$("evaluation-chart").getBoundingClientRect();index=Math.max(0,Math.min(moves.length,Math.round(((e.clientX-rect.left)/rect.width*1000-10)/980*moves.length)));draw();};
+addEventListener("pagehide",()=>{clearInterval(vaultTimer);$("stop").onclick();});
 $("save").onclick=()=>savePgnToLibrary(pgn,$("game-title").textContent);
 $("download").onclick=()=>{const u=URL.createObjectURL(new Blob([pgn],{type:"application/x-chess-pgn"})),a=document.createElement("a");a.href=u;a.download="ky-pho.pgn";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
-addEventListener("keydown",e=>{if(!fens.length||["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowLeft"){e.preventDefault();$("prev").click();}if(e.key==="ArrowRight"){e.preventDefault();$("next").click();}});
+addEventListener("keydown",e=>{if($("import-dialog").open||!fens.length||["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowLeft"){e.preventDefault();$("prev").click();}if(e.key==="ArrowRight"){e.preventDefault();$("next").click();}});
 load();
