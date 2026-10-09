@@ -188,9 +188,17 @@ node tests/test_review_math.mjs
 
 Tệp `.pgn` trong Tàng Kinh Các mở thẳng `/review.html?item=ID`. Đường dẫn đọc cũ `/reader.html?id=ID` cũng tự chuyển sang bàn phân tích sau khi kiểm tra tài liệu và khóa két. Định dạng PNG vẫn là ảnh, không phải kỳ phổ.
 
-Stockfish local tự phân tích khi mở PGN hoặc nhập/dán một ván mới. Bàn cờ có thanh ưu thế, phím ← →, đảo bàn, nhận diện khai cuộc, nhãn chất lượng từng nước và ba phương án. **Diễn biến ưu thế** cập nhật trong lúc tính; bấm biểu đồ hoặc kéo thanh chọn thời điểm để xem lại. Đồ thị giới hạn ±6 điểm; phần đánh giá vẫn hiển thị điểm thực hoặc chiếu hết. Thống kê chỉ tính những nước đã phân tích; gợi ý trước nước vừa đi lấy từ Stockfish ở thế trước đó. Điểm chính xác là ước tính của app, không phải công thức Chess.com.
+Stockfish local tự phân tích khi mở PGN hoặc nhập/dán một ván mới. Bàn cờ có thanh ưu thế, phím ← →, đảo bàn, nhận diện khai cuộc, nhãn chất lượng từng nước và ba phương án. **Diễn biến ưu thế** cập nhật trong lúc tính; bấm biểu đồ hoặc kéo thanh chọn thời điểm để xem lại. Đồ thị giới hạn ±6 điểm; phần đánh giá vẫn hiển thị điểm thực hoặc chiếu hết. Thống kê chỉ tính những nước đã phân tích; gợi ý trước nước vừa đi lấy từ Stockfish ở thế trước đó. Độ chính xác dùng mô hình công khai của Lichess, vẫn là ước tính và có thể khác Chess.com hoặc Lichess do engine/cấu hình phân tích.
 
-Có thể chọn mức nhanh/tiêu chuẩn/chuyên sâu, dừng rồi tiếp tục. Kết quả tự lưu trên trình duyệt; mở lại một ván đã phân tích đủ sẽ khôi phục ngay. Để tính lại hoặc đổi mức, bấm **Phân tích lại**. Không thêm package, API key hoặc dịch vụ trả phí.
+Có thể chọn mức nhanh/tiêu chuẩn/chuyên sâu với mục tiêu độ sâu 12/16/20, dừng rồi tiếp tục. Mỗi lượt tìm giới hạn 0,75/2/5 giây; nước đáng ngờ được tìm lại thêm 4 tầng (hoặc hơn nếu engine đã vượt mục tiêu), với giới hạn thời gian gấp đôi. Nếu chưa đạt độ sâu hoặc hai kết quả lệch độ sâu, trang ghi rõ cần tính sâu hơn. Phân tích chuyên sâu có thể mất vài phút.
+
+Nước đã đi được tìm bằng `searchmoves` từ cùng thế gốc, theo độ sâu thực đạt của nước tốt nhất. Nếu đó chính là nước tốt nhất, dùng cùng đánh giá để tránh tự trừ điểm vì nhiễu tìm kiếm. UCI giữ FEN ban đầu và toàn bộ lịch sử nước đi để engine nhận biết lặp lại thế cờ. Nước mất ít nhất 5 điểm phần trăm cơ hội thắng, mất ít nhất 200 centipawn, đổi trạng thái chiếu hết hoặc có đánh giá cải thiện bất thường được kiểm tra sâu hơn trước khi lưu.
+
+Độ chính xác mỗi nước chuyển centipawn thành cơ hội thắng theo [mô hình Lichess](https://lichess.org/page/accuracy), rồi áp dụng đường cong độ chính xác (kèm mức bù bất định 1 điểm của mô hình hiện hành). Điểm toàn ván kết hợp trung bình có trọng số theo biến động của cửa sổ 2–8 thế cờ và trung bình điều hòa. Cơ hội thắng là chỉ số mô hình, không phải xác suất thắng cá nhân. Nhãn nước đi dùng mức giảm 2/5/10 điểm phần trăm cho chưa chính xác/sai lầm/sai lầm lớn. Đây là cách áp dụng của app, không hứa trùng điểm trên các dịch vụ khác.
+
+**ACPL** là trung bình centipawn mất so với nước tốt nhất của cùng bên; thấp hơn là tốt hơn (100 centipawn = 1 điểm). Chiếu hết dùng kiểu dữ liệu riêng và bên thắng rõ ràng, không quy đổi thành ±10000 centipawn; các so sánh có mate không được tính vào ACPL. Chiếu hết, pat và thiếu vật chất được xử lý riêng; tình huống lặp thế được chuyển cho engine với lịch sử đầy đủ.
+
+Kết quả tự lưu trên trình duyệt; mở lại một ván đã phân tích đủ sẽ khôi phục ngay. Cache v2 lưu cả đánh giá nước tốt nhất và nước đã đi; kết quả v1 theo công thức cũ không được dùng lại. Mỗi cặp chỉ lưu sau khi hoàn tất kiểm tra sâu, nên dừng giữa chừng không biến kết quả chưa xác nhận thành kết quả đầy đủ. Để tính lại hoặc đổi mức, bấm **Phân tích lại**. Không thêm package, API key hoặc dịch vụ trả phí.
 
 Nhập mỗi lần một ván, tối đa 2 MB. PGN trống, sai nước, nhiều ván hoặc tài liệu khác định dạng sẽ báo lỗi trước khi chạy engine. Hỗ trợ BOM, chú thích, nhánh phụ và PGN bắt đầu từ FEN. Khi mở tài liệu, trang giữ phiên két hoạt động lúc đang xem; két khóa hoặc file bị xóa sẽ dừng engine và ẩn bàn cờ.
 
@@ -198,4 +206,11 @@ Kiểm tra luồng PGN, chuyển trang đọc cũ, khóa két, tự phân tích,
 
 ```powershell
 node tests/pgn-review.test.cjs
+node tests/test_review_math.mjs
+```
+
+Smoke test với Stockfish thực được đóng gói (Bash):
+
+```bash
+REVIEW_REAL_ENGINE=1 node tests/pgn-review.test.cjs
 ```

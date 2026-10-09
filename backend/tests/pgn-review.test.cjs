@@ -10,7 +10,7 @@ class Element{
 (async()=>{
  const chessUrl=moduleUrl(read('vendor/chess.js')),{Chess}=await import(chessUrl);
  const {parseReviewPgn,evaluationPoints,MAX_PGN_BYTES}=await import(moduleUrl(read('review-pgn.js').replace('"/vendor/chess.js"',JSON.stringify(chessUrl))));
- const {moveReview,meanAccuracy}=await import(moduleUrl(read('review-math.js')));
+ const math=await import(moduleUrl(read('review-math.js')));
  const pgn='[Event "Test"]\n[White "Thanh"]\n[Black "Opponent"]\n[Result "*"]\n\n1. e4 e5 2. Nf3 Nc6 *';
  assert.equal(parseReviewPgn('\uFEFF'+pgn).board.history().length,4);
  assert.equal(parseReviewPgn('1. e4 {comment} e5 (1... c5) 2. Nf3 $1 Nc6 *').board.history().length,4);
@@ -21,27 +21,54 @@ class Element{
  assert.throws(()=>parseReviewPgn('x'.repeat(MAX_PGN_BYTES+1)),/2 MB/);
  const points=evaluationPoints([{cp:0},{cp:20000},{cp:-20000}],4);
  assert.deepEqual(points.map(p=>p.y),[90,15,165]);assert.equal(points[2].x,500);
- async function review({search='?item=3',status=200,ext='.PGN',raw=pgn,stored=new Map()}={}){
+ async function review({search='?item=3',status=200,ext='.PGN',raw=pgn,stored=new Map(),scoreFor=null,depthLimit=null,onGo=null}={}){
   const elements={};for(const [,id] of read('review.html').matchAll(/id="([^"]+)"/g))elements[id]=new Element();
   elements.quality.value='250';elements['workspace'].hidden=true;elements['library-unlock'].hidden=true;
-  const calls=[],workers=[];let poll,vaultStatus=status;
+  const calls=[],workers=[],commands=[];let poll,vaultStatus=status;
   class Worker{
    constructor(){workers.push(this);this.terminated=false;}
    terminate(){this.terminated=true;}
    emit(data){queueMicrotask(()=>{if(!this.terminated)this.onmessage?.({data});});}
    postMessage(command){
+    commands.push(command);
     if(command==='uci')this.emit('uciok');else if(command==='isready')this.emit('readyok');
-    else if(command.startsWith('position fen '))this.fen=command.slice(13);
+    else if(command.startsWith('setoption name MultiPV '))this.multi=Number(command.split(' ').at(-1));
+    else if(command.startsWith('position fen ')){
+     const [fen,history]=command.slice(13).split(' moves '),c=new Chess(fen);
+     for(const uci of (history?.split(' ')||[]))c.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]});
+     this.fen=c.fen();
+    }
     else if(command.startsWith('go ')){
-     const c=new Chess(this.fen),legal=c.moves({verbose:true}).slice(0,3);
-     legal.forEach((m,i)=>this.emit('info depth 10 multipv '+(i+1)+' score cp '+(35-i*10)+' pv '+m.from+m.to+(m.promotion||'')));
+     const c=new Chess(this.fen),all=c.moves({verbose:true}),forced=command.match(/searchmoves (\S+)/)?.[1];
+     const requested=Number(command.match(/depth (\d+)/)?.[1]);
+     if(onGo?.({command,forced,requested,worker:this,stop:()=>elements.stop.click()})===false)return;
+     const legal=forced?all.filter(m=>m.from+m.to+(m.promotion||'')===forced):all.slice(0,this.multi||3);
+     legal.forEach((m,i)=>{
+      const score=scoreFor?.({fen:this.fen,move:m,forced,depth:requested,rank:i+1})||'cp '+(35-i*10);
+      this.emit('info depth '+(depthLimit||requested)+' multipv '+(i+1)+' score '+score+' pv '+m.from+m.to+(m.promotion||''));
+     });
      this.emit('bestmove '+(legal[0]?legal[0].from+legal[0].to:'(none)'));
     }
    }
   }
-  const ctx={Chess,parseReviewPgn,evaluationPoints,MAX_PGN_BYTES,moveReview,meanAccuracy,PIECE_DEFS:'',savePgnToLibrary:()=>{},
+  // Optional smoke test against the exact bundled engine, without browser downloads.
+  class EngineProcess{
+   constructor(){
+    workers.push(this);this.terminated=false;this.buffer='';
+    this.child=require('node:child_process').spawn(process.execPath,[path.join(root,'vendor/stockfish/stockfish-19-lite-single.js')]);
+    this.child.stdout.on('data',chunk=>{
+     this.buffer+=chunk.toString();const lines=this.buffer.split('\n');this.buffer=lines.pop();
+     for(const line of lines)if(!this.terminated)this.onmessage?.({data:line.trim()});
+    });
+    this.child.on('error',()=>this.onerror?.());
+    this.child.on('exit',()=>{if(!this.terminated)this.onerror?.();});
+   }
+   postMessage(command){commands.push(command);if(!this.terminated)this.child.stdin.write(command+'\n');}
+   terminate(){this.terminated=true;this.child.kill();}
+  }
+  const ctx={Chess,parseReviewPgn,evaluationPoints,MAX_PGN_BYTES,...math,PIECE_DEFS:'',savePgnToLibrary:()=>{},
    document:{hidden:false,body:{insertAdjacentHTML(){}},getElementById:id=>{assert.ok(elements[id],id);return elements[id]},createElement:()=>new Element()},
-   location:{search},history:{replaceState(){}},URLSearchParams,TextEncoder,crypto:webcrypto,URL,Blob,Worker,
+   location:{search},history:{replaceState(){}},URLSearchParams,TextEncoder,crypto:webcrypto,URL,Blob,Worker:process.env.REVIEW_REAL_ENGINE?EngineProcess:Worker,
    localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},setTimeout,clearTimeout,
    setInterval:fn=>{poll=fn;return 1},clearInterval(){},addEventListener(){},
    fetch:async url=>{calls.push(url);if(url.startsWith('/api/library/item/'))return {ok:vaultStatus===200,status:vaultStatus,json:async()=>({ext,size:raw.length})};
@@ -51,7 +78,7 @@ class Element{
   };
   vm.createContext(ctx);vm.runInContext(read('review.js').replace(/^import .*;\n/gm,'').replace(/load\(\);\s*$/,'globalThis.boot=load();'),ctx);
   await ctx.boot;await elements.analyze.pending;
-  return {elements,calls,workers,stored,ctx,poll:()=>poll?.(),setStatus:value=>vaultStatus=value};
+  return {elements,calls,workers,commands,stored,ctx,poll:()=>poll?.(),setStatus:value=>vaultStatus=value};
  }
  const app=await review();assert.equal(app.elements.workspace.hidden,false);assert.equal(app.workers.length,1);
  assert.match(app.elements['analysis-status'].textContent,/toàn bộ/);assert.equal(app.elements['review-back'].href,'/library.html');
@@ -64,6 +91,48 @@ class Element{
  assert.match(mateApp.elements.evaluation.textContent,/Chiếu hết 0 · Đen/);
  assert.match(mateApp.elements['evaluation-chart'].innerHTML,/polyline/);
  assert.match(mateApp.elements['engine-lines'].innerHTML,/không còn phương án/);
+ // Controlled UCI fixtures cover comparisons and failure/resume paths deterministically.
+ if(!process.env.REVIEW_REAL_ENGINE){
+  assert.ok(app.commands.some(c=>/go depth 12 movetime 750 searchmoves e2e4/.test(c)),'Played move is searched at the original root and reached depth');
+  assert.ok(app.commands.some(c=>c.includes(' moves e2e4 e7e5 g1f3')),'Full move history is retained for repetition');
+  assert.match(app.elements['acpl-white'].textContent,/ACPL: 0\.0/);
+  const points=evaluationPoints([{cp:null,mate:0,mateWinner:'w'},{cp:null,mate:0,mateWinner:'b'}],2);
+  assert.deepEqual(points.map(p=>p.y),[15,165]);
+  const oldCache=new Map([...app.stored].map(([key,value])=>[key.replace(':v2:',':v1:'),value]));
+  const upgraded=await review({stored:oldCache});assert.equal(upgraded.workers.length,1,'Previous formula cache is never reused');
+  const low=await review({depthLimit:4});assert.match(low.elements['accuracy-status'].textContent,/cần phân tích sâu hơn/);
+  assert.match(low.elements['evaluation-depth'].textContent,/Chưa đạt/);
+  const mating=await review({scoreFor:()=> 'mate -3'});mating.elements.first.click();
+  assert.match(mating.elements.evaluation.textContent,/Chiếu hết 3 · Đen/);
+  mating.elements.next.click();assert.match(mating.elements.evaluation.textContent,/Chiếu hết 3 · Trắng/);
+  assert.equal(mating.elements['acpl-white'].textContent,'ACPL: —','Mate comparisons are excluded from ACPL');
+  const corrected=await review({scoreFor:({forced,depth})=>forced&&depth<16?'cp -400':'cp 35'});
+  const correctedData=JSON.parse([...corrected.stored.values()][0]);
+  assert.equal(correctedData.scores[0].rechecked,true,'Large losses trigger confirmation');
+  assert.equal(correctedData.scores[0].depth,16);assert.equal(correctedData.playedScores[0].depth,16);
+  assert.equal(corrected.elements['accuracy-white'].textContent,'100.0%','Use confirmed result rather than shallow blunder');
+  const interrupted=await review({scoreFor:({forced})=>forced?'cp -400':'cp 35',onGo:({requested,stop})=>{
+   if(requested>12){stop();return false;}
+  }});
+  assert.match(interrupted.elements['analysis-status'].textContent,/Đã dừng/);
+  assert.equal(interrupted.stored.size,0,'An unconfirmed pair cannot be cached as a finished review');
+  await interrupted.elements.analyze.click();assert.match(interrupted.elements['analysis-status'].textContent,/Đã dừng/);
+  const partialData={...correctedData,scores:correctedData.scores.slice(0,1),playedScores:correctedData.playedScores.slice(0,1)};
+  const partialCache=new Map([[[...corrected.stored.keys()][0],JSON.stringify(partialData)]]);
+  const resumed=await review({stored:partialCache});assert.equal(resumed.workers.length,1);
+  assert.ok(!resumed.commands.some(c=>c.includes(' searchmoves e2e4')),'Completed pairs are retained during resume');
+  assert.match(resumed.elements['analysis-status'].textContent,/toàn bộ/);
+  const badCache=new Map([[[...corrected.stored.keys()][0],JSON.stringify({...correctedData,playedScores:[{cp:null,mate:null,pv:[]}]})]]);
+  const rejected=await review({stored:badCache});assert.equal(rejected.workers.length,1,'Malformed results are reanalyzed');
+  const primary=await review({onGo:({worker,forced,requested})=>{
+   if(forced)return;
+   const c=new Chess(worker.fen),legal=c.moves({verbose:true}).slice(0,3);
+   legal.forEach((m,i)=>worker.emit('info depth '+(requested-1)+' multipv '+(i+1)+' score cp 10 pv '+m.from+m.to+(m.promotion||'')));
+   worker.emit('info depth '+requested+' multipv 1 score cp 120 pv '+legal[0].from+legal[0].to+(legal[0].promotion||''));
+   worker.emit('bestmove '+legal[0].from+legal[0].to);return false;
+  }});
+  assert.equal(JSON.parse([...primary.stored.values()][0]).scores[0].cp,120,'An older complete MultiPV set cannot overwrite the latest primary score');
+ }
  const locked=await review({status:401});assert.equal(locked.workers.length,0);assert.equal(locked.elements['library-unlock'].hidden,false);assert.equal(locked.calls.length,1);
  const wrong=await review({ext:'.png'});assert.match(wrong.elements.loading.textContent,/không phải PGN/);assert.equal(wrong.calls.length,1);
  const invalid=await review({raw:'1. e4 e5 2. Qh8 *'});assert.equal(invalid.workers.length,0);assert.equal(invalid.elements.workspace.hidden,true);

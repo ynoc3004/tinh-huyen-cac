@@ -15,5 +15,8 @@ export function parseReviewPgn(raw){
 }
 
 export function evaluationPoints(scores,total){
- return scores.map((score,index)=>({index,x:10+980*index/Math.max(1,total),y:90-75*Math.max(-600,Math.min(600,score.cp))/600}));
+ return scores.map((score,index)=>{
+  const cp=score.mate!==null&&score.mate!==undefined?(score.mateWinner==="w"?600:-600):score.cp;
+  return {index,x:10+980*index/Math.max(1,total),y:90-75*Math.max(-600,Math.min(600,cp))/600};
+ });
 }
