@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS library_item_tags(item_id INT REFERENCES library_item
   tag_id INT REFERENCES library_tags(id) ON DELETE CASCADE, PRIMARY KEY(item_id, tag_id));
 CREATE TABLE IF NOT EXISTS library_folders(id INTEGER PRIMARY KEY, parent_id INT REFERENCES library_folders(id) ON DELETE CASCADE,
   name TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS saved_reviews(id TEXT PRIMARY KEY, game_key TEXT NOT NULL,
+  item_id INT REFERENCES library_items(id) ON DELETE CASCADE,
+  metadata BLOB NOT NULL, payload BLOB NOT NULL, updated_at INT NOT NULL);
 CREATE TABLE IF NOT EXISTS students(id INTEGER PRIMARY KEY, name TEXT NOT NULL, rating INT, club TEXT, note TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS tournaments(id INTEGER PRIMARY KEY, name TEXT, date TEXT, seed INT, split_mode TEXT,
   status TEXT DEFAULT 'prepare', kind TEXT DEFAULT 'classic', duration_min INT, starts_at TEXT, ends_at TEXT);

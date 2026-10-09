@@ -8,6 +8,8 @@ const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,
 let pgn="",moves=[],fens=[],index=0,flip=false,scores=[],playedScores=[],reviews=[],worker=null,run=0,busy=false,players={w:"Trắng",b:"Đen"};
 let openingByPly=[],openingHeader=null;
 let cacheKey="",cachedQuality=0,cacheFailed=false,engineCancel=null,vaultTimer=null;
+let libraryItem=null,remoteSaved=false,restoreBlocked=false,viewRun=0,savedRows=[],savedPage=0,savedListRun=0,gameHeaders={};
+let saveQueue=Promise.resolve(),saveRun=0;
 
 const PRESETS={250:{depth:12,ms:750},750:{depth:16,ms:2000},2000:{depth:20,ms:5000}};
 function formatScore(s){return s.mate!==null?(s.mateWinner==="b"?"−":"")+"M"+Math.abs(s.mate):(s.cp>=0?"+":"")+(s.cp/100).toFixed(2);}
@@ -49,28 +51,99 @@ function rebuildReviews(){
   return {...review,color:moves[i].color,uncertain:s.limited||scores[i].limited||s.depth!==scores[i].depth||unstable};
  });
 }
-function persistReview(ms){
- if(!cacheKey)return;
- try{localStorage.setItem(cacheKey,JSON.stringify({version:2,engine:"stockfish-19-lite",quality:ms,scores,playedScores,updated:Date.now()}));cachedQuality=ms;cacheFailed=false;}
- catch{cacheFailed=true;}
+function reviewEndpoint(gameKey=cacheKey.slice("thc:review:v2:".length)){
+ return libraryItem?"/api/library/reviews/"+libraryItem+"/"+gameKey:"/api/reviews/"+gameKey;
 }
-function savedStatus(){return cacheFailed?"Không lưu được kết quả trên trình duyệt này.":"Đã tự lưu trên trình duyệt này.";}
-async function restoreReview(){
+function savedStatus(){return remoteSaved?"Đã lưu kết quả trong ứng dụng.":!scores.length?"Chưa có kết quả để lưu.":cacheFailed?"Chưa lưu được kết quả. Bấm Thử lưu lại.":"Đã lưu tạm trong trình duyệt; chưa lưu được vào ứng dụng.";}
+function showSaveStatus(){$("save-status").textContent=savedStatus();$("retry-save").hidden=remoteSaved||!scores.length;}
+async function persistReview(quality){
+ if(!cacheKey||!scores.length)return;
+ cachedQuality=quality;const token=viewRun,saveToken=++saveRun;
+ const data={version:2,engine:"stockfish-19-lite",quality,scores,playedScores,updated:Date.now()};
+ try{localStorage.setItem(cacheKey,JSON.stringify(data));cacheFailed=false;}catch{cacheFailed=true;}
+ const body=JSON.stringify({...data,pgn,plies:moves.length,white:players.w,black:players.b,event:gameHeaders.Event||"",result:gameHeaders.Result||"*",flip});
+ const endpoint=reviewEndpoint();
+ try{
+  // Preserve write order when the user stops, retries or starts a new analysis.
+  saveQueue=saveQueue.catch(()=>{}).then(async()=>{
+   const r=await fetch(endpoint,{method:"PUT",headers:{"Content-Type":"application/json"},body});
+   if(!r.ok)throw Error();
+  });
+  await saveQueue;
+  if(token===viewRun&&saveToken===saveRun)remoteSaved=true;
+ }catch{if(token===viewRun&&saveToken===saveRun)remoteSaved=false;}
+ if(token===viewRun&&saveToken===saveRun)showSaveStatus();
+}
+function validSnapshot(data){
+ if(!data||data.version!==2||data.engine!=="stockfish-19-lite"||!PRESETS[data.quality]||!Array.isArray(data.scores)||!data.scores.length||data.scores.length>fens.length||!Array.isArray(data.playedScores)||data.playedScores.length>moves.length||data.playedScores.length>data.scores.length)return false;
+ const valid=s=>s&&((s.mate===null&&Number.isFinite(s.cp)&&s.mateWinner===null)||(s.cp===null&&Number.isInteger(s.mate)&&s.mate>=0&&["w","b"].includes(s.mateWinner)))&&Number.isInteger(s.depth)&&s.depth>=0&&Array.isArray(s.pv)&&s.pv.every(u=>typeof u==="string"&&/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u));
+ return data.scores.every(s=>valid(s)&&typeof s.limited==="boolean"&&Array.isArray(s.lines)&&s.lines.length<=3&&s.lines.every(valid))&&data.playedScores.every(s=>valid(s)&&typeof s.limited==="boolean");
+}
+async function restoreReview(snapshot=null,token=viewRun){
+ let local=null,remote=snapshot;
  try{
   const hash=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(fens.join("\\n")));
+  if(token!==viewRun)return;
   cacheKey="thc:review:v2:"+Array.from(new Uint8Array(hash),b=>b.toString(16).padStart(2,"0")).join("");
-  const raw=localStorage.getItem(cacheKey);if(!raw)return;
-  const data=JSON.parse(raw);
-  if(data.version!==2||data.engine!=="stockfish-19-lite"||!PRESETS[data.quality]||!Array.isArray(data.scores)||!data.scores.length||data.scores.length>fens.length||!Array.isArray(data.playedScores)||data.playedScores.length>moves.length||data.playedScores.length>data.scores.length)return;
-  const valid=s=>s&&((s.mate===null&&Number.isFinite(s.cp)&&s.mateWinner===null)||(s.cp===null&&Number.isInteger(s.mate)&&s.mate>=0&&["w","b"].includes(s.mateWinner)))&&Number.isInteger(s.depth)&&s.depth>=0&&Array.isArray(s.pv)&&s.pv.every(u=>typeof u==="string"&&/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u));
-  if(!data.scores.every(s=>valid(s)&&typeof s.limited==="boolean"&&Array.isArray(s.lines)&&s.lines.length<=3&&s.lines.every(valid))||!data.playedScores.every(s=>valid(s)&&typeof s.limited==="boolean"))return;
+  try{local=JSON.parse(localStorage.getItem(cacheKey)||"null");}catch{cacheFailed=true;}
+  if(!remote){
+   try{
+    const r=await fetch(reviewEndpoint(),{cache:"no-store"});
+    if(r.ok)remote=await r.json();else if(r.status!==404)throw Error();
+   }catch{restoreBlocked=true;}
+  }
+  if(token!==viewRun)return;
+  if(remote&&remote.game_key!==cacheKey.slice("thc:review:v2:".length)){remote=null;restoreBlocked=true;}
+  if(remote&&!validSnapshot(remote))restoreBlocked=true;
+  const data=validSnapshot(local)&&(!validSnapshot(remote)||local.updated>remote.updated)?local:validSnapshot(remote)?remote:null;
+  if(!data){
+   if(restoreBlocked)$("analysis-status").textContent="Không tải được kết quả đã lưu. Bấm mở lại ván để thử lại; phân tích mới chỉ chạy khi bạn bấm nút.";
+   return;
+  }
   scores=data.scores;playedScores=data.playedScores;cachedQuality=data.quality;$("quality").value=String(cachedQuality);rebuildReviews();summary();
+  remoteSaved=data===remote;
   $("analysis-progress").max=Math.max(1,moves.length);$("analysis-progress").value=playedScores.length;
   const complete=completeReview();
   $("analyze").textContent=analyzeLabel();
-  $("analysis-status").textContent=(complete?"Đã khôi phục phân tích toàn ván. ":"Đã khôi phục "+playedScores.length+" / "+moves.length+" nước. ")+savedStatus();
- }catch{cacheFailed=true;$("analysis-status").textContent="Không đọc được bộ nhớ lưu kết quả; bạn vẫn có thể phân tích ván.";}
+  if(!remoteSaved)await persistReview(cachedQuality);
+  if(token!==viewRun)return;
+  $("analysis-status").textContent=(complete?"Đã khôi phục phân tích toàn ván. ":"Đã khôi phục "+playedScores.length+" / "+moves.length+" nước; bấm Tiếp tục nếu muốn tính phần còn lại. ")+savedStatus();
+ }catch{restoreBlocked=true;cacheFailed=true;$("analysis-status").textContent="Không đọc được kết quả đã lưu; phân tích mới chỉ chạy khi bạn bấm nút.";}
+ finally{if(token===viewRun)showSaveStatus();}
 }
+function drawSaved(){
+ const term=$("saved-search").value.trim().toLocaleLowerCase("vi");
+ const rows=savedRows.filter(r=>[r.white,r.black,r.event].join(" ").toLocaleLowerCase("vi").includes(term)),pages=Math.max(1,Math.ceil(rows.length/12));
+ savedPage=Math.min(savedPage,pages-1);
+ $("saved-list").innerHTML=rows.length?rows.slice(savedPage*12,(savedPage+1)*12).map(r=>{
+  const link=r.item_id?"/review.html?item="+r.item_id:"/review.html?saved="+encodeURIComponent(r.game_key);
+  const when=new Date(r.updated).toLocaleString("vi-VN"),level={250:"Nhanh",750:"Tiêu chuẩn",2000:"Chuyên sâu"}[r.quality]||"";
+  return '<a class="saved-review" href="'+esc(link)+'"><strong>'+esc(r.white||"Trắng")+' · '+esc(r.black||"Đen")+'</strong><span>'+esc(r.event||"Kỳ phổ")+' · '+esc(r.result||"*")+'</span><small>'+esc(when)+' · '+esc(level)+' · '+(r.item_id?"Tàng Kinh Các":"PGN / Kỳ phổ")+'</small><b>'+(r.complete?"Xem kết quả đã lưu →":"Đã tính "+r.analyzed+" / "+r.plies+" nước · Xem phần đã lưu →")+'</b></a>';
+ }).join(""):'<p class="saved-empty">'+(term?"Không tìm thấy ván phù hợp.":"Chưa có ván đã phân tích. Nhập PGN để bắt đầu.")+'</p>';
+ $("saved-page").textContent=rows.length+" ván · "+(savedPage+1)+" / "+pages;
+ $("saved-prev").disabled=savedPage===0;$("saved-next").disabled=savedPage+1>=pages;
+}
+async function refreshSaved(){
+ const token=++savedListRun;$("saved-status").textContent="Đang tải các ván đã lưu…";$("saved-refresh").disabled=true;$("saved-list").innerHTML="";
+ const results=await Promise.allSettled([fetch("/api/reviews",{cache:"no-store"}),fetch("/api/library/reviews",{cache:"no-store"})]);
+ if(token!==savedListRun)return;
+ const rows=[],notes=[];
+ for(let i=0;i<results.length;i++){
+  const result=results[i];
+  if(result.status==="fulfilled"&&result.value.ok){
+   try{const data=await result.value.json();rows.push(...data.items.filter(r=>r&&/^[0-9a-f]{64}$/.test(r.game_key)&&(!r.item_id||Number.isSafeInteger(r.item_id)&&r.item_id>0)));}catch{notes.push("Không đọc được một phần danh sách.");}
+  }else if(i===1&&result.status==="fulfilled"&&[401,403].includes(result.value.status))notes.push("Mở khóa Tàng Kinh Các để xem các ván trong két.");
+  else notes.push("Không tải được một phần danh sách. Bấm Làm mới để thử lại.");
+ }
+ if(token!==savedListRun)return;
+ savedRows=rows.sort((a,b)=>b.updated-a.updated);drawSaved();$("saved-status").textContent=notes.join(" ")||"Chọn ván để xem ngay; Stockfish không chạy lại.";$("saved-refresh").disabled=false;
+}
+$("open-saved").onclick=()=>{$("saved-dialog").showModal();return refreshSaved();};
+$("close-saved").onclick=()=>$("saved-dialog").close();
+$("saved-refresh").onclick=refreshSaved;
+$("saved-search").oninput=()=>{savedPage=0;drawSaved();};
+$("saved-prev").onclick=()=>{savedPage--;drawSaved();};$("saved-next").onclick=()=>{savedPage++;drawSaved();};
+$("retry-save").onclick=async()=>{$("retry-save").disabled=true;try{await persistReview(cachedQuality);}finally{$("retry-save").disabled=false;}};
 document.body.insertAdjacentHTML("afterbegin",'<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>'+PIECE_DEFS+'</defs></svg>');
 function moveAnnotation(review){
  if(!review)return null;
@@ -138,14 +211,21 @@ function watchVault(item){
     clearInterval(vaultTimer);vaultTimer=null;$("stop").onclick();
     $("workspace").hidden=true;$("library-unlock").hidden=r.status!==401;
     $("loading").textContent=r.status===401?"Tàng Kinh Các đang khóa. Mở khóa rồi mở lại tệp PGN.":"Tài liệu đã bị xóa. Hãy chọn một kỳ phổ khác.";
-    pgn="";moves=[];fens=[];scores=[];playedScores=[];reviews=[];$("review-board").innerHTML="";$("move-list").innerHTML="";
+    viewRun++;savedRows=savedRows.filter(r=>!r.item_id);drawSaved();pgn="";moves=[];fens=[];scores=[];playedScores=[];reviews=[];$("review-board").innerHTML="";$("move-list").innerHTML="";
    }
   }catch{/* A temporary network outage does not discard the current game. */}
  },30000);
 }
 async function load(){
  try{
-  const q=new URLSearchParams(location.search);let r;
+  const q=new URLSearchParams(location.search);let r,snapshot=null;
+  if(q.has("saved")){
+   const id=q.get("saved");if(!/^[0-9a-f]{64}$/.test(id))throw Error("Mã ván đã lưu không hợp lệ.");
+   r=await fetch("/api/reviews/"+id,{cache:"no-store"});
+   if(!r.ok)throw Error("Không mở được kết quả đã lưu. Hãy làm mới danh sách rồi thử lại.");
+   snapshot=await r.json();pgn=snapshot.pgn;flip=Boolean(snapshot.flip);
+   await showGame(null,snapshot);return;
+  }
   if(q.has("item")){
    const item=q.get("item");
    if(!/^[1-9]\d*$/.test(item))throw Error("Mã tài liệu không hợp lệ.");
@@ -156,10 +236,11 @@ async function load(){
    const info=await metadata.json();
    if((info.ext||"").toLowerCase()!==".pgn")throw Error("Tài liệu này không phải PGN. Hãy mở từ Tàng Kinh Các.");
    if(info.size>MAX_PGN_BYTES)throw Error("PGN lớn hơn 2 MB. Hãy xuất riêng một ván.");
+   libraryItem=item;
    r=await fetch("/api/library/file/"+item,{cache:"no-store"});
   }
   else if(q.has("source")&&q.has("game"))r=await fetch("/api/game-archive/"+encodeURIComponent(q.get("source"))+"/"+encodeURIComponent(q.get("game")));
-  else {$("loading").textContent="Nhập file PGN hoặc dán kỳ phổ để bắt đầu phân tích.";$("import-dialog").showModal();return;}
+  else {$("loading").textContent="Mở ván đã phân tích hoặc nhập PGN mới.";await refreshSaved();$(savedRows.length?"saved-dialog":"import-dialog").showModal();return;}
   if(r.status===401)$("library-unlock").hidden=false;
   if(!r.ok)throw Error(r.status===401?"Tàng Kinh Các đang khóa. Mở khóa rồi tải lại trang.":"Không đọc được kỳ phổ.");
   if(q.has("item"))pgn=await r.text();else {const g=await r.json();pgn=g.pgn;flip=g.user_color==="b";}
@@ -169,22 +250,24 @@ async function load(){
  }catch(e){$("loading").textContent=e.message;}
 }
 
-async function showGame(parsed=null){
-  const validated=parsed?{board:parsed,pgn}:parseReviewPgn(pgn);pgn=validated.pgn;const c=validated.board;moves=c.history({verbose:true});const headers=c.getHeaders();
+async function showGame(parsed=null,snapshot=null){
+  const token=++viewRun;
+  const validated=parsed?{board:parsed,pgn}:parseReviewPgn(pgn);pgn=validated.pgn;const c=validated.board;moves=c.history({verbose:true});const headers=c.getHeaders();gameHeaders=headers;
   scores=[];playedScores=[];reviews=[];openingByPly=[];openingHeader=null;cacheKey="";cachedQuality=0;cacheFailed=false;index=0;
+  remoteSaved=false;restoreBlocked=false;
   $("analyze").textContent="▶ Phân tích toàn ván";$("analysis-progress").value=0;$("analysis-status").textContent="Sẵn sàng · Stockfish chạy trên máy của bạn.";summary();
   players={w:headers.White||"Trắng",b:headers.Black||"Đen"};
   $("game-title").textContent=players.w+" · "+players.b;
   while(c.undo()){}fens=[c.fen()];for(const m of moves){c.move(m);fens.push(c.fen());}
   $("loading").textContent=Math.ceil(moves.length/2)+" lượt · "+moves.length+" nước đi · Kết quả "+(headers.Result||"*");
-  await recognizeOpenings(headers);await restoreReview();$("workspace").hidden=false;draw();
+  await recognizeOpenings(headers);if(token!==viewRun)return;await restoreReview(snapshot,token);if(token!==viewRun)return;$("workspace").hidden=false;draw();
 }
 $("open-import").onclick=()=>$("import-dialog").showModal();
 $("close-import").onclick=$("cancel-import").onclick=()=>$("import-dialog").close();
 $("pgn-file").onchange=()=>{$("import-status").textContent=$("pgn-file").files[0]?"Đã chọn "+$("pgn-file").files[0].name:"Mỗi lần nhập một ván cờ · Tối đa 2 MB.";$("pgn-text").value="";};
 $("pgn-text").oninput=()=>{if($("pgn-text").value.trim())$("pgn-file").value="";};
 function autoAnalyze(){
- if(completeReview())return;
+ if(scores.length||restoreBlocked)return;
  $("analyze").click();
 }
 $("import-form").onsubmit=async e=>{
@@ -196,7 +279,7 @@ $("import-form").onsubmit=async e=>{
   const raw=validated.pgn,parsed=validated.board;
   if(busy)$("stop").onclick();
   clearInterval(vaultTimer);vaultTimer=null;$("library-unlock").hidden=true;
-  pgn=raw;flip=false;
+  libraryItem=null;pgn=raw;flip=false;
   await showGame(parsed);
   history.replaceState(null,"","/review.html");
   $("import-dialog").close();$("import-status").textContent="Đã nhập kỳ phổ.";autoAnalyze();
@@ -277,7 +360,7 @@ $("analyze").onclick=async()=>{
     }
     playedScores[i]=played;
    }
-   scores[i]=best;rebuildReviews();persistReview(quality);
+   scores[i]=best;rebuildReviews();summary();draw();await persistReview(quality);if(token!==run)return;
    $("analysis-progress").value=playedScores.length;$("analysis-progress").max=Math.max(1,moves.length);
    summary();draw();
   }
@@ -295,5 +378,5 @@ $("evaluation-chart").onclick=e=>{if(!fens.length)return;const rect=$("evaluatio
 addEventListener("pagehide",()=>{clearInterval(vaultTimer);$("stop").onclick();});
 $("save").onclick=()=>savePgnToLibrary(pgn,$("game-title").textContent);
 $("download").onclick=()=>{const u=URL.createObjectURL(new Blob([pgn],{type:"application/x-chess-pgn"})),a=document.createElement("a");a.href=u;a.download="ky-pho.pgn";a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);};
-addEventListener("keydown",e=>{if($("import-dialog").open||!fens.length||["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowLeft"){e.preventDefault();$("prev").click();}if(e.key==="ArrowRight"){e.preventDefault();$("next").click();}});
+addEventListener("keydown",e=>{if($("import-dialog").open||$("saved-dialog").open||!fens.length||["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName))return;if(e.key==="ArrowLeft"){e.preventDefault();$("prev").click();}if(e.key==="ArrowRight"){e.preventDefault();$("next").click();}});
 load();

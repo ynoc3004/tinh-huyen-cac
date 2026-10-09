@@ -198,7 +198,13 @@ Nước đã đi được tìm bằng `searchmoves` từ cùng thế gốc, theo
 
 **ACPL** là trung bình centipawn mất so với nước tốt nhất của cùng bên; thấp hơn là tốt hơn (100 centipawn = 1 điểm). Chiếu hết dùng kiểu dữ liệu riêng và bên thắng rõ ràng, không quy đổi thành ±10000 centipawn; các so sánh có mate không được tính vào ACPL. Chiếu hết, pat và thiếu vật chất được xử lý riêng; tình huống lặp thế được chuyển cho engine với lịch sử đầy đủ.
 
-Kết quả tự lưu trên trình duyệt; mở lại một ván đã phân tích đủ sẽ khôi phục ngay. Cache v2 lưu cả đánh giá nước tốt nhất và nước đã đi; kết quả v1 theo công thức cũ không được dùng lại. Mỗi cặp chỉ lưu sau khi hoàn tất kiểm tra sâu, nên dừng giữa chừng không biến kết quả chưa xác nhận thành kết quả đầy đủ. Để tính lại hoặc đổi mức, bấm **Phân tích lại**. Không thêm package, API key hoặc dịch vụ trả phí.
+Kết quả tự lưu vào database của ứng dụng (`data/app.db`) sau mỗi cặp nước được tính xong, gồm PGN, chất lượng phân tích, điểm từng thế và các phương án. Mục **Ván đã phân tích** có tìm theo tên người chơi/giải đấu, ngày lưu và trạng thái đầy đủ hoặc đang dở; bấm vào để mở lại ngay. Trang Phân tích ưu tiên mở danh sách đã lưu nếu có ván. PGN nhập trực tiếp và kỳ phổ online có đường dẫn `/review.html?saved=HASH`; ván trong két vẫn mở qua `?item=ID`.
+
+Mở lại kết quả đầy đủ hoặc đang dở đều **không tự khởi động Stockfish**. Chỉ bấm **Tiếp tục phân tích** để tính thêm phần còn thiếu, hoặc **Phân tích lại** khi chủ động muốn tính lại/đổi mức. Mỗi cặp chỉ lưu sau khi hoàn tất kiểm tra sâu, nên dừng giữa chừng không biến kết quả chưa xác nhận thành kết quả đầy đủ. Bản lưu tồn tại qua việc khởi động lại backend hoặc xóa dữ liệu trình duyệt, miễn là giữ `data/app.db` và thư mục két.
+
+Kết quả của tài liệu Tàng Kinh Các được nén, mã hóa bằng khóa két và lưu kèm liên kết tài liệu; danh sách và đọc/lưu kết quả đều qua guard của két. Xóa tài liệu sẽ xóa kết quả liên quan bằng khóa ngoại; két khóa không mở được kết quả. PGN nhập trực tiếp/kỳ phổ online lưu trong database theo quyền truy cập thông thường của ứng dụng. Các API `/api/reviews` và `/api/library/reviews` chỉ đọc/lưu kết quả do browser tính, không chạy engine trên server.
+
+Cache v2 trên trình duyệt vẫn là bản dự phòng khi backend lưu thất bại. Kết quả v2 cũ được chuyển vào database khi mở lại ván, không chạy lại engine. Cache v1 theo công thức cũ không được dùng lại. Nếu không lưu được, trang báo rõ và có nút **Thử lưu lại**; nếu không tải được bản lưu từ backend, trang không tự phân tích thay thế. Không thêm package, API key hoặc dịch vụ trả phí.
 
 Nhập mỗi lần một ván, tối đa 2 MB. PGN trống, sai nước, nhiều ván hoặc tài liệu khác định dạng sẽ báo lỗi trước khi chạy engine. Hỗ trợ BOM, chú thích, nhánh phụ và PGN bắt đầu từ FEN. Khi mở tài liệu, trang giữ phiên két hoạt động lúc đang xem; két khóa hoặc file bị xóa sẽ dừng engine và ẩn bàn cờ.
 
@@ -207,6 +213,7 @@ Kiểm tra luồng PGN, chuyển trang đọc cũ, khóa két, tự phân tích,
 ```powershell
 node tests/pgn-review.test.cjs
 node tests/test_review_math.mjs
+python -m unittest discover -s tests -p test_saved_reviews.py
 ```
 
 Smoke test với Stockfish thực được đóng gói (Bash):

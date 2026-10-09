@@ -21,7 +21,7 @@ class Element{
  assert.throws(()=>parseReviewPgn('x'.repeat(MAX_PGN_BYTES+1)),/2 MB/);
  const points=evaluationPoints([{cp:0},{cp:20000},{cp:-20000}],4);
  assert.deepEqual(points.map(p=>p.y),[90,15,165]);assert.equal(points[2].x,500);
- async function review({search='?item=3',status=200,ext='.PGN',raw=pgn,stored=new Map(),scoreFor=null,depthLimit=null,onGo=null}={}){
+ async function review({search='?item=3',status=200,ext='.PGN',raw=pgn,stored=new Map(),scoreFor=null,depthLimit=null,onGo=null,snapshots=new Map(),saveStatus=200,readStatus=200}={}){
   const elements={};for(const [,id] of read('review.html').matchAll(/id="([^"]+)"/g))elements[id]=new Element();
   elements.quality.value='250';elements['workspace'].hidden=true;elements['library-unlock'].hidden=true;
   const calls=[],workers=[],commands=[];let poll,vaultStatus=status;
@@ -71,14 +71,32 @@ class Element{
    location:{search},history:{replaceState(){}},URLSearchParams,TextEncoder,crypto:webcrypto,URL,Blob,Worker:process.env.REVIEW_REAL_ENGINE?EngineProcess:Worker,
    localStorage:{getItem:k=>stored.get(k)||null,setItem:(k,v)=>stored.set(k,v)},setTimeout,clearTimeout,
    setInterval:fn=>{poll=fn;return 1},clearInterval(){},addEventListener(){},
-   fetch:async url=>{calls.push(url);if(url.startsWith('/api/library/item/'))return {ok:vaultStatus===200,status:vaultStatus,json:async()=>({ext,size:raw.length})};
+   fetch:async (url,options={})=>{calls.push(url);
+    if(url==='/api/reviews'||url==='/api/library/reviews'){
+     const protectedList=url.includes('/library/');
+     if(protectedList&&vaultStatus!==200)return {ok:false,status:vaultStatus};
+     const items=[...snapshots].filter(([key])=>key.includes('/library/')===protectedList).map(([key,data])=>({...data,item_id:protectedList?Number(key.split('/').at(-2)):null,analyzed:data.playedScores.length,complete:data.scores.length===data.plies+1&&data.playedScores.length===data.plies}));
+     return {ok:true,status:200,json:async()=>({items})};
+    }
+    if(url.startsWith('/api/reviews/')||url.startsWith('/api/library/reviews/')){
+     if(url.includes('/library/')&&vaultStatus!==200)return {ok:false,status:vaultStatus};
+     if(options.method==='PUT'){
+      if(saveStatus!==200)return {ok:false,status:saveStatus};
+      snapshots.set(url,{...JSON.parse(options.body),game_key:url.split('/').at(-1),updated:Date.now()});
+      return {ok:true,status:200,json:async()=>({saved:true})};
+     }
+     if(readStatus!==200)return {ok:false,status:readStatus};
+     return {ok:snapshots.has(url),status:snapshots.has(url)?200:404,json:async()=>snapshots.get(url)};
+    }
+    if(url.startsWith('/api/game-archive/'))return {ok:true,status:200,json:async()=>({pgn:raw,user_color:'b'})};
+    if(url.startsWith('/api/library/item/'))return {ok:vaultStatus===200,status:vaultStatus,json:async()=>({ext,size:raw.length})};
     if(url.startsWith('/api/library/file/'))return {ok:true,status:200,text:async()=>raw};
     if(url.startsWith('/openings-eco'))return {ok:true,json:async()=>({positions:{}})};
     throw Error('Unexpected fetch: '+url);}
   };
   vm.createContext(ctx);vm.runInContext(read('review.js').replace(/^import .*;\n/gm,'').replace(/load\(\);\s*$/,'globalThis.boot=load();'),ctx);
   await ctx.boot;await elements.analyze.pending;
-  return {elements,calls,workers,commands,stored,ctx,poll:()=>poll?.(),setStatus:value=>vaultStatus=value};
+  return {elements,calls,workers,commands,stored,snapshots,ctx,poll:()=>poll?.(),setStatus:value=>vaultStatus=value};
  }
  const app=await review();assert.equal(app.elements.workspace.hidden,false);assert.equal(app.workers.length,1);
  assert.match(app.elements['analysis-status'].textContent,/toàn bộ/);assert.equal(app.elements['review-back'].href,'/library.html');
@@ -87,6 +105,13 @@ class Element{
  assert.match(app.elements['best-line'].textContent,/Gợi ý/);assert.match(app.elements['chart-ply'].attributes['aria-valuetext'],/e5/);
  app.elements['evaluation-chart'].onclick({clientX:990});assert.equal(app.elements.position.textContent,'4 / 4');
  const cached=await review({stored:app.stored});assert.equal(cached.workers.length,0,'Complete cached review does not rerun the engine');
+ const remote=await review({snapshots:app.snapshots});assert.equal(remote.workers.length,0,'Clearing browser storage still restores server results without a worker');
+ assert.equal(remote.elements['accuracy-white'].textContent,app.elements['accuracy-white'].textContent);
+ assert.match(remote.elements['save-status'].textContent,/trong ứng dụng/);
+ assert.ok(![...remote.stored.values()].some(value=>value.includes('[White')),'Vault PGN is never mirrored as plaintext browser history');
+ await remote.elements['open-saved'].click();assert.match(remote.elements['saved-list'].innerHTML,/review.html\?item=3/);
+ remote.elements['saved-search'].value='not-a-player';remote.elements['saved-search'].oninput();assert.match(remote.elements['saved-list'].innerHTML,/Không tìm thấy/);
+ remote.elements['saved-search'].value='Thanh';remote.elements['saved-search'].oninput();assert.match(remote.elements['saved-list'].innerHTML,/Thanh/);
  const mateApp=await review({raw:'1. f3 e5 2. g4 Qh4# 0-1'});mateApp.elements.last.click();
  assert.match(mateApp.elements.evaluation.textContent,/Chiếu hết 0 · Đen/);
  assert.match(mateApp.elements['evaluation-chart'].innerHTML,/polyline/);
@@ -119,9 +144,26 @@ class Element{
   await interrupted.elements.analyze.click();assert.match(interrupted.elements['analysis-status'].textContent,/Đã dừng/);
   const partialData={...correctedData,scores:correctedData.scores.slice(0,1),playedScores:correctedData.playedScores.slice(0,1)};
   const partialCache=new Map([[[...corrected.stored.keys()][0],JSON.stringify(partialData)]]);
-  const resumed=await review({stored:partialCache});assert.equal(resumed.workers.length,1);
+  const resumed=await review({stored:partialCache});assert.equal(resumed.workers.length,0,'Opening partial results does not automatically resume analysis');await resumed.elements.analyze.click();assert.equal(resumed.workers.length,1);
   assert.ok(!resumed.commands.some(c=>c.includes(' searchmoves e2e4')),'Completed pairs are retained during resume');
   assert.match(resumed.elements['analysis-status'].textContent,/toàn bộ/);
+  const unavailable=await review({readStatus:503});assert.equal(unavailable.workers.length,0,'A failed saved-result lookup must not silently start reanalysis');
+  assert.match(unavailable.elements['analysis-status'].textContent,/Không tải được/);
+  const failedSave=await review({saveStatus:503});assert.match(failedSave.elements['save-status'].textContent,/chưa lưu được/);
+  assert.equal(failedSave.elements['retry-save'].hidden,false);assert.ok(failedSave.stored.size>0,'Browser cache survives a failed server save');
+  const localAgain=await review({stored:failedSave.stored});assert.equal(localAgain.workers.length,0);assert.equal(localAgain.snapshots.size,1,'Existing browser results migrate to durable storage without engine work');
+  const imported=await review({search:'?source=bot&game=1'});assert.equal(imported.workers.length,0);
+  await imported.elements.analyze.click();const publicKey=[...imported.snapshots.keys()][0].split('/').at(-1);
+  const opened=await review({search:'?saved='+publicKey,snapshots:imported.snapshots});assert.equal(opened.workers.length,0);
+  assert.match(opened.elements['evaluation-chart'].innerHTML,/polyline/);assert.equal(opened.elements['accuracy-white'].textContent,imported.elements['accuracy-white'].textContent);
+  await opened.elements['open-saved'].click();assert.match(opened.elements['saved-list'].innerHTML,/review.html\?saved=/);
+  const home=await review({search:'',snapshots:imported.snapshots});assert.equal(home.elements['saved-dialog'].open,true);assert.equal(home.elements['import-dialog'].open,false);
+  opened.setStatus(401);await opened.elements['saved-refresh'].click();assert.match(opened.elements['saved-status'].textContent,/Mở khóa/);assert.match(opened.elements['saved-list'].innerHTML,/review.html\?saved=/);
+  const noHistory=await review({search:''});assert.equal(noHistory.elements['import-dialog'].open,true);
+  const missing=await review({search:'?saved='+publicKey});assert.equal(missing.workers.length,0);assert.match(missing.elements.loading.textContent,/Không mở được/);
+  const archiveMany=new Map();for(let i=0;i<14;i++){const key=i.toString(16).padStart(64,'0');archiveMany.set('/api/reviews/'+key,{...imported.snapshots.values().next().value,game_key:key,white:i===0?'<script>bad</script>':'Player '+i});}
+  const paged=await review({search:'',snapshots:archiveMany});assert.equal(paged.elements['saved-list'].innerHTML.match(/class="saved-review"/g).length,12);
+  assert.ok(!paged.elements['saved-list'].innerHTML.includes('<script>'));paged.elements['saved-next'].click();assert.equal(paged.elements['saved-list'].innerHTML.match(/class="saved-review"/g).length,2);
   const badCache=new Map([[[...corrected.stored.keys()][0],JSON.stringify({...correctedData,playedScores:[{cp:null,mate:null,pv:[]}]})]]);
   const rejected=await review({stored:badCache});assert.equal(rejected.workers.length,1,'Malformed results are reanalyzed');
   const primary=await review({onGo:({worker,forced,requested})=>{
@@ -145,5 +187,5 @@ class Element{
  const readerContext={URLSearchParams,location:{search:'?id=3',replace:url=>redirect=url},document:{querySelector:()=>new Element()},fetch:async()=>{downloads++;return {ok:true,status:200,json:async()=>({ext:'.PGN'})}}};
  vm.runInNewContext(read('reader.html').match(/<script>\s*([\s\S]*?)<\/script>/)[1],readerContext);
  await new Promise(r=>setImmediate(r));assert.equal(redirect,'/review.html?item=3');assert.equal(downloads,1,'Legacy reader redirects before fetching plaintext');
- console.log('PASS: PGN validation, legacy reader redirect, vault guards, automatic Stockfish review, cache restore, chart navigation, black-to-move FEN, invalid import preservation and engine cancellation');
+ console.log('PASS: PGN validation, legacy reader redirect, vault guards, automatic first analysis, durable results without rerunning Stockfish, saved list/search/pagination, vault isolation, cache migration, chart navigation, black-to-move FEN, invalid import preservation and engine cancellation');
 })().catch(e=>{console.error(e);process.exitCode=1});

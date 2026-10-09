@@ -83,6 +83,10 @@ body.review-page{margin:0;background:radial-gradient(ellipse at 0 0,#cfded480,tr
 .import-divider{display:block;text-align:center;font-size:10px;color:var(--muted);margin:14px 0 5px}
 #confirm-import{background:var(--jade);color:var(--paper);border-color:var(--jade)}
 @media(max-width:550px){.import-toolbar{align-items:flex-start;flex-direction:column}.import-toolbar button{width:100%}.pgn-import-dialog{padding:16px}}
+.review-toolbar-actions{display:flex;gap:8px;flex-wrap:wrap}.saved-dialog{width:min(94vw,680px)}.saved-dialog>p,#saved-status{font-size:12px;color:var(--muted)}
+.saved-review{display:block;padding:12px;margin:9px 0;text-decoration:none;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:var(--surface)}.saved-review:hover{border-color:var(--jade)}.saved-review strong,.saved-review span,.saved-review small,.saved-review b{display:block;overflow-wrap:anywhere}.saved-review span,.saved-review small{font-size:11px;color:var(--muted);margin-top:3px}.saved-review b{font-size:11px;color:var(--jade);margin-top:7px;font-weight:500}.saved-pagination{flex-wrap:wrap;justify-content:space-between}.saved-pagination span,.saved-empty{font-size:12px;color:var(--muted)}
+.review-save-status{display:flex;align-items:center;gap:8px;margin:-7px 0 14px}.review-save-status p{margin:0;font-size:10px;color:var(--muted);flex:1}.review-save-status button{font-size:10px;padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--jade)}
+@media(max-width:550px){.review-toolbar-actions{width:100%}.review-toolbar-actions button{flex:1}.saved-pagination button{min-height:38px}}
 
 /* Move verdicts follow the destination square in either orientation. */
 .review-square.annotated-square{box-shadow:inset 0 0 0 3px var(--verdict)}
