@@ -156,8 +156,11 @@ def validate_document(document, exporting=False):
 def board_svg(exercise, rotate=False):
     board = chess.Board(exercise["fen"])
     orientation = board.turn if rotate else chess.WHITE
-    return chess.svg.board(board, orientation=orientation, size=360, coordinates=True,
-                           colors={"square light": "#ffffff", "square dark": "#d9d9d9", "margin": "#ffffff", "coord": "#333333"})
+    svg = chess.svg.board(board, orientation=orientation, size=360, coordinates=True,
+                          colors={"square light": "#ffffff", "square dark": "#d9d9d9", "margin": "#ffffff", "coord": "#333333"})
+    # Outline the 8x8 playing area, leaving coordinate labels outside the frame.
+    return svg.replace('</svg>', '<rect x="15" y="15" width="360" height="360" fill="none" '
+                       'stroke="#333333" stroke-width="2"/></svg>')
 
 
 @lru_cache(maxsize=1)

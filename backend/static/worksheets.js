@@ -48,6 +48,7 @@ function diagram(fen,rotate=false){
   body+=`<rect x="${x}" y="${y}" width="45" height="45" fill="${(file+rank)%2?'#fff':'#d9d9d9'}"/>`;
   if(piece)body+=`<use href="#${piece.color+piece.type.toUpperCase()}" x="${x}" y="${y}"/>`;
  }
+ body+='<rect x="20" y="20" width="360" height="360" fill="none" stroke="#333333" stroke-width="2"/>';
  for(let n=0;n<8;n++){
   const file='abcdefgh'[reverse?7-n:n],rank=reverse?n+1:8-n;
   body+=`<text x="${42.5+n*45}" y="393" text-anchor="middle">${file}</text><text x="8" y="${46+n*45}" text-anchor="middle">${rank}</text>`;
