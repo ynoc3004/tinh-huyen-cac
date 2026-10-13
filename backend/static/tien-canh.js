@@ -49,7 +49,7 @@
     if([FONT_KEY,'titleFont',THEME_KEY,null].includes(e.key))apply();
   });
   const icon='<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"><path d="M15 2h18l13 13v18L33 46H15L2 33V15z" opacity=".5"/><circle cx="24" cy="24" r="15"/><path d="M24 9a15 15 0 0 1 0 30a7.5 7.5 0 0 1 0-15a7.5 7.5 0 0 0 0-15" fill="currentColor"/><circle cx="24" cy="16.5" r="2.3" fill="currentColor"/><circle cx="24" cy="31.5" r="2.3" fill="var(--paper)" stroke="none"/></svg>';
-  const links=[['/','Cổng môn','home'],['/dao-lo.html','Đạo lộ','dao-lo'],['/library.html','Tàng kinh','library'],['/bi-canh.html','Bí cảnh','bi-canh'],['/arena.html','Đấu trường','arena'],['/history.html','Kỳ phổ','history'],['/study.html','Thư phòng','study']];
+  const links=[['/','Cổng môn','home'],['/dao-lo.html','Đạo lộ','dao-lo'],['/library.html','Tàng kinh','library'],['/bi-canh.html','Bí cảnh','bi-canh'],['/worksheets.html','Soạn bài tập','worksheets'],['/arena.html','Đấu trường','arena'],['/history.html','Kỳ phổ','history'],['/study.html','Thư phòng','study']];
   function mount() {
     const page=location.pathname.replace(/^\//,'').replace(/\.html$/,'')||'home';document.body.dataset.page=page==='index'?'home':page;
     let header=document.querySelector('.site-header');
@@ -62,6 +62,7 @@
       header.classList.add('noprint');const nav=header.querySelector('.site-navigation');
       if(nav&&!nav.querySelector('a[href="/dao-lo.html"]')){const a=document.createElement('a');a.href='/dao-lo.html';a.textContent='Đạo lộ';const home=nav.querySelector('a[href="/"]');if(home)home.after(a);else nav.prepend(a)}
       if(nav&&!nav.querySelector('a[href="/study.html"]')){const a=document.createElement('a');a.href='/study.html';a.textContent='Thư phòng';nav.append(a)}
+      if(nav&&!nav.querySelector('a[href="/worksheets.html"]')){const a=document.createElement('a');a.href='/worksheets.html';a.textContent='Soạn bài tập';nav.append(a)}
     }
     const appearance=document.createElement('details');appearance.className='site-appearance';
     appearance.innerHTML='<summary>Diện mạo <span aria-hidden="true">☷</span></summary><div class="appearance-panel"><label>Font toàn hệ thống<select data-site-font aria-label="Font toàn hệ thống">'+fonts.map(f=>'<option value="'+f.id+'">'+f.name+'</option>').join('')+'</select></label><label>Thiên sắc<select data-site-theme aria-label="Thiên sắc"><option value="auto">Theo mặt trời</option><option value="light">Ban ngày</option><option value="dark">Ban đêm</option></select></label><a href="/fonts-preview.html">Xem mẫu chữ →</a><small data-appearance-status role="status"></small></div>';

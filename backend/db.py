@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS arena_players(tournament_id INT REFERENCES tournament
 CREATE TABLE IF NOT EXISTS tournament_events(id INTEGER PRIMARY KEY,
   tournament_id INT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
   action TEXT NOT NULL, details TEXT NOT NULL, at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS worksheets(id TEXT PRIMARY KEY, title TEXT NOT NULL,
+  payload TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 """
 
 # migrate columns if DB already exists without them

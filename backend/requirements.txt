@@ -5,3 +5,6 @@ cryptography
 zstandard
 pymupdf
 networkx>=3.2,<4
+python-chess>=1.999,<2
+reportlab>=4.2,<5
+svglib>=1.5,<3

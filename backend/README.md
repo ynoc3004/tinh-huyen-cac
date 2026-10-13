@@ -2,6 +2,20 @@
 
 Ứng dụng cờ vua chạy local: đồng bộ ván cờ, quản lý thư viện, giải vòng tròn/Swiss/loại trực tiếp và đấu trường arena.
 
+## Soạn bài tập và bài kiểm tra
+
+Mở **Soạn bài tập** trên thanh điều hướng (`/worksheets.html`). Chọn Bài tập/Bài kiểm tra, sửa tiêu đề, nhập lớp/level và lời dặn; thời gian làm bài là tùy chọn. Trên mỗi trang học sinh luôn có dòng **Họ tên** và **Level** để tự điền.
+
+Chọn độ khó hoặc khoảng điểm câu đố riêng, chủ đề và số trang, rồi bấm **Tạo 12 bài** (số bài thay đổi theo số trang). Bốn mức đi kèm là 400-899, 900-1299, 1300-1799 và 1800-2600; đây là điểm câu đố Lichess, không phải thang Elo học sinh hay tương đương Step. Có thể tạo tối đa 10 trang, mỗi trang đúng 12 bài, bố cục A4 dọc 3 cột × 4 hàng. Khi bộ lọc thiếu bài, ứng dụng giữ nguyên đề và báo lỗi, không tự nới độ khó hoặc lặp bài.
+
+Bấm vào một thế cờ để đổi bài, sửa yêu cầu/đáp án, sắp xếp hoặc bỏ bài. **Thêm bài tự soạn** mở công cụ đặt quân, chọn bên đi và nhập FEN. Đáp án nhận chuỗi nước SAN hoặc UCI; có thể để trống nếu chỉ cần bản học sinh. Thế cờ và chuỗi nước được kiểm tra tính hợp lệ; đáp án tối ưu của bài tự soạn vẫn cần giáo viên xác nhận. Dựng lại quân bằng công cụ sẽ bỏ quyền nhập thành và bắt tốt qua đường; dán FEN đầy đủ nếu cần giữ các quyền này.
+
+**Lưu đề** ghi bản đề vào SQLite, bao gồm bộ lọc, từng thế cờ và đáp án; mở lại trong danh sách đề đã lưu. Bản nháp được giữ trong trình duyệt trong lúc sửa. Đề chưa đủ 12/24/36… bài vẫn lưu được, nhưng phải bổ sung đủ bài trước khi xuất. **Xuất PDF học sinh** tải PDF thật với font tiếng Việt nhúng và bàn cờ vector; **PDF đáp án** tải một tệp riêng cho giáo viên. PDF xuất từ nội dung hiện tại, không đòi hỏi lưu trước và không gắn đáp án vào tệp học sinh. Phiếu kiểm tra mặc định tính mỗi bài 1 điểm.
+
+Kho khởi đầu gồm 192 bài Lichess (48 bài/mức), lấy từ bản dữ liệu công khai cập nhật 05/10/2026, kiểm tra lại toàn bộ nước đi, lọc Popularity >=85 và NbPlays >=250. Nguồn: [Lichess open database](https://database.lichess.org/#puzzles), giấy phép CC0. FEN gốc của Lichess nằm trước nước thiết lập của đối phương; trang áp dụng nước đầu đúng một lần trước khi in, chuỗi đáp án bắt đầu từ nước thứ hai. Nếu đã nhập kho `data/puzzles.db`, trang ưu tiên kho đó; xem `python import_puzzles.py --help` để nhập thêm.
+
+Cập nhật tính năng này cần chạy `python -m pip install -r requirements.txt` trong `backend` rồi khởi động lại server. Có thêm python-chess, ReportLab và svglib; font PDF được đóng gói tại `assets/worksheet`, không phụ thuộc font cài trên Windows. Database cũ được thêm bảng `worksheets` tự động, không cần tạo lại.
+
 ## Chạy trên Windows PowerShell
 
 Repo này nằm trong thư mục `backend`, bên cạnh `data`. Tại thư mục đang chứa `main.py`:

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Soạn bài tập · Tĩnh Huyền Quán</title>
+<link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
+<link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/tien-canh.js?v=worksheets-1"></script>
+<link rel="stylesheet" href="/worksheets.css?v=1">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=1"><link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg?v=1"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
+</head>
+<body><main class="wrap">
+<header class="hero"><div><p class="eyebrow">DÀNH CHO GIÁO VIÊN</p><h1>Soạn bài tập</h1><p>Từ thế cờ đến bài học. Mỗi trang 12 bài, sẵn sàng để in.</p></div><span class="seal" aria-hidden="true">Kỳ<br>học</span></header>
+<div class="topbar"><label>Mở đề đã lưu<select id="saved"><option value="">Chọn một đề…</option></select></label><button id="new" class="secondary">Đề mới</button><span id="save-state" role="status">Bản nháp</span><button id="save" class="secondary">Lưu đề</button><button id="export" disabled>Xuất PDF học sinh</button><button id="answers" class="secondary" disabled>PDF đáp án</button></div>
+<p id="status" role="status" aria-live="polite"></p>
+<div class="workspace">
+<aside class="settings">
+<section class="panel"><h2>1. Thông tin đề</h2>
+<label>Loại phiếu<select id="kind"><option value="exercise">Bài tập</option><option value="test">Bài kiểm tra</option></select></label>
+<label>Tiêu đề<input id="title" maxlength="120" value="BÀI TẬP CỜ VUA"></label>
+<label>Dành cho lớp / level<input id="level" maxlength="60" placeholder="Ví dụ: Step 2, lớp U8"></label>
+<p class="hint">Trên phiếu luôn có ô Họ tên và Level để học sinh tự điền.</p>
+<label>Lời dặn<textarea id="instructions" maxlength="200" rows="3">Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.</textarea></label>
+<label>Thời gian làm bài (phút)<input id="duration" type="number" min="1" max="240" placeholder="Không bắt buộc"></label>
+<label class="check"><input id="rotate" type="checkbox"> Xoay bàn theo bên đi</label>
+</section>
+<section class="panel"><h2>2. Chọn bài theo trình độ</h2>
+<label>Độ khó<select id="difficulty"></select></label>
+<p class="hint">Độ khó dựa trên điểm câu đố, không tương đương trực tiếp Elo hay Step của học sinh.</p>
+<div class="two"><label>Điểm thấp nhất<input id="min-rating" type="number" min="0" max="4000" value="400"></label><label>Điểm cao nhất<input id="max-rating" type="number" min="0" max="4000" value="899"></label></div>
+<label>Chủ đề<select id="theme"></select></label>
+<label>Số trang<input id="pages" type="number" min="1" max="10" value="1"></label>
+<button id="generate" disabled>Tạo 12 bài</button>
+<button id="append-page" class="secondary" disabled>Thêm một trang 12 bài</button>
+<p id="bank" class="hint">Đang kiểm tra kho câu đố…</p>
+<details><summary>Muốn có thêm câu đố?</summary><p class="hint">Trang này dùng kho Lichess của ứng dụng. Có sẵn 192 bài ở bốn mức độ. Kho đã nhập sẽ được ưu tiên; khi bộ lọc thiếu bài, ứng dụng báo rõ và giữ nguyên đề.</p></details>
+</section>
+<section class="panel"><h2>3. Tự biên soạn</h2><p class="hint">Dựng bàn cờ, dán FEN và nhập yêu cầu / đáp án của riêng bạn.</p><button id="add-custom" class="secondary">+ Thêm bài tự soạn</button></section>
+</aside>
+<section class="preview"><div class="preview-head"><div><h2>Bản xem trước</h2><p id="count" class="hint">Chưa có bài</p></div><span class="paper-badge">A4 · 3 cột × 4 hàng</span></div>
+<div id="selection-tools" class="selection-tools" hidden><strong id="selection-label"></strong><button id="replace" class="secondary">Đổi bài từ kho</button><button id="edit" class="secondary">Chỉnh bài</button><button id="up" class="secondary" aria-label="Đưa bài lên trước">←</button><button id="down" class="secondary" aria-label="Đưa bài xuống sau">→</button><button id="remove" class="secondary">Bỏ bài</button></div>
+<p class="hint">Bấm vào một thế cờ để chỉnh sửa, đổi bài hoặc sắp xếp lại. Đáp án chỉ xuất trong bản giáo viên.</p>
+<div id="sheets"></div>
+</section></div>
+<dialog id="editor"><form id="editor-form"><div class="dialog-head"><h2 id="editor-title">Bài tự soạn</h2><button id="close-editor" type="button" class="secondary">Đóng</button></div>
+<div class="editor-grid"><div><div id="palette" class="palette" aria-label="Chọn quân để đặt lên bàn"></div><div id="editor-board" class="editor-board" aria-label="Bàn cờ để dựng thế"></div><div class="editor-tools"><button id="initial-board" type="button" class="secondary">Vị trí ban đầu</button><button id="clear-board" type="button" class="secondary">Xóa bàn</button></div><p class="hint">Chọn quân rồi bấm ô để đặt. Chọn tẩy để xóa quân. Khi dựng lại, quyền nhập thành và bắt tốt qua đường được bỏ; dùng FEN đầy đủ nếu bài cần các quyền này.</p></div>
+<div><label>Bên đi<select id="editor-turn"><option value="w">Trắng</option><option value="b">Đen</option></select></label><label>FEN<textarea id="editor-fen" maxlength="150" rows="3"></textarea></label><button id="load-fen" type="button" class="secondary">Hiện FEN lên bàn</button><label>Yêu cầu bài<input id="editor-instruction" maxlength="90" value="Tìm nước đi tốt nhất."></label><label>Đáp án (không in trên đề học sinh)<textarea id="editor-solution" maxlength="500" rows="3" placeholder="Ví dụ: Qh7# hoặc g6h7"></textarea></label><p class="hint">Nhập chuỗi nước SAN hoặc UCI, có thể để trống nếu chỉ xuất đề. Hệ thống kiểm tra nước đi hợp lệ; bài tự soạn cần bạn kiểm tra đáp án tốt nhất.</p><p id="editor-status" role="status"></p><button id="apply-exercise" type="submit">Kiểm tra và thêm bài</button></div></div>
+</form></dialog>
+</main><svg id="piece-definitions" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden"></svg>
+<script type="module" src="/worksheets.js?v=1"></script>
+</body></html>
