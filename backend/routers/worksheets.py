@@ -26,7 +26,14 @@ async def upload_logo(request: Request):
 
 @router.get("/options")
 def options():
-    return {"levels": service.LEVELS, "themes": service.THEMES, "bank": service.bank_info(), "per_page": 12}
+    return {"levels": service.LEVELS, "themes": service.THEMES, "theme_groups": service.grouped_themes(), "bank": service.bank_info(), "per_page": 12}
+
+
+@router.get("/theme-counts")
+def theme_counts(min_rating: int = Query(default=400, ge=0, le=4000), max_rating: int = Query(default=899, ge=0, le=4000)):
+    if min_rating > max_rating:
+        raise HTTPException(400, "Điểm thấp nhất phải nhỏ hơn hoặc bằng điểm cao nhất")
+    return service.theme_counts(service.Filters(min_rating=min_rating, max_rating=max_rating))
 
 
 @router.post("/select")

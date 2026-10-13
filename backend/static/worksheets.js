@@ -13,6 +13,7 @@ const defaultFooter=()=> 'Tĩnh Huyền Quán - 12 bài / trang';
 const logoSource=()=> typeof draft.logo==='string'&&draft.logo.length<=1500000&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(draft.logo)?draft.logo:null;
 const uuid=()=>{if(typeof crypto.randomUUID==='function')return crypto.randomUUID();const bytes=crypto.getRandomValues(new Uint8Array(16));bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');};
 let historyOffset=0,historyTotal=0,historyRevision=0;
+let themeCounts=null,countsKey='',countsRevision=0,openingTagsAvailable=true;
 let draft=blank(),documentId=uuid(),selected=-1,busy=false,options=null,editing=-1,paint='Q',squares=Array(64).fill(''),dirty=false;
 
 async function request(path,body,method='POST'){
@@ -22,14 +23,37 @@ async function request(path,body,method='POST'){
 }
 const api=async(path,body,method='POST')=>(await request(path,body,method)).json();
 const status=text=>$('status').textContent=text;
+const searchable=value=>String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[\s_:-]+/g,'');
+function renderThemeOptions(selected=$('theme').value){
+ if(!options)return;
+ const query=searchable($('theme-search').value.trim()),groups=options.theme_groups||[{name:'Chủ đề',ids:Object.keys(options.themes).filter(id=>id)}];
+ const label=id=>esc(options.themes[id])+(Number.isFinite(themeCounts?.[id])?' · '+themeCounts[id].toLocaleString('vi-VN')+' bài':'');
+ let html='<option value="">'+label('')+'</option>';
+ for(const group of groups){const ids=group.ids.filter(id=>id===selected||searchable(options.themes[id]+' '+id+' '+group.name).includes(query));if(ids.length)html+=`<optgroup label="${esc(group.name)}">`+ids.map(id=>`<option value="${esc(id)}">${label(id)}</option>`).join('')+'</optgroup>';}
+ $('theme').innerHTML=html;$('theme').value=selected||'';
+}
+function themeCountHint(){
+ if($('theme').value.startsWith('opening:')&&!openingTagsAvailable){$('theme-count').textContent='Kho đã nhập chưa có nhãn khai cuộc. Nhập lại file Lichess để dùng bộ lọc này.';return;}
+ const count=themeCounts?.[$('theme').value];if(!Number.isFinite(count))return;
+ $('theme-count').textContent=`${count.toLocaleString('vi-VN')} bài trong khoảng ${$('min-rating').value}-${$('max-rating').value}. `+(count<12?'Chưa đủ một trang 12 bài; hãy đổi khoảng điểm hoặc chủ đề.':`Có thể tạo tối đa ${Math.min(10,Math.floor(count/12))} trang từ bộ lọc này. Thêm/đổi bài sẽ bỏ các mã đã dùng.`);
+}
+async function refreshThemeCounts(){
+ if(!options)return;
+ const min=Number($('min-rating').value),max=Number($('max-rating').value),key=min+':'+max;
+ if(!Number.isInteger(min)||!Number.isInteger(max)||min<0||max>4000||min>max){countsRevision++;countsKey='';themeCounts=null;$('theme-count').textContent='Nhập khoảng điểm hợp lệ để xem số bài.';renderThemeOptions();return;}
+ if(key===countsKey){themeCountHint();return;}
+ countsKey=key;themeCounts=null;renderThemeOptions();const revision=++countsRevision;$('theme-count').textContent='Đang đếm bài trong khoảng điểm…';
+ try{const result=await api(`/theme-counts?min_rating=${min}&max_rating=${max}`,undefined,'GET');if(revision!==countsRevision)return;themeCounts=result.counts;openingTagsAvailable=result.opening_tags_available!==false;renderThemeOptions();themeCountHint();}
+ catch(error){if(revision===countsRevision){countsKey='';$('theme-count').textContent='Chưa đếm được số bài. Bạn vẫn có thể chọn chủ đề và tạo đề.';}}
+}
 function sync(){for(const [key,id] of Object.entries(textFields)){const value=$(id).value;if(key==='header_text'&&draft[key]===null&&value===defaultHeader()||key==='footer_text'&&draft[key]===null&&value===defaultFooter())continue;draft[key]=value;}for(const [key,id] of Object.entries(checkFields))draft[key]=$(id).checked;draft.duration=$('duration').value===''?null:Number($('duration').value);draft.filters={min_rating:Number($('min-rating').value),max_rating:Number($('max-rating').value),theme:$('theme').value};}
-function hydrate(){draft={...blank(),...draft};for(const [key,id] of Object.entries(textFields))$(id).value=draft[key]??(key==='header_text'?defaultHeader():key==='footer_text'?defaultFooter():'');for(const [key,id] of Object.entries(checkFields))$(id).checked=!!draft[key];$('duration').value=draft.duration??'';const f=draft.filters||blank().filters;$('min-rating').value=f.min_rating;$('max-rating').value=f.max_rating;$('theme').value=f.theme;$('difficulty').value=options?.levels.find(l=>l.min===f.min_rating&&l.max===f.max_rating)?.id||'custom';$('pages').value=Math.max(1,Math.ceil(draft.exercises.length/12));render();}
+function hydrate(){draft={...blank(),...draft};for(const [key,id] of Object.entries(textFields))$(id).value=draft[key]??(key==='header_text'?defaultHeader():key==='footer_text'?defaultFooter():'');for(const [key,id] of Object.entries(checkFields))$(id).checked=!!draft[key];$('duration').value=draft.duration??'';const f=draft.filters||blank().filters;$('min-rating').value=f.min_rating;$('max-rating').value=f.max_rating;renderThemeOptions(f.theme);$('theme').value=f.theme;$('difficulty').value=options?.levels.find(l=>l.min===f.min_rating&&l.max===f.max_rating)?.id||'custom';$('pages').value=Math.max(1,Math.ceil(draft.exercises.length/12));render();refreshThemeCounts();}
 function remember(){sync();dirty=true;try{localStorage.setItem(KEY,JSON.stringify({id:documentId,document:draft}));$('save-state').textContent='Bản nháp đã giữ trên máy';}catch{$('save-state').textContent='Chưa lưu - hãy bấm Lưu đề';}controls();}
 function controls(){
  const count=draft.exercises.length,ready=count>0&&count%12===0,hasSelection=selected>=0&&selected<count;
  for(const id of ['new','save','add-custom','history-open'])$(id).disabled=busy;
  $('saved').disabled=busy;$('generate').disabled=busy||!options;$('append-page').disabled=busy||!options||count>108;
- for(const id of [...Object.values(textFields),...Object.values(checkFields),'duration','pages','difficulty','min-rating','max-rating','theme','logo-input','logo-remove','reset-branding'])$(id).disabled=busy;
+ for(const id of [...Object.values(textFields),...Object.values(checkFields),'duration','pages','difficulty','min-rating','max-rating','theme','theme-search','logo-input','logo-remove','reset-branding'])$(id).disabled=busy;
  $('sheets').querySelectorAll('[data-sheet-title], [data-sheet-field]').forEach(el=>el.contentEditable=busy?'false':'plaintext-only');
  $('view-answers').disabled=busy||!count;
  $('export').disabled=busy||!ready;$('answers').disabled=busy||!ready||draft.exercises.some(e=>!e.solution);
@@ -92,9 +116,10 @@ async function generate(append=false,replace=false){
 }
 $('generate').onclick=()=>generate();$('append-page').onclick=()=>generate(true);$('replace').onclick=()=>generate(false,true);
 $('pages').oninput=controls;
-$('difficulty').onchange=()=>{const level=options.levels.find(l=>l.id===$('difficulty').value);if(level){$('min-rating').value=level.min;$('max-rating').value=level.max;}remember();};
-for(const id of ['min-rating','max-rating'])$(id).oninput=()=>{$('difficulty').value='custom';remember();};
-$('theme').onchange=remember;
+$('difficulty').onchange=()=>{const level=options.levels.find(l=>l.id===$('difficulty').value);if(level){$('min-rating').value=level.min;$('max-rating').value=level.max;}remember();refreshThemeCounts();};
+for(const id of ['min-rating','max-rating'])$(id).oninput=()=>{$('difficulty').value='custom';remember();refreshThemeCounts();};
+$('theme').onchange=()=>{remember();themeCountHint();};
+$('theme-search').oninput=()=>renderThemeOptions();
 for(const id of ['title','level','instructions','duration','rotate','show-prompts','header-text','footer-text','show-page-numbers','page-number-format'])$(id).addEventListener('input',()=>{remember();render();});
 $('kind').onchange=()=>{if(['BÀI TẬP CỜ VUA','BÀI KIỂM TRA CỜ VUA'].includes($('title').value))$('title').value=$('kind').value==='test'?'BÀI KIỂM TRA CỜ VUA':'BÀI TẬP CỜ VUA';if(draft.header_text===null){draft.kind=$('kind').value;$('header-text').value=defaultHeader();}remember();render();};
 $('reset-branding').onclick=()=>{if(busy)return;draft.header_text=null;draft.footer_text=null;$('header-text').value=defaultHeader();$('footer-text').value=defaultFooter();$('page-number-format').value=blank().page_number_format;remember();render();};
@@ -191,7 +216,7 @@ async function boot(){
  try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');if(stored?.document&&Array.isArray(stored.document.exercises)&&stored.document.exercises.length<=120&&stored.document.exercises.every(e=>{try{return typeof e.fen==='string'&&!!new Chess(e.fen)}catch{return false}})){draft={...blank(),...stored.document};documentId=stored.id||uuid();dirty=true;restoredDraft=draft.exercises.length>0;busy=restoredDraft;}}catch{}
  hydrate();
  const results=await Promise.allSettled([api('/options',undefined,'GET'),loadSaved()]);
- if(results[0].status==='fulfilled'){options=results[0].value;$('difficulty').innerHTML=options.levels.map(l=>`<option value="${esc(l.id)}">${esc(l.name)} (${l.min}-${l.max})</option>`).join('')+'<option value="custom">Tùy chỉnh</option>';$('theme').innerHTML=Object.entries(options.themes).map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');$('bank').textContent=`${options.bank.name}: ${options.bank.count.toLocaleString('vi-VN')} bài. Không lặp bài trong một đề được tạo tự động.`;}else{status(results[0].reason.message);$('bank').textContent='Chưa kết nối kho. Bạn vẫn có thể tự soạn bài.';}
+ if(results[0].status==='fulfilled'){options=results[0].value;$('difficulty').innerHTML=options.levels.map(l=>`<option value="${esc(l.id)}">${esc(l.name)} (${l.min}-${l.max})</option>`).join('')+'<option value="custom">Tùy chỉnh</option>';renderThemeOptions(draft.filters.theme);$('bank').textContent=`${options.bank.name}: ${options.bank.count.toLocaleString('vi-VN')} bài. Không lặp bài trong một đề được tạo tự động.`;}else{status(results[0].reason.message);$('bank').textContent='Chưa kết nối kho. Bạn vẫn có thể tự soạn bài.';}
  if(results[1].status==='rejected')status(results[1].reason.message);hydrate();
  if(restoredDraft){
   try{sync();const saved=await api('/'+documentId,draft,'PUT');draft=saved.document;hydrate();dirty=false;await loadSaved();$('save-state').textContent='Bản nháp đã đưa vào lịch sử';status('Đã giữ đề đang mở cùng đáp án vào lịch sử; bạn có thể tiếp tục sửa.');}

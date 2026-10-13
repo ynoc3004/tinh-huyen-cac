@@ -180,7 +180,8 @@ def import_csv(path, per_bucket=1500, min_pop=80, min_plays=250, progress=None, 
             b = rating // 50
             seen[b] = seen.get(b, 0) + 1
             lst = buckets.setdefault(b, [])
-            rec = (row["PuzzleId"], row["FEN"], row["Moves"], rating, pop, plays, " " + row["Themes"].strip() + " ", row.get("GameUrl", ""))
+            rec = (row["PuzzleId"], row["FEN"], row["Moves"], rating, pop, plays, " " + row["Themes"].strip() + " ", row.get("GameUrl", ""),
+                   " " + (row.get("OpeningTags") or "").strip() + " ")
             if len(lst) < per_bucket:
                 lst.append(rec)
             else:
@@ -195,10 +196,10 @@ def import_csv(path, per_bucket=1500, min_pop=80, min_plays=250, progress=None, 
     if tmp.exists():
         tmp.unlink()
     c = sqlite3.connect(tmp)
-    c.execute("CREATE TABLE puzzles(id TEXT PRIMARY KEY, fen TEXT, moves TEXT, rating INT, popularity INT, plays INT, themes TEXT, url TEXT)")
+    c.execute("CREATE TABLE puzzles(id TEXT PRIMARY KEY, fen TEXT, moves TEXT, rating INT, popularity INT, plays INT, themes TEXT, url TEXT, opening_tags TEXT)")
     n = 0
     for lst in buckets.values():
-        c.executemany("INSERT OR IGNORE INTO puzzles VALUES(?,?,?,?,?,?,?,?)", lst)
+        c.executemany("INSERT OR IGNORE INTO puzzles VALUES(?,?,?,?,?,?,?,?,?)", lst)
         n += len(lst)
     c.execute("CREATE INDEX idx_puzzles_rating ON puzzles(rating)")
     c.commit()

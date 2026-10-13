@@ -7,10 +7,11 @@ for(const m of html.matchAll(/id="([^"]+)"/g))node(m[1]);
 node('pages').value='1';node('min-rating').value='400';node('max-rating').value='899';
 const fen='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const ex=id=>({id,fen,instruction:'Tìm nước đi tốt nhất.',solution:'e4',rating:800,source:'lichess',turn:'w',themes:[]});
-let gen=0,failSelect=false,failLogo=false;
+let gen=0,failSelect=false,failLogo=false,failCounts=false;
 const logo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==';
 const fetch=async(url,opt)=>{const body=typeof opt?.body==='string'?JSON.parse(opt.body):opt?.body;requests.push({url,body,method:opt?.method});let data;
-if(url==='/api/worksheets/options')data={levels:[{id:'beginner',name:'Mới bắt đầu',min:400,max:899},{id:'advanced',name:'Nâng cao',min:1800,max:2600}],themes:{'':'Mọi chủ đề',mateIn1:'Chiếu hết trong 1 nước'},bank:{name:'Kho đi kèm',count:20000}};
+if(url==='/api/worksheets/options')data={levels:[{id:'beginner',name:'Mới bắt đầu',min:400,max:899},{id:'advanced',name:'Nâng cao',min:1800,max:2600}],themes:{'':'Mọi chủ đề',mateIn1:'Chiếu hết trong 1 nước','opening:French_Defense':'Phòng thủ Pháp (French)',underPromotion:'Phong cấp thành xe / tượng / mã'},theme_groups:[{name:'Chiếu hết',ids:['mateIn1']},{name:'Khai cuộc',ids:['opening:French_Defense']},{name:'Nước đặc biệt',ids:['underPromotion']}],bank:{name:'Kho đi kèm',count:22592}};
+else if(url.startsWith('/api/worksheets/theme-counts?')){if(failCounts)return{ok:false,json:async()=>({detail:'Không đọc được kho'})};const query=new URLSearchParams(url.split('?')[1]),min=Number(query.get('min_rating'));data={counts:{'':5000,mateIn1:120,'opening:French_Defense':min>=1800?48:24,underPromotion:3}};}
 else if(url==='/api/worksheets/logo'){assert.equal(node('logo-input').disabled,true,'Editing must freeze while a logo is processed');if(failLogo)return{ok:false,json:async()=>({detail:'Ảnh không hợp lệ'})};data={logo,width:1,height:1};}
 else if(url==='/api/worksheets/generate'){if(failSelect)return{ok:false,json:async()=>({detail:'Thiếu bài đúng độ khó'})};gen++;const document=structuredClone(body.document),selection=body.selection,chosen=Array.from({length:selection.count},(_,i)=>ex('G'+gen+'-'+i));if(body.mode==='replace')document.exercises[body.index]=chosen[0];else if(body.mode==='append')document.exercises.push(...chosen);else document.exercises=chosen;document.filters={min_rating:selection.min_rating,max_rating:selection.max_rating,theme:selection.theme};saved.set(body.document_id,structuredClone(document));versions.push({id:versions.length+1,document_id:body.document_id,document:structuredClone(document),title:document.title,count:document.exercises.length,answer_count:document.exercises.length,action:body.mode,created_at:'2026-10-13 05:00:00'});data={id:body.document_id,version_id:versions.length,document};}
 else if(url.startsWith('/api/worksheets/history?')){const q=new URLSearchParams(url.split('?')[1]),offset=Number(q.get('offset')||0);data={items:versions.slice().reverse().slice(offset,offset+12),total:versions.length};}
@@ -28,6 +29,13 @@ const chess=await import('data:text/javascript;base64,'+fs.readFileSync(path.joi
 const ctx={Chess:chess.Chess,PIECE_DEFS:'',console,fetch,URLSearchParams,Date,confirm:()=>true,crypto:{randomUUID:()=>`00000000-0000-4000-8000-${String(++serial).padStart(12,'0')}`},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},URL:{createObjectURL:()=>'/blob-pdf',revokeObjectURL(){}},setTimeout:()=>1,document:{getElementById:node,createElement:()=>node('download'),body:node('body')}};
 vm.createContext(ctx);vm.runInContext(script,ctx);await flush();
 assert.equal(node('export').disabled,true);assert(node('sheets').innerHTML.includes('Họ tên:'));assert(node('sheets').innerHTML.includes('Level:'));assert.equal(node('generate').disabled,false);
+assert(node('theme').innerHTML.includes('<optgroup label="Khai cuộc">'));
+assert(node('theme').innerHTML.includes('24 bài'));assert(node('theme-count').textContent.includes('tối đa 10 trang'));
+node('theme-search').value='phong cap';node('theme-search').oninput();assert(node('theme').innerHTML.includes('underPromotion'));assert(!node('theme').innerHTML.includes('French_Defense'),'Search should ignore Vietnamese accents');
+node('theme-search').value='French';node('theme-search').oninput();assert(node('theme').innerHTML.includes('French_Defense'));
+node('theme').value='opening:French_Defense';node('theme').onchange();node('theme-search').value='khong tim thay';node('theme-search').oninput();assert.equal(node('theme').value,'opening:French_Defense','Searching must not silently change the selected topic');
+node('theme').value='underPromotion';node('theme').onchange();assert(node('theme-count').textContent.includes('Chưa đủ một trang'));
+node('theme').value='';node('theme').onchange();node('theme-search').value='';node('theme-search').oninput();
 await click('generate');assert.equal((node('sheets').innerHTML.match(/data-exercise=/g)||[]).length,12);assert.equal(node('export').disabled,false);assert.equal(node('answers').disabled,false);
 assert(!node('sheets').innerHTML.includes('>e4<'),'Student preview must not reveal solutions');
 await input('title','Đề kiểm tra lớp Step 2');await input('level','Step 2');
@@ -48,6 +56,7 @@ const custom=requests.find(r=>r.url.endsWith('/edit'));assert.equal(custom.body.
 await click('new');assert.equal(node('export').disabled,true);assert.equal(node('title').value,'BÀI TẬP CỜ VUA');
 node('saved').value=[...saved.keys()][0];await node('saved').onchange();await flush();assert.equal(node('title').value,'Đề kiểm tra lớp Step 2');assert.equal(node('export').disabled,false);
 node('difficulty').value='advanced';node('difficulty').onchange();assert.equal(node('min-rating').value,1800);assert.equal(node('max-rating').value,2600);
+await flush();assert(node('theme').innerHTML.includes('48 bài'),'Topic counts follow the selected difficulty');
 await input('min-rating','2000');node('min-rating').oninput();assert.equal(node('difficulty').value,'custom');
 await click('save');await click('new');node('saved').value=[...saved.keys()][0];await node('saved').onchange();await flush();assert.equal(node('min-rating').value,2000);assert.equal(node('max-rating').value,2600,'Saved band must survive reopening before replacing a puzzle');
 await click('edit');node('clear-board').onclick();assert.equal(node('editor-fen').value,'8/8/8/8/8/8/8/8 w - - 0 1');
@@ -97,5 +106,7 @@ vm.runInNewContext(script,{...ctx});await flush();
 assert.equal(requests.filter(r=>r.method==='PUT').length,putsBefore+1,'An existing local draft must be archived automatically after upgrade/reload');
 assert.equal(node('save-state').textContent,'Bản nháp đã đưa vào lịch sử');
 assert.equal(node('logo-preview').src,logo);assert.equal(node('show-prompts').checked,false);
-console.log('PASS: worksheet history, generation, editor, direct title/header/footer editing, prompt/page toggles, first-page logo upload/remove/error handling and snapshot/reload preservation');
+failCounts=true;node('max-rating').value='2600';node('min-rating').value='2001';node('min-rating').oninput();await flush();assert(node('theme-count').textContent.includes('Chưa đếm được'));assert.equal(node('generate').disabled,false,'Count failures must not block generation');
+node('min-rating').value='3000';node('max-rating').value='1000';node('min-rating').oninput();assert(node('theme-count').textContent.includes('khoảng điểm hợp lệ'));
+console.log('PASS: grouped topic search/counts/shortage/failure handling, worksheet history, generation, editor, direct title/header/footer editing, prompt/page toggles, first-page logo and snapshot preservation');
 })().catch(e=>{console.error(e);process.exitCode=1});

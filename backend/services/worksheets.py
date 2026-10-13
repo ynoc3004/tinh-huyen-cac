@@ -13,6 +13,7 @@ import chess.svg
 from pydantic import BaseModel, Field, model_validator
 
 import config
+from services.worksheet_themes import THEMES, grouped_themes, theme_field, theme_keys
 
 LEVELS = [
     {"id": "beginner", "name": "Mới bắt đầu", "min": 400, "max": 899},
@@ -20,16 +21,12 @@ LEVELS = [
     {"id": "intermediate", "name": "Trung cấp", "min": 1300, "max": 1799},
     {"id": "advanced", "name": "Nâng cao", "min": 1800, "max": 2600},
 ]
-THEMES = {"": "Mọi chủ đề", "mateIn1": "Chiếu hết trong 1 nước", "mateIn2": "Chiếu hết trong 2 nước",
-          "mateIn3": "Chiếu hết trong 3 nước", "fork": "Đòn đôi", "pin": "Ghim quân",
-          "skewer": "Xiên quân", "discoveredAttack": "Tấn công mở", "hangingPiece": "Bắt quân không được bảo vệ",
-          "sacrifice": "Hy sinh", "promotion": "Phong cấp", "endgame": "Tàn cuộc"}
 
 
 class Filters(BaseModel):
     min_rating: int = Field(default=400, ge=0, le=4000)
     max_rating: int = Field(default=899, ge=0, le=4000)
-    theme: str = Field(default="", max_length=40)
+    theme: str = Field(default="", max_length=80)
 
     @model_validator(mode="after")
     def band(self):
@@ -48,6 +45,7 @@ class Exercise(BaseModel):
     rating: int | None = Field(default=None, ge=0, le=4000)
     source: Literal["custom", "lichess", "sample"] = "custom"
     themes: list[str] = Field(default_factory=list, max_length=30)
+    opening_tags: list[str] = Field(default_factory=list, max_length=20)
 
 
 class Document(BaseModel):
@@ -182,20 +180,63 @@ def bank_info():
     return {"source": "starter", "count": len(starter_bank()), "name": "Kho Lichess đi kèm"}
 
 
+@lru_cache(maxsize=16)
+def _theme_counts(path, modified, size, minimum, maximum):
+    from collections import Counter
+    counts = Counter()
+    opening_tags_available = True
+    if path:
+        with sqlite3.connect(path) as db:
+            columns = {row[1] for row in db.execute("PRAGMA table_info(puzzles)")}
+            opening_tags_available = "opening_tags" in columns
+            openings = "COALESCE(opening_tags,'')" if "opening_tags" in columns else "''"
+            rows = db.execute(f"SELECT themes,{openings},COUNT(*) FROM puzzles WHERE rating BETWEEN ? AND ? "
+                              f"GROUP BY themes,{openings}", (minimum, maximum))
+            for themes, tags, count in rows:
+                counts[""] += count
+                for key in theme_keys(themes or "", tags):
+                    if key in THEMES:
+                        counts[key] += count
+    else:
+        for row in starter_bank():
+            if minimum <= row['rating'] <= maximum:
+                counts[""] += 1
+                for key in theme_keys(row['themes'], row.get('opening_tags', '')):
+                    if key in THEMES:
+                        counts[key] += 1
+    return {"counts": {key: counts[key] for key in THEMES}, "opening_tags_available": opening_tags_available}
+
+
+def theme_counts(filters):
+    info = bank_info()
+    if info['source'] == 'local':
+        path = Path(config.PUZZLE_DB)
+        stat = path.stat()
+        key = (str(path), stat.st_mtime_ns, stat.st_size)
+    else:
+        key = ('', 0, 0)
+    return {**_theme_counts(*key, filters.min_rating, filters.max_rating), "bank": info,
+            "min_rating": filters.min_rating, "max_rating": filters.max_rating}
+
+
 def select_exercises(selection):
     info = bank_info()
     excluded = set(selection.exclude)
+    field, theme = theme_field(selection.theme)
     if info["source"] == "local":
         with sqlite3.connect(config.PUZZLE_DB) as db:
             db.row_factory = sqlite3.Row
+            columns = {row[1] for row in db.execute("PRAGMA table_info(puzzles)")}
+            if field not in columns:
+                raise ValueError("Kho đã nhập chưa có nhãn khai cuộc. Nhập lại file Lichess bằng import_puzzles.py để bổ sung; đề đang mở được giữ nguyên.")
             # Indexed rating range; bounded sample, exact theme tokens, no widening.
             rows = [dict(r) for r in db.execute(
-                "SELECT * FROM puzzles WHERE rating BETWEEN ? AND ? AND "
-                "(?='' OR instr(' '||trim(themes)||' ', ' '||?||' ')>0) ORDER BY RANDOM() LIMIT 1500",
-                (selection.min_rating, selection.max_rating, selection.theme, selection.theme))]
+                f"SELECT * FROM puzzles WHERE rating BETWEEN ? AND ? AND "
+                f"(?='' OR instr(' '||trim({field})||' ', ' '||?||' ')>0) ORDER BY RANDOM() LIMIT 1500",
+                (selection.min_rating, selection.max_rating, theme, theme))]
     else:
         rows = [p for p in starter_bank() if selection.min_rating <= p["rating"] <= selection.max_rating
-                and (not selection.theme or selection.theme in p["themes"].split())]
+                and (not theme or theme in p.get(field, '').split())]
     random.SystemRandom().shuffle(rows)
     result, seen = [], set()
     for row in rows:
@@ -209,9 +250,11 @@ def select_exercises(selection):
             # Lichess FEN precedes the opponent's setup move; solution starts at move 2.
             board.push_uci(moves[0])
             themes = row["themes"].split()
-            instruction = next((f"Chiếu hết trong {n} nước." for n in (1, 2, 3) if f"mateIn{n}" in themes), "Tìm nước đi tốt nhất.")
+            instruction = next((f"Chiếu hết trong {n} nước." for n in (1, 2, 3, 4) if f"mateIn{n}" in themes),
+                               "Tìm phương án chiếu hết." if 'mate' in themes else "Tìm nước đi tốt nhất.")
             item = Exercise(id=row["id"], fen=board.fen(), solution=" ".join(moves[1:]), instruction=instruction,
-                            rating=row["rating"], source="lichess", themes=row["themes"].split())
+                            rating=row["rating"], source="lichess", themes=row["themes"].split(),
+                            opening_tags=(row.get('opening_tags') or '').split())
             shaped = validate_exercise(item)
             position = " ".join(shaped["fen"].split()[:4])
             if position in seen:

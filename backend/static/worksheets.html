@@ -40,12 +40,15 @@
 <label>Độ khó<select id="difficulty"></select></label>
 <p class="hint">Độ khó dựa trên điểm câu đố, không tương đương trực tiếp Elo hay Step của học sinh.</p>
 <div class="two"><label>Điểm thấp nhất<input id="min-rating" type="number" min="0" max="4000" value="400"></label><label>Điểm cao nhất<input id="max-rating" type="number" min="0" max="4000" value="899"></label></div>
+<label>Tìm chủ đề<input id="theme-search" type="search" maxlength="80" placeholder="Ví dụ: chiếu hết, tàn cuộc, French…"></label>
 <label>Chủ đề<select id="theme"></select></label>
+<p id="theme-count" class="hint" role="status"></p>
+<p class="hint">Chủ đề chia theo nhóm. Số bài tính trong khoảng điểm đang chọn; bài theo khai cuộc lấy từ ván gốc, không phải bài học lý thuyết khai cuộc.</p>
 <label>Số trang<input id="pages" type="number" min="1" max="10" value="1"></label>
 <button id="generate" disabled>Tạo 12 bài</button>
 <button id="append-page" class="secondary" disabled>Thêm một trang 12 bài</button>
 <p id="bank" class="hint">Đang kiểm tra kho câu đố…</p>
-<details><summary>Muốn có thêm câu đố?</summary><p class="hint">Có sẵn 20.000 bài ở bốn mức độ. Kho Lichess đã nhập của ứng dụng sẽ được ưu tiên; khi bộ lọc thiếu bài, ứng dụng báo rõ và giữ nguyên đề.</p></details>
+<details><summary>Muốn có thêm câu đố?</summary><p class="hint">Có hơn 20.000 bài ở bốn mức độ, bổ sung các chủ đề hiếm và nhãn khai cuộc. Kho Lichess đã nhập của ứng dụng sẽ được ưu tiên; khi bộ lọc thiếu bài, ứng dụng báo rõ và giữ nguyên đề. Kho cũ chưa có nhãn khai cuộc cần nhập lại file Lichess.</p></details>
 </section>
 <section class="panel"><h2>3. Tự biên soạn</h2><p class="hint">Dựng bàn cờ, dán FEN và nhập yêu cầu / đáp án của riêng bạn.</p><button id="add-custom" class="secondary">+ Thêm bài tự soạn</button></section>
 </aside>
@@ -61,5 +64,5 @@
 <dialog id="history-dialog"><div class="dialog-head"><h2>Lịch sử tạo đề</h2><button id="history-close" class="secondary">Đóng</button></div><p class="hint">Các phiên bản được giữ riêng, gồm tiêu đề, trình độ, thế cờ và đáp án tại thời điểm tạo/lưu/xuất PDF.</p><label>Tìm đề<input id="history-search" maxlength="120" placeholder="Tiêu đề hoặc lớp / level"></label><p id="history-status" role="status"></p><div id="history-list"></div><div class="history-paging"><button id="history-prev" class="secondary">← Trước</button><span id="history-page"></span><button id="history-next" class="secondary">Sau →</button></div></dialog>
 <dialog id="answers-dialog"><div class="dialog-head"><h2 id="answers-title">Đáp án giáo viên</h2><button id="answers-close" class="secondary">Đóng</button></div><p class="hint">Dành riêng cho giáo viên. Bản PDF học sinh không chứa phần này.</p><div id="answers-list"></div></dialog>
 </main><svg id="piece-definitions" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden"></svg>
-<script type="module" src="/worksheets.js?v=5"></script>
+<script type="module" src="/worksheets.js?v=6"></script>
 </body></html>

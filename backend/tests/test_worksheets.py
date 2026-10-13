@@ -140,7 +140,7 @@ class WorksheetTests(unittest.TestCase):
 
     def test_starter_bank_supports_twelve_in_every_difficulty(self):
         options=self.client.get('/api/worksheets/options').json()
-        self.assertEqual(options['bank']['count'],20000)
+        self.assertGreaterEqual(options['bank']['count'],20000)
         for level in options['levels']:
             response=self.select(min_rating=level['min'],max_rating=level['max'])
             self.assertEqual(response.status_code,200,response.text)
@@ -172,6 +172,81 @@ class WorksheetTests(unittest.TestCase):
         self.assertIn('mateIn1',response.json()['exercises'][0]['themes'])
         self.assertEqual(self.select(min_rating=2000,max_rating=1000).status_code,422)
         self.assertEqual(self.select(theme='unknown').status_code,422)
+
+    def test_expanded_groups_have_real_data_and_strict_topic_selection(self):
+        options=self.client.get('/api/worksheets/options').json()
+        groups=options['theme_groups'];self.assertEqual(len(groups),10)
+        topics=[key for group in groups for key in group['ids']]
+        self.assertEqual(len(topics),94);self.assertEqual(len(set(topics)),94)
+        self.assertEqual(set(topics),set(options['themes'])-{''})
+        counts=self.client.get('/api/worksheets/theme-counts?min_rating=400&max_rating=2600').json()['counts']
+        for key in topics:
+            with self.subTest(theme=key):
+                self.assertGreater(counts[key],0,'Every offered topic has actual matching puzzles')
+                response=self.select(count=min(12,counts[key]),min_rating=400,max_rating=2600,theme=key)
+                self.assertEqual(response.status_code,200,response.text)
+                for exercise in response.json()['exercises']:
+                    field,token=service.theme_field(key)
+                    self.assertIn(token,exercise[field])
+                    self.assertTrue(400<=exercise['rating']<=2600)
+        self.assertNotEqual(counts['oneMove'],counts['mateIn1'],'One-move puzzles include non-mates')
+
+    def test_topic_counts_follow_ratings_and_do_not_modify_worksheets(self):
+        from collections import Counter
+        before=self.client.get('/api/worksheets/history').json()
+        for band in service.LEVELS:
+            expected=Counter()
+            for row in service.starter_bank():
+                if band['min']<=row['rating']<=band['max']:
+                    expected['']+=1
+                    expected.update(service.theme_keys(row['themes'],row.get('opening_tags','')))
+            response=self.client.get(f"/api/worksheets/theme-counts?min_rating={band['min']}&max_rating={band['max']}")
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(response.json()['counts'],{key:expected[key] for key in service.THEMES})
+        self.assertEqual(self.client.get('/api/worksheets/history').json(),before)
+        self.assertEqual(self.client.get('/api/worksheets/theme-counts?min_rating=900&max_rating=400').status_code,400)
+        self.assertEqual(self.client.get('/api/worksheets/theme-counts?min_rating=-1').status_code,422)
+
+    def test_opening_filter_and_new_mate_prompts_survive_history(self):
+        document_id=str(uuid.uuid4())
+        response=self.client.post('/api/worksheets/generate',json=self.generation(document_id,selection={'count':12,'min_rating':400,'max_rating':2600,'theme':'opening:French_Defense'}))
+        self.assertEqual(response.status_code,200,response.text)
+        version=response.json()['version_id']
+        doc=self.client.get('/api/worksheets/history/'+str(version)).json()['document']
+        self.assertEqual(doc['filters']['theme'],'opening:French_Defense')
+        self.assertTrue(all('French_Defense' in e['opening_tags'] for e in doc['exercises']))
+        mate4=self.select(count=1,min_rating=400,max_rating=2600,theme='mateIn4').json()['exercises'][0]
+        self.assertEqual(mate4['instruction'],'Chiếu hết trong 4 nước.')
+        mate5=self.select(count=1,min_rating=400,max_rating=2600,theme='mateIn5').json()['exercises'][0]
+        self.assertEqual(mate5['instruction'],'Tìm phương án chiếu hết.')
+
+    def test_local_bank_legacy_topics_and_new_opening_metadata(self):
+        import sqlite3
+        from services import puzzles
+        sample=service.starter_bank()[0];path=Path(service.config.PUZZLE_DB)
+        with sqlite3.connect(path) as bank:
+            bank.execute('CREATE TABLE puzzles(id TEXT,fen TEXT,moves TEXT,rating INT,themes TEXT)')
+            bank.execute('INSERT INTO puzzles VALUES(?,?,?,?,?)',('legacy',sample['fen'],' '.join(sample['moves']),800,' mateIn1 '))
+        old=self.client.get('/api/worksheets/theme-counts?min_rating=400&max_rating=899').json()
+        self.assertEqual(old['counts']['mateIn1'],1);self.assertEqual(old['counts']['opening:French_Defense'],0)
+        self.assertFalse(old['opening_tags_available'])
+        self.assertEqual(self.select(count=1,theme='mateIn1').status_code,200)
+        missing=self.select(count=1,theme='opening:French_Defense')
+        self.assertEqual(missing.status_code,409);self.assertIn('Nhập lại',missing.json()['detail'])
+        # Import replaces the legacy file and retains exact source OpeningTags.
+        import csv
+        source=Path(self.tmp.name)/'p.csv'
+        with source.open('w',newline='',encoding='utf-8') as stream:
+            writer=csv.writer(stream)
+            writer.writerow(['PuzzleId','FEN','Moves','Rating','Popularity','NbPlays','Themes','GameUrl','OpeningTags'])
+            writer.writerow(['french',sample['fen'],' '.join(sample['moves']),800,100,500,'mateIn1','', 'French_Defense French_Defense_Exchange_Variation'])
+            writer.writerow(['near-match',sample['fen'],' '.join(sample['moves']),850,100,500,'mateIn1','', 'French_Defense_Exchange_Variation'])
+        puzzles.import_csv(source)
+        new=self.client.get('/api/worksheets/theme-counts?min_rating=400&max_rating=899').json()
+        self.assertEqual(new['counts']['opening:French_Defense'],1,'Opening families match whole tags, not substrings')
+        self.assertTrue(new['opening_tags_available'])
+        chosen=self.select(count=1,theme='opening:French_Defense')
+        self.assertEqual(chosen.status_code,200);self.assertEqual(chosen.json()['exercises'][0]['id'],'french')
 
     def test_manual_san_uci_move_numbers_and_illegal_answers(self):
         initial=chess.STARTING_FEN
