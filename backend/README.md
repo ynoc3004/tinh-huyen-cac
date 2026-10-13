@@ -208,9 +208,11 @@ Kiểm tra API và lịch sử bot: `python -m unittest discover -s tests -p "te
 
 ## Diện mạo chung
 
-Tất cả trang dùng `static/tien-canh.css` và `static/tien-canh.js`: màu ngọc/vàng, núi và sương, thanh điều hướng cùng kiểu Cổng môn. Trang chủ giữ hiệu ứng thời tiết và bàn Thiên cơ. Vị trí mặt trời/mặt trăng tính theo chiều cao thực tế của header, kể cả khi đổi font hoặc dùng điện thoại. Menu trên điện thoại cuộn ngang.
+Tất cả trang dùng `static/tien-canh.css` và `static/tien-canh.js`: màu ngọc/vàng, núi và sương, thanh điều hướng cùng kiểu Cổng môn. Trang chủ giữ hiệu ứng thời tiết và bàn Thiên cơ. Vị trí mặt trời/mặt trăng tính theo chiều cao thực tế của header, kể cả khi đổi font hoặc dùng điện thoại. Thanh đầu trang gọn lại còn tên quán và nút **Bát quái** ở mọi trang, kể cả màn hình điện thoại.
 
-Mở **Diện mạo** trên header để chọn **Font toàn hệ thống** hoặc **Thiên sắc**. Font áp dụng cho tiêu đề, nội dung, menu và điều khiển; các tab cùng địa chỉ cập nhật ngay. Trang `/fonts-preview.html` hiển thị mẫu chữ và nút dùng lại mặc định (Charm cho tiêu đề, Noto Serif cho nội dung). Các font được phục vụ từ máy, có khai báo subset cho dấu tiếng Việt. Không cần cài package mới.
+Bấm **Bát quái**: biểu tượng xoay và mở khung điều hướng có đủ tám lối chính; lối đang xem được đánh dấu. Có thêm liên kết phân tích PGN. Đóng bằng nút Đóng, phím Esc hoặc bấm bên ngoài khung; focus trở về nút mở. Khung tự cuộn khi màn hình nhỏ, giữ focus bên trong khi mở, không xuất hiện khi in và tắt chuyển động nếu thiết bị chọn giảm chuyển động.
+
+Trong khung bát quái, mở phần **Diện mạo** để chọn **Font toàn hệ thống** hoặc **Thiên sắc**. Font áp dụng cho tiêu đề, nội dung, menu và điều khiển; các tab cùng địa chỉ cập nhật ngay. Trang `/fonts-preview.html` hiển thị mẫu chữ và nút dùng lại mặc định (Charm cho tiêu đề, Noto Serif cho nội dung). Các font được phục vụ từ máy, có khai báo subset cho dấu tiếng Việt. Không cần cài package mới.
 
 Lựa chọn lưu trên trình duyệt bằng `thc-font` và `thc-theme`; lựa chọn font cũ `titleFont` được đọc lại tự động. Thiên sắc mặc định theo mặt trời tại TP. Hồ Chí Minh; chọn ngày/đêm sẽ giữ lựa chọn ở các trang, kể cả trang chủ. Thư Phòng dùng chung thiên sắc, cỡ chữ đọc vẫn chỉnh riêng. Các trang PDF/ảnh giữ nội dung gốc của tài liệu.
 
@@ -218,6 +220,7 @@ Kiểm tra bộ điều khiển diện mạo và các luồng frontend hiện c�
 
 ```powershell
 node tests/appearance.test.cjs
+node tests/site-menu.test.cjs
 node tests/study-workflow.test.cjs
 node tests/arena-workflow.test.cjs
 node tests/arena-clock.test.cjs

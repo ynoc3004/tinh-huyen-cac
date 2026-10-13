@@ -49,27 +49,54 @@
     if([FONT_KEY,'titleFont',THEME_KEY,null].includes(e.key))apply();
   });
   const icon='<svg viewBox="0 0 48 48" aria-hidden="true" fill="none" stroke="currentColor"><path d="M15 2h18l13 13v18L33 46H15L2 33V15z" opacity=".5"/><circle cx="24" cy="24" r="15"/><path d="M24 9a15 15 0 0 1 0 30a7.5 7.5 0 0 1 0-15a7.5 7.5 0 0 0 0-15" fill="currentColor"/><circle cx="24" cy="16.5" r="2.3" fill="currentColor"/><circle cx="24" cy="31.5" r="2.3" fill="var(--paper)" stroke="none"/></svg>';
-  const links=[['/','Cổng môn','home'],['/dao-lo.html','Đạo lộ','dao-lo'],['/library.html','Tàng kinh','library'],['/bi-canh.html','Bí cảnh','bi-canh'],['/worksheets.html','Soạn bài tập','worksheets'],['/arena.html','Đấu trường','arena'],['/history.html','Kỳ phổ','history'],['/study.html','Thư phòng','study']];
+  const paths=[
+    ['/', 'Cổng môn', 'home', 'Trở về cổng quán', '111'],
+    ['/dao-lo.html', 'Đạo lộ', 'dao-lo', 'Hồ sơ và hành trình', '110'],
+    ['/library.html', 'Tàng kinh', 'library', 'Thư viện sách cờ', '101'],
+    ['/bi-canh.html', 'Bí cảnh', 'bi-canh', 'Luyện thế cờ và công pháp', '100'],
+    ['/worksheets.html', 'Soạn bài tập', 'worksheets', 'Soạn đề và xuất PDF', '011'],
+    ['/arena.html', 'Đấu trường', 'arena', 'Tổ chức và điều hành giải', '010'],
+    ['/history.html', 'Kỳ phổ', 'history', 'Ván đấu và phân tích đã lưu', '001'],
+    ['/study.html', 'Thư phòng', 'study', 'Đọc sách và ghi chú', '000']
+  ];
+  function trigram(pattern, x=0, y=0, width=24, gap=6) {
+    return [...pattern].map((line,row)=>line==='1'
+      ? '<rect x="'+x+'" y="'+(y+row*gap)+'" width="'+width+'" height="2.5"/>'
+      : '<rect x="'+x+'" y="'+(y+row*gap)+'" width="'+(width*.4)+'" height="2.5"/><rect x="'+(x+width*.6)+'" y="'+(y+row*gap)+'" width="'+(width*.4)+'" height="2.5"/>').join('');
+  }
+  const bagua='<svg class="site-bagua" viewBox="0 0 100 100" aria-hidden="true"><path d="M31 4h38l27 27v38L69 96H31L4 69V31z" fill="none" stroke="currentColor" stroke-width="1" opacity=".6"/>'+paths.map((path,index)=>'<g fill="currentColor" transform="rotate('+(index*45)+' 50 50)">'+trigram(path[4],42,10,16,4.5)+'</g>').join('')+'<circle cx="50" cy="50" r="23" fill="none" stroke="currentColor" opacity=".2"/><circle cx="50" cy="50" r="17" fill="var(--paper)" stroke="currentColor"/><path d="M50 33a17 17 0 0 1 0 34a8.5 8.5 0 0 1 0-17a8.5 8.5 0 0 0 0-17" fill="currentColor"/><circle cx="50" cy="41.5" r="2.5" fill="currentColor"/><circle cx="50" cy="58.5" r="2.5" fill="var(--paper)"/></svg>';
   function mount() {
     const page=location.pathname.replace(/^\//,'').replace(/\.html$/,'')||'home';document.body.dataset.page=page==='index'?'home':page;
+    const active=['tournament','arena-live'].includes(page)?'arena':page==='reader'?'library':page==='learn'?'bi-canh':page==='translate'?'study':page==='index'?'home':page;
+    const current=paths.find(path=>path[2]===active)?.[1]||(page==='review'?'Phân tích PGN':page==='fonts-preview'?'Diện mạo':'Điều hướng');
     let header=document.querySelector('.site-header');
     if(!header){
-      header=document.createElement('header');header.className='site-header noprint';
-      const active=['tournament','arena-live'].includes(page)?'arena':page==='reader'?'library':page;
-      header.innerHTML='<a class="site-brand" href="/">'+icon+'<span><strong>Tĩnh Huyền Quán</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><nav class="site-navigation" aria-label="Điều hướng chính">'+links.map(([href,name,key])=>'<a href="'+href+'"'+(key===active?' aria-current="page"':'')+'>'+name+'</a>').join('')+'</nav>';
+      header=document.createElement('header');header.className='site-header';
       const host=page==='learn'?document.querySelector('body > main'):document.querySelector('body > .wrap, body > .review-shell');(host||document.body).prepend(header);
-    }else{
-      header.classList.add('noprint');const nav=header.querySelector('.site-navigation');
-      if(nav&&!nav.querySelector('a[href="/dao-lo.html"]')){const a=document.createElement('a');a.href='/dao-lo.html';a.textContent='Đạo lộ';const home=nav.querySelector('a[href="/"]');if(home)home.after(a);else nav.prepend(a)}
-      if(nav&&!nav.querySelector('a[href="/study.html"]')){const a=document.createElement('a');a.href='/study.html';a.textContent='Thư phòng';nav.append(a)}
-      if(nav&&!nav.querySelector('a[href="/worksheets.html"]')){const a=document.createElement('a');a.href='/worksheets.html';a.textContent='Soạn bài tập';nav.append(a)}
     }
-    const appearance=document.createElement('details');appearance.className='site-appearance';
-    appearance.innerHTML='<summary>Diện mạo <span aria-hidden="true">☷</span></summary><div class="appearance-panel"><label>Font toàn hệ thống<select data-site-font aria-label="Font toàn hệ thống">'+fonts.map(f=>'<option value="'+f.id+'">'+f.name+'</option>').join('')+'</select></label><label>Thiên sắc<select data-site-theme aria-label="Thiên sắc"><option value="auto">Theo mặt trời</option><option value="light">Ban ngày</option><option value="dark">Ban đêm</option></select></label><a href="/fonts-preview.html">Xem mẫu chữ →</a><small data-appearance-status role="status"></small></div>';
-    header.append(appearance);
-    appearance.querySelector('[data-site-font]').onchange=e=>{const saved=setFont(e.target.value);appearance.querySelector('[data-appearance-status]').textContent=saved?'Đã đổi font ở mọi trang và các tab đang mở.':'Đã đổi trong trang này; trình duyệt không cho lưu lựa chọn.'};
-    appearance.querySelector('[data-site-theme]').onchange=e=>{const saved=setTheme(e.target.value);appearance.querySelector('[data-appearance-status]').textContent=saved?'Đã lưu thiên sắc cho mọi trang.':'Đã đổi trong trang này; trình duyệt không cho lưu lựa chọn.'};
-    document.addEventListener('click',e=>{if(!appearance.contains(e.target))appearance.open=false});appearance.addEventListener('keydown',e=>{if(e.key==='Escape'){appearance.open=false;appearance.querySelector('summary').focus()}});
+    header.classList.add('noprint');header.dataset.baguaMenu='';
+    header.innerHTML='<a class="site-brand" href="/">'+icon+'<span><strong>Tĩnh Huyền Quán</strong><small>KỲ ĐẠO · TU TÂM · LUYỆN TRÍ</small></span></a><button type="button" class="site-menu-toggle" aria-label="Mở bát quái điều hướng" aria-haspopup="dialog" aria-controls="site-menu" aria-expanded="false"><span class="site-menu-caption"><small>BÁT QUÁI</small><strong>'+current+'</strong></span>'+bagua+'</button>';
+    const toggle=header.querySelector('.site-menu-toggle'),menu=document.createElement('dialog');
+    menu.id='site-menu';menu.className='site-menu-dialog noprint';menu.setAttribute('aria-labelledby','site-menu-title');
+    menu.innerHTML='<div class="site-menu-heading"><span class="site-menu-emblem">'+bagua+'</span><div><p class="site-menu-eyebrow">TĨNH HUYỀN QUÁN</p><h2 id="site-menu-title">Bát quái điều hướng</h2><p>Chọn một lối để tiếp tục.</p></div><button type="button" class="site-menu-close" aria-label="Đóng bát quái điều hướng" autofocus>Đóng <span aria-hidden="true">×</span></button></div><nav class="site-navigation site-menu-links" aria-label="Điều hướng chính">'+paths.map(([href,name,key,note,pattern])=>'<a href="'+href+'"'+(key===active?' aria-current="page"':'')+'><svg class="site-path-icon" viewBox="0 0 24 15" aria-hidden="true" fill="currentColor">'+trigram(pattern)+'</svg><span><strong>'+name+'</strong><small>'+note+'</small></span><span class="site-path-arrow" aria-hidden="true">↗</span></a>').join('')+'</nav><a class="site-menu-extra" href="/review.html"'+(page==='review'?' aria-current="page"':'')+'>Phân tích PGN →</a><fieldset class="site-menu-appearance"><legend>Diện mạo</legend><div><label>Font toàn hệ thống<select data-site-font aria-label="Font toàn hệ thống">'+fonts.map(f=>'<option value="'+f.id+'">'+f.name+'</option>').join('')+'</select></label><label>Thiên sắc<select data-site-theme aria-label="Thiên sắc"><option value="auto">Theo mặt trời</option><option value="light">Ban ngày</option><option value="dark">Ban đêm</option></select></label></div><a href="/fonts-preview.html"'+(page==='fonts-preview'?' aria-current="page"':'')+'>Xem mẫu chữ →</a><small data-appearance-status role="status"></small></fieldset>';
+    document.body.append(menu);
+    const syncMenu=()=>{toggle.setAttribute('aria-expanded',String(menu.open));root.classList.toggle('site-menu-open',menu.open)};
+    toggle.addEventListener('click',()=>{
+      if(menu.open){menu.close();return;}
+      menu.showModal();syncMenu();
+      (menu.querySelector('a[aria-current="page"]')||menu.querySelector('.site-menu-links a')).focus();
+    });
+    menu.querySelector('.site-menu-close').addEventListener('click',()=>menu.close());
+    menu.addEventListener('close',()=>{syncMenu();toggle.focus({preventScroll:true})});
+    menu.addEventListener('click',event=>{
+      if(event.target.closest('a')){menu.close();return;}
+      if(event.target!==menu)return;
+      const rect=menu.getBoundingClientRect();
+      if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom)menu.close();
+    });
+    // Native dialog keeps keyboard focus inside and closes with Escape.
+    menu.querySelector('[data-site-font]').onchange=event=>{const saved=setFont(event.target.value);menu.querySelector('[data-appearance-status]').textContent=saved?'Đã đổi font ở mọi trang và các tab đang mở.':'Đã đổi trong trang này; trình duyệt không cho lưu lựa chọn.'};
+    menu.querySelector('[data-site-theme]').onchange=event=>{const saved=setTheme(event.target.value);menu.querySelector('[data-appearance-status]').textContent=saved?'Đã lưu thiên sắc cho mọi trang.':'Đã đổi trong trang này; trình duyệt không cho lưu lựa chọn.'};
     // Keep the live weather/canvas on the homepage; share its scenery elsewhere.
     if(!document.querySelector('#sky, .site-scenery')){
       const scene=document.createElement('div');scene.className='site-scenery';scene.setAttribute('aria-hidden','true');
