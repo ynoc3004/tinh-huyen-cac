@@ -1,5 +1,6 @@
 """Teacher-authored worksheets. Difficulty bands are puzzle ratings, not student Elo/Steps."""
 import json
+import gzip
 import random
 import re
 import sqlite3
@@ -71,6 +72,22 @@ class Selection(Filters):
     exclude: list[str] = Field(default_factory=list, max_length=120)
 
 
+class Generation(BaseModel):
+    document_id: str
+    request_id: str
+    document: Document
+    selection: Selection
+    mode: Literal["generate", "append", "replace"] = "generate"
+    index: int | None = Field(default=None, ge=0, le=119)
+
+
+class Edit(BaseModel):
+    document_id: str
+    document: Document
+    exercise: Exercise
+    index: int | None = Field(default=None, ge=0, le=119)
+
+
 def clean_text(value):
     # Avoid control characters and normalize combining Vietnamese accents for PDF fonts.
     import unicodedata
@@ -135,7 +152,8 @@ def board_svg(exercise, rotate=False):
 
 @lru_cache(maxsize=1)
 def starter_bank():
-    return json.loads(Path(__file__).with_name("worksheet_puzzles.json").read_text(encoding="utf-8"))
+    with gzip.open(Path(__file__).with_name("worksheet_puzzles.json.gz"),"rt",encoding="utf-8") as stream:
+        return json.load(stream)
 
 
 def bank_info():

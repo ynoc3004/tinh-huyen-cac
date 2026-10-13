@@ -44,6 +44,13 @@ CREATE TABLE IF NOT EXISTS tournament_events(id INTEGER PRIMARY KEY,
   action TEXT NOT NULL, details TEXT NOT NULL, at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS worksheets(id TEXT PRIMARY KEY, title TEXT NOT NULL,
   payload TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS worksheet_versions(id INTEGER PRIMARY KEY,
+  document_id TEXT NOT NULL REFERENCES worksheets(id) ON DELETE CASCADE,
+  title TEXT NOT NULL, kind TEXT NOT NULL, level TEXT NOT NULL,
+  count INT NOT NULL, answer_count INT NOT NULL, search_text TEXT NOT NULL,
+  payload TEXT NOT NULL, fingerprint TEXT NOT NULL, action TEXT NOT NULL,
+  request_id TEXT UNIQUE, request_hash TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f','now')));
 """
 
 # migrate columns if DB already exists without them
@@ -81,11 +88,25 @@ def init():
         c.executescript(SCHEMA)
         c.execute("CREATE INDEX IF NOT EXISTS idx_pairings_group ON pairings(group_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_tournament_events_tour ON tournament_events(tournament_id,id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_worksheet_versions_document ON worksheet_versions(document_id,id)")
         for sql in MIGRATE:
             try:
                 c.execute(sql)
             except sqlite3.OperationalError:
                 pass  # column already exists
+        # Preserve previously saved worksheet snapshots once; older generation history cannot be reconstructed.
+        import hashlib, json
+        for row in c.execute("SELECT * FROM worksheets w WHERE NOT EXISTS (SELECT 1 FROM worksheet_versions v WHERE v.document_id=w.id)").fetchall():
+            try:
+                document = json.loads(row["payload"])
+                encoded = json.dumps(document, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+                exercises = document["exercises"]
+                level, kind = document.get("level", ""), document.get("kind", "exercise")
+                c.execute("INSERT INTO worksheet_versions(document_id,title,kind,level,count,answer_count,search_text,payload,fingerprint,action,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                          (row["id"],row["title"],kind,level,len(exercises),sum(bool(e.get("solution")) for e in exercises),
+                           (row["title"]+' '+level).casefold(),encoded,hashlib.sha256(encoded.encode()).hexdigest(),"migration",row["updated_at"]))
+            except (ValueError,KeyError,TypeError):
+                continue
         # dọn các dòng bye cũ của đấu trường (bản cũ cộng 1 điểm miễn phí mỗi lần bấm Ghép)
         c.execute(
             "DELETE FROM pairings WHERE black_id IS NULL AND group_id IN "

@@ -5,12 +5,12 @@
 <title>Soạn bài tập · Tĩnh Huyền Quán</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/tien-canh.js?v=worksheets-1"></script>
-<link rel="stylesheet" href="/worksheets.css?v=1">
+<link rel="stylesheet" href="/worksheets.css?v=2">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1"><link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg?v=1"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
 </head>
 <body><main class="wrap">
 <header class="hero"><div><p class="eyebrow">DÀNH CHO GIÁO VIÊN</p><h1>Soạn bài tập</h1><p>Từ thế cờ đến bài học. Mỗi trang 12 bài, sẵn sàng để in.</p></div><span class="seal" aria-hidden="true">Kỳ<br>học</span></header>
-<div class="topbar"><label>Mở đề đã lưu<select id="saved"><option value="">Chọn một đề…</option></select></label><button id="new" class="secondary">Đề mới</button><span id="save-state" role="status">Bản nháp</span><button id="save" class="secondary">Lưu đề</button><button id="export" disabled>Xuất PDF học sinh</button><button id="answers" class="secondary" disabled>PDF đáp án</button></div>
+<div class="topbar"><label>Mở đề đã lưu<select id="saved"><option value="">Chọn một đề…</option></select></label><button id="history-open" class="secondary">Lịch sử tạo đề</button><button id="new" class="secondary">Đề mới</button><span id="save-state" role="status">Bản nháp</span><button id="save" class="secondary">Lưu đề</button><button id="export" disabled>Xuất PDF học sinh</button><button id="view-answers" class="secondary" disabled>Xem đáp án</button><button id="answers" class="secondary" disabled>PDF đáp án</button></div>
 <p id="status" role="status" aria-live="polite"></p>
 <div class="workspace">
 <aside class="settings">
@@ -32,19 +32,21 @@
 <button id="generate" disabled>Tạo 12 bài</button>
 <button id="append-page" class="secondary" disabled>Thêm một trang 12 bài</button>
 <p id="bank" class="hint">Đang kiểm tra kho câu đố…</p>
-<details><summary>Muốn có thêm câu đố?</summary><p class="hint">Trang này dùng kho Lichess của ứng dụng. Có sẵn 192 bài ở bốn mức độ. Kho đã nhập sẽ được ưu tiên; khi bộ lọc thiếu bài, ứng dụng báo rõ và giữ nguyên đề.</p></details>
+<details><summary>Muốn có thêm câu đố?</summary><p class="hint">Có sẵn 20.000 bài ở bốn mức độ. Kho Lichess đã nhập của ứng dụng sẽ được ưu tiên; khi bộ lọc thiếu bài, ứng dụng báo rõ và giữ nguyên đề.</p></details>
 </section>
 <section class="panel"><h2>3. Tự biên soạn</h2><p class="hint">Dựng bàn cờ, dán FEN và nhập yêu cầu / đáp án của riêng bạn.</p><button id="add-custom" class="secondary">+ Thêm bài tự soạn</button></section>
 </aside>
 <section class="preview"><div class="preview-head"><div><h2>Bản xem trước</h2><p id="count" class="hint">Chưa có bài</p></div><span class="paper-badge">A4 · 3 cột × 4 hàng</span></div>
 <div id="selection-tools" class="selection-tools" hidden><strong id="selection-label"></strong><button id="replace" class="secondary">Đổi bài từ kho</button><button id="edit" class="secondary">Chỉnh bài</button><button id="up" class="secondary" aria-label="Đưa bài lên trước">←</button><button id="down" class="secondary" aria-label="Đưa bài xuống sau">→</button><button id="remove" class="secondary">Bỏ bài</button></div>
-<p class="hint">Bấm vào một thế cờ để chỉnh sửa, đổi bài hoặc sắp xếp lại. Đáp án chỉ xuất trong bản giáo viên.</p>
+<p class="hint">Bấm vào tiêu đề để sửa ngay trên phiếu. Bấm thế cờ để đổi bài hoặc sắp xếp. Mỗi lần tạo đề được tự lưu cùng đáp án trong Lịch sử tạo đề.</p>
 <div id="sheets"></div>
 </section></div>
 <dialog id="editor"><form id="editor-form"><div class="dialog-head"><h2 id="editor-title">Bài tự soạn</h2><button id="close-editor" type="button" class="secondary">Đóng</button></div>
 <div class="editor-grid"><div><div id="palette" class="palette" aria-label="Chọn quân để đặt lên bàn"></div><div id="editor-board" class="editor-board" aria-label="Bàn cờ để dựng thế"></div><div class="editor-tools"><button id="initial-board" type="button" class="secondary">Vị trí ban đầu</button><button id="clear-board" type="button" class="secondary">Xóa bàn</button></div><p class="hint">Chọn quân rồi bấm ô để đặt. Chọn tẩy để xóa quân. Khi dựng lại, quyền nhập thành và bắt tốt qua đường được bỏ; dùng FEN đầy đủ nếu bài cần các quyền này.</p></div>
 <div><label>Bên đi<select id="editor-turn"><option value="w">Trắng</option><option value="b">Đen</option></select></label><label>FEN<textarea id="editor-fen" maxlength="150" rows="3"></textarea></label><button id="load-fen" type="button" class="secondary">Hiện FEN lên bàn</button><label>Yêu cầu bài<input id="editor-instruction" maxlength="90" value="Tìm nước đi tốt nhất."></label><label>Đáp án (không in trên đề học sinh)<textarea id="editor-solution" maxlength="500" rows="3" placeholder="Ví dụ: Qh7# hoặc g6h7"></textarea></label><p class="hint">Nhập chuỗi nước SAN hoặc UCI, có thể để trống nếu chỉ xuất đề. Hệ thống kiểm tra nước đi hợp lệ; bài tự soạn cần bạn kiểm tra đáp án tốt nhất.</p><p id="editor-status" role="status"></p><button id="apply-exercise" type="submit">Kiểm tra và thêm bài</button></div></div>
 </form></dialog>
+<dialog id="history-dialog"><div class="dialog-head"><h2>Lịch sử tạo đề</h2><button id="history-close" class="secondary">Đóng</button></div><p class="hint">Các phiên bản được giữ riêng, gồm tiêu đề, trình độ, thế cờ và đáp án tại thời điểm tạo/lưu/xuất PDF.</p><label>Tìm đề<input id="history-search" maxlength="120" placeholder="Tiêu đề hoặc lớp / level"></label><p id="history-status" role="status"></p><div id="history-list"></div><div class="history-paging"><button id="history-prev" class="secondary">← Trước</button><span id="history-page"></span><button id="history-next" class="secondary">Sau →</button></div></dialog>
+<dialog id="answers-dialog"><div class="dialog-head"><h2 id="answers-title">Đáp án giáo viên</h2><button id="answers-close" class="secondary">Đóng</button></div><p class="hint">Dành riêng cho giáo viên. Bản PDF học sinh không chứa phần này.</p><div id="answers-list"></div></dialog>
 </main><svg id="piece-definitions" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden"></svg>
-<script type="module" src="/worksheets.js?v=1"></script>
+<script type="module" src="/worksheets.js?v=2"></script>
 </body></html>

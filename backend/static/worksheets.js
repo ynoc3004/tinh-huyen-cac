@@ -7,6 +7,7 @@ const KEY='thc-worksheet-draft-v1';
 const INITIAL='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const blank=()=>({title:'BÀI TẬP CỜ VUA',kind:'exercise',level:'',instructions:'Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.',duration:null,rotate:false,filters:{min_rating:400,max_rating:899,theme:''},exercises:[]});
 const uuid=()=>{if(typeof crypto.randomUUID==='function')return crypto.randomUUID();const bytes=crypto.getRandomValues(new Uint8Array(16));bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');};
+let historyOffset=0,historyTotal=0,historyRevision=0;
 let draft=blank(),documentId=uuid(),selected=-1,busy=false,options=null,editing=-1,paint='Q',squares=Array(64).fill(''),dirty=false;
 
 async function request(path,body,method='POST'){
@@ -21,8 +22,11 @@ function hydrate(){for(const key of ['title','kind','level','instructions'])$(ke
 function remember(){sync();dirty=true;try{localStorage.setItem(KEY,JSON.stringify({id:documentId,document:draft}));$('save-state').textContent='Bản nháp đã giữ trên máy';}catch{$('save-state').textContent='Chưa lưu - hãy bấm Lưu đề';}controls();}
 function controls(){
  const count=draft.exercises.length,ready=count>0&&count%12===0,hasSelection=selected>=0&&selected<count;
- for(const id of ['new','save','add-custom'])$(id).disabled=busy;
+ for(const id of ['new','save','add-custom','history-open'])$(id).disabled=busy;
  $('saved').disabled=busy;$('generate').disabled=busy||!options;$('append-page').disabled=busy||!options||count>108;
+ for(const id of ['title','kind','level','instructions','duration','rotate','pages','difficulty','min-rating','max-rating','theme'])$(id).disabled=busy;
+ $('sheets').querySelectorAll('[data-sheet-title]').forEach(el=>el.contentEditable=busy?'false':'plaintext-only');
+ $('view-answers').disabled=busy||!count;
  $('export').disabled=busy||!ready;$('answers').disabled=busy||!ready||draft.exercises.some(e=>!e.solution);
  $('generate').textContent='Tạo '+(Number($('pages').value)||1)*12+' bài';
  $('selection-tools').hidden=!hasSelection;
@@ -49,7 +53,7 @@ function render(){
  const count=draft.exercises.length,total=Math.max(1,Math.ceil(count/12));let html='';
  for(let page=0;page<total;page++){
   const details=[draft.level?'Dành cho: '+draft.level:'',draft.duration?'Thời gian: '+draft.duration+' phút':'',draft.kind==='test'?'Điểm: ____ / '+count:''].filter(Boolean).join(' | ');
-  html+=`<article class="sheet"><p class="sheet-brand">TĨNH HUYỀN QUÁN / ${draft.kind==='test'?'BÀI KIỂM TRA':'PHIẾU BÀI TẬP'}</p><h3>${esc(draft.title||'Tiêu đề đề')}</h3><div class="student-fields"><span>Họ tên: <i></i></span><span>Level: <i></i></span></div>${details?`<p class="sheet-details">${esc(details)}</p>`:''}<p class="sheet-instructions">${esc(draft.instructions)}</p>${!count?'<p class="empty-tip">12 thế cờ sẽ được bố trí tại đây.</p>':''}<div class="sheet-grid">`;
+  html+=`<article class="sheet"><p class="sheet-brand">TĨNH HUYỀN QUÁN / ${draft.kind==='test'?'BÀI KIỂM TRA':'PHIẾU BÀI TẬP'}</p><h3 contenteditable="plaintext-only" data-sheet-title="${page}" role="textbox" aria-label="Sửa tiêu đề trực tiếp" aria-multiline="false" spellcheck="false" title="Bấm để sửa tiêu đề">${esc(draft.title)}</h3><div class="student-fields"><span>Họ tên: <i></i></span><span>Level: <i></i></span></div>${details?`<p class="sheet-details">${esc(details)}</p>`:''}<p class="sheet-instructions">${esc(draft.instructions)}</p>${!count?'<p class="empty-tip">12 thế cờ sẽ được bố trí tại đây.</p>':''}<div class="sheet-grid">`;
   for(let n=0;n<12;n++){
    const index=page*12+n,e=draft.exercises[index];
    html+=e?`<section tabindex="0" role="button" aria-label="Chỉnh bài ${index+1}" aria-pressed="${index===selected}" class="sheet-exercise${index===selected?' selected':''}" data-exercise="${index}"><div class="caption"><span>${index+1}. ${e.fen.split(' ')[1]==='w'?'Trắng':'Đen'} đi</span></div>${diagram(e.fen,draft.rotate)}<p class="prompt">${esc(e.instruction)}</p><div class="write-line"></div></section>`:`<div class="placeholder">Bài ${index+1}<br>Chưa có thế cờ</div>`;
@@ -73,9 +77,9 @@ async function generate(append=false,replace=false){
   if(append&&draft.exercises.length+count>120)throw Error('Mỗi đề tối đa 120 bài.');
   const body=selection(count);if(!append&&!replace)body.exclude=[];
   busy=true;controls();status('Đang chọn bài đúng bộ lọc…');
-  const result=await api('/select',body);
-  if(replace)draft.exercises[selected]=result.exercises[0];else if(append)draft.exercises.push(...result.exercises);else{draft.exercises=result.exercises;selected=0;}
-  remember();render();status(`Đã ${replace?'đổi bài':append?'thêm 12 bài':'tạo '+count+' bài'}. Bạn có thể chỉnh từng thế cờ trước khi xuất PDF.`);
+  sync();const result=await api('/generate',{document_id:documentId,request_id:uuid(),document:draft,selection:body,mode:replace?'replace':append?'append':'generate',index:replace?selected:null});
+  draft=result.document;if(!append&&!replace)selected=0;hydrate();
+  remember();render();dirty=false;$('save-state').textContent='Đã tự lưu vào lịch sử';await loadSaved();status(`Đã ${replace?'đổi bài':append?'thêm 12 bài':'tạo '+count+' bài'} và lưu phiên bản kèm đáp án. Bạn có thể chỉnh từng thế cờ trước khi xuất PDF.`);
  }catch(error){status(error.message);}finally{busy=false;controls();}
 }
 $('generate').onclick=()=>generate();$('append-page').onclick=()=>generate(true);$('replace').onclick=()=>generate(false,true);
@@ -85,8 +89,48 @@ for(const id of ['min-rating','max-rating'])$(id).oninput=()=>{$('difficulty').v
 $('theme').onchange=remember;
 for(const id of ['title','level','instructions','duration','rotate'])$(id).addEventListener('input',()=>{remember();render();});
 $('kind').onchange=()=>{if(['BÀI TẬP CỜ VUA','BÀI KIỂM TRA CỜ VUA'].includes($('title').value))$('title').value=$('kind').value==='test'?'BÀI KIỂM TRA CỜ VUA':'BÀI TẬP CỜ VUA';remember();render();};
-$('sheets').onclick=event=>{const card=event.target.closest('[data-exercise]');if(card&&!busy){selected=Number(card.dataset.exercise);render();}};
-$('sheets').onkeydown=event=>{if(['Enter',' '].includes(event.key)&&event.target.dataset.exercise!==undefined){event.preventDefault();selected=Number(event.target.dataset.exercise);render();}};
+$('sheets').onclick=event=>{if(event.target.closest('[data-sheet-title]'))return;const card=event.target.closest('[data-exercise]');if(card&&!busy){selected=Number(card.dataset.exercise);render();}};
+$('sheets').onkeydown=event=>{if(event.target.dataset.sheetTitle!==undefined){if(event.key==='Enter'){event.preventDefault();event.target.blur();}return;}if(['Enter',' '].includes(event.key)&&event.target.dataset.exercise!==undefined){event.preventDefault();selected=Number(event.target.dataset.exercise);render();}};
+$('sheets').addEventListener('input',event=>{
+ if(event.target.dataset.sheetTitle===undefined||busy)return;
+ const text=(event.target.textContent||'').replace(/[\r\n]+/g,' ').slice(0,120);
+ if(event.target.textContent!==text)event.target.textContent=text;
+ $('title').value=text;remember();
+ $('sheets').querySelectorAll('[data-sheet-title]').forEach(el=>{if(el!==event.target)el.textContent=text;});
+});
+
+const actionLabel=action=>({generate:'Tạo đề',append:'Thêm trang',replace:'Đổi bài',save:'Lưu đề',export:'Xuất PDF',migration:'Đề đã lưu trước đây',before_generate:'Bản trước khi thay bài',edit:'Tự soạn / sửa bài',before_edit:'Bản trước khi sửa'}[action]||'Lưu phiên bản');
+function historyTime(value){const date=new Date(value.replace(' ','T')+'Z');return Number.isNaN(date.getTime())?value:date.toLocaleString('vi-VN');}
+async function showHistory(){
+ const revision=++historyRevision;$('history-status').textContent='Đang tải lịch sử…';
+ try{const response=await api('/history?q='+encodeURIComponent($('history-search').value)+'&offset='+historyOffset,undefined,'GET');if(revision!==historyRevision)return;
+  historyTotal=response.total;
+  $('history-list').innerHTML=response.items.map(item=>`<article class="history-card"><h3>${esc(item.title)}</h3><p>${esc(historyTime(item.created_at))} · ${esc(actionLabel(item.action))} · ${item.count} bài · ${item.answer_count} đáp án${item.level?' · '+esc(item.level):''}</p><div class="history-actions"><button class="secondary" data-history-load="${item.id}">Mở phiên bản này</button><button class="secondary" data-history-answers="${item.id}">Xem đáp án</button>${item.count&&item.count%12===0?`<a href="/api/worksheets/history/${item.id}/pdf" download>PDF học sinh</a>${item.answer_count===item.count?`<a href="/api/worksheets/history/${item.id}/pdf?answers=true" download>PDF đáp án</a>`:''}`:''}</div></article>`).join('')||'<p class="hint">Chưa có phiên bản phù hợp.</p>';
+  $('history-page').textContent=`${response.total?'Trang '+(Math.floor(historyOffset/12)+1)+' / '+Math.ceil(response.total/12):'0 phiên bản'} · ${response.total} phiên bản`;
+  $('history-prev').disabled=historyOffset===0;$('history-next').disabled=historyOffset+12>=historyTotal;$('history-status').textContent='';
+ }catch(error){if(revision===historyRevision)$('history-status').textContent=error.message;}
+}
+$('history-open').onclick=()=>{historyOffset=0;$('history-dialog').showModal();return showHistory();};
+$('history-close').onclick=()=>{historyRevision++;$('history-dialog').close();};
+$('history-search').oninput=()=>{historyOffset=0;return showHistory();};
+$('history-prev').onclick=()=>{historyOffset=Math.max(0,historyOffset-12);return showHistory();};
+$('history-next').onclick=()=>{if(historyOffset+12<historyTotal)historyOffset+=12;return showHistory();};
+function showAnswers(document){
+ $('answers-title').textContent='Đáp án · '+document.title;
+ $('answers-list').innerHTML=document.exercises.map((e,index)=>`<article class="answer-item"><div>${diagram(e.fen,document.rotate)}</div><div><h3>Bài ${index+1} · ${e.fen.split(' ')[1]==='w'?'Trắng':'Đen'} đi</h3><p>${esc(e.instruction)}</p><p><code>${esc(e.solution||'Chưa nhập đáp án')}</code></p><small>Mã bài: ${esc(e.id)}</small></div></article>`).join('')||'<p>Đề chưa có bài.</p>';
+ $('answers-dialog').showModal();
+}
+$('view-answers').onclick=()=>{sync();showAnswers(draft);};$('answers-close').onclick=()=>$('answers-dialog').close();
+$('history-list').onclick=async event=>{
+ const open=event.target.closest('[data-history-load]'),answers=event.target.closest('[data-history-answers]');if(!open&&!answers)return;
+ if(open&&dirty&&!confirm('Mở phiên bản này và thay bản nháp hiện tại?'))return;
+ const button=open||answers;button.disabled=true;
+ try{const snapshot=await api('/history/'+(open?open.dataset.historyLoad:answers.dataset.historyAnswers),undefined,'GET');
+  if(answers){showAnswers(snapshot.document);return;}
+  draft=snapshot.document;documentId=snapshot.id;selected=draft.exercises.length?0:-1;hydrate();remember();dirty=false;
+  $('save-state').textContent='Đã mở phiên bản lịch sử';$('history-dialog').close();status('Đã mở đúng đề và đáp án đã lưu. Khi sửa rồi lưu, ứng dụng tạo phiên bản mới.');
+ }catch(error){$('history-status').textContent=error.message;}finally{button.disabled=false;}
+};
 function move(delta){if(busy)return;const next=selected+delta;if(next<0||next>=draft.exercises.length)return;[draft.exercises[selected],draft.exercises[next]]=[draft.exercises[next],draft.exercises[selected]];selected=next;remember();render();}
 $('up').onclick=()=>move(-1);$('down').onclick=()=>move(1);
 $('remove').onclick=()=>{if(selected<0||busy||!confirm('Bỏ bài '+(selected+1)+' khỏi đề?'))return;draft.exercises.splice(selected,1);selected=Math.min(selected,draft.exercises.length-1);remember();render();};
@@ -100,7 +144,7 @@ $('saved').onchange=async()=>{
 };
 $('new').onclick=()=>{if(busy||dirty&&!confirm('Tạo đề mới và thay bản nháp hiện tại?'))return;draft=blank();documentId=uuid();selected=-1;hydrate();remember();status('Đề mới: chọn bài từ kho hoặc tự biên soạn.');};
 async function exportPdf(answers=false){
- if(busy)return;try{sync();if(!draft.title.trim())throw Error('Nhập tiêu đề trước khi xuất PDF.');const snapshot=JSON.parse(JSON.stringify(draft));busy=true;controls();status('Đang tạo PDF '+(answers?'đáp án giáo viên':'học sinh')+'…');const response=await request('/pdf'+(answers?'?answers=true':''),snapshot);const blob=await response.blob();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(snapshot.title.replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').slice(0,90)||'Bai-tap')+(answers?' - Dap-an':'')+'.pdf';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);status('Đã tải PDF '+(answers?'đáp án':'học sinh')+'.');}catch(error){status(error.message);}finally{busy=false;controls();}
+ if(busy)return;try{sync();if(!draft.title.trim())throw Error('Nhập tiêu đề trước khi xuất PDF.');const snapshot=JSON.parse(JSON.stringify(draft));busy=true;controls();status('Đang tạo PDF '+(answers?'đáp án giáo viên':'học sinh')+'…');const response=await request('/pdf?document_id='+encodeURIComponent(documentId)+(answers?'&answers=true':''),snapshot);const blob=await response.blob();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(snapshot.title.replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').slice(0,90)||'Bai-tap')+(answers?' - Dap-an':'')+'.pdf';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);await loadSaved();$('save-state').textContent='Đã lưu phiên bản xuất PDF';status('Đã tải PDF '+(answers?'đáp án':'học sinh')+' và giữ đề kèm đáp án trong lịch sử.');}catch(error){status(error.message);}finally{busy=false;controls();}
 }
 $('export').onclick=()=>exportPdf();$('answers').onclick=()=>exportPdf(true);
 
@@ -117,14 +161,20 @@ $('palette').onclick=event=>{const button=event.target.closest('[data-paint]');i
 $('editor-board').onclick=event=>{const b=event.target.closest('[data-square]');if(b){squares[Number(b.dataset.square)]=paint;writeFen();}};
 $('editor-turn').onchange=()=>{const fields=$('editor-fen').value.trim().split(/\s+/);fields[1]=$('editor-turn').value;$('editor-fen').value=fields.join(' ');};
 $('initial-board').onclick=()=>{$('editor-fen').value=INITIAL;loadFen();};$('clear-board').onclick=()=>{squares=Array(64).fill('');writeFen();};
-$('editor-form').onsubmit=async event=>{event.preventDefault();const button=$('apply-exercise');if(button.disabled)return;button.disabled=true;$('editor-status').textContent='Đang kiểm tra…';try{const result=await api('/validate',{id:'custom-'+uuid(),fen:$('editor-fen').value,instruction:$('editor-instruction').value,solution:$('editor-solution').value,source:'custom'});if(editing>=0)draft.exercises[editing]=result.exercise;else{draft.exercises.push(result.exercise);selected=draft.exercises.length-1;}remember();render();$('editor').close();status('Đã lưu bài. Thế cờ và các nước đáp án hợp lệ; bạn cần kiểm tra đáp án tối ưu của bài tự soạn.');}catch(error){$('editor-status').textContent=error.message;}finally{button.disabled=false;}};
+$('editor-form').onsubmit=async event=>{event.preventDefault();const button=$('apply-exercise');if(button.disabled)return;button.disabled=true;$('editor-status').textContent='Đang kiểm tra…';try{sync();const result=await api('/edit',{document_id:documentId,document:draft,index:editing>=0?editing:null,exercise:{id:'custom-'+uuid(),fen:$('editor-fen').value,instruction:$('editor-instruction').value,solution:$('editor-solution').value,source:'custom'}});draft=result.document;if(editing<0)selected=draft.exercises.length-1;remember();render();dirty=false;$('save-state').textContent='Đã tự lưu bài và đáp án';await loadSaved();$('editor').close();status('Đã lưu bài và đáp án vào lịch sử. Thế cờ và chuỗi nước hợp lệ; bạn cần kiểm tra đáp án tối ưu của bài tự soạn.');}catch(error){$('editor-status').textContent=error.message;}finally{button.disabled=false;}};
 
 async function boot(){
  $('piece-definitions').innerHTML='<defs>'+PIECE_DEFS+'</defs>';
- try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');if(stored?.document&&Array.isArray(stored.document.exercises)&&stored.document.exercises.length<=120&&stored.document.exercises.every(e=>{try{return typeof e.fen==='string'&&!!new Chess(e.fen)}catch{return false}})){draft={...blank(),...stored.document};documentId=stored.id||uuid();dirty=true;}}catch{}
+ let restoredDraft=false;
+ try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');if(stored?.document&&Array.isArray(stored.document.exercises)&&stored.document.exercises.length<=120&&stored.document.exercises.every(e=>{try{return typeof e.fen==='string'&&!!new Chess(e.fen)}catch{return false}})){draft={...blank(),...stored.document};documentId=stored.id||uuid();dirty=true;restoredDraft=draft.exercises.length>0;busy=restoredDraft;}}catch{}
  hydrate();
  const results=await Promise.allSettled([api('/options',undefined,'GET'),loadSaved()]);
  if(results[0].status==='fulfilled'){options=results[0].value;$('difficulty').innerHTML=options.levels.map(l=>`<option value="${esc(l.id)}">${esc(l.name)} (${l.min}-${l.max})</option>`).join('')+'<option value="custom">Tùy chỉnh</option>';$('theme').innerHTML=Object.entries(options.themes).map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join('');$('bank').textContent=`${options.bank.name}: ${options.bank.count.toLocaleString('vi-VN')} bài. Không lặp bài trong một đề được tạo tự động.`;}else{status(results[0].reason.message);$('bank').textContent='Chưa kết nối kho. Bạn vẫn có thể tự soạn bài.';}
- if(results[1].status==='rejected')status(results[1].reason.message);hydrate();controls();
+ if(results[1].status==='rejected')status(results[1].reason.message);hydrate();
+ if(restoredDraft){
+  try{sync();const saved=await api('/'+documentId,draft,'PUT');draft=saved.document;hydrate();dirty=false;await loadSaved();$('save-state').textContent='Bản nháp đã đưa vào lịch sử';status('Đã giữ đề đang mở cùng đáp án vào lịch sử; bạn có thể tiếp tục sửa.');}
+  catch(error){status('Bản nháp vẫn giữ trên máy, chưa đưa được vào lịch sử: '+error.message);}
+ }
+ busy=false;controls();
 }
 boot();
