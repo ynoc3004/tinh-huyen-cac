@@ -5,7 +5,7 @@
 <title>Soạn bài tập · Tĩnh Huyền Quán</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/tien-canh.js?v=worksheets-1"></script>
-<link rel="stylesheet" href="/worksheets.css?v=2">
+<link rel="stylesheet" href="/worksheets.css?v=3">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1"><link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg?v=1"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
 </head>
 <body><main class="wrap">
@@ -23,6 +23,19 @@
 <label>Thời gian làm bài (phút)<input id="duration" type="number" min="1" max="240" placeholder="Không bắt buộc"></label>
 <label class="check"><input id="rotate" type="checkbox"> Xoay bàn theo bên đi</label>
 </section>
+<section class="panel"><h2>Bố cục trang</h2>
+<label class="check"><input id="show-prompts" type="checkbox" checked> Hiện yêu cầu dưới mỗi thế cờ</label>
+<p class="hint">Tắt để ẩn câu như “Chiếu hết trong 1 nước.”; số bài, bên đi và dòng trả lời vẫn giữ nguyên.</p>
+<label>Header / tên đơn vị<input id="header-text" maxlength="120"></label>
+<label>Footer / chân trang<input id="footer-text" maxlength="120"></label>
+<label class="check"><input id="show-page-numbers" type="checkbox" checked> Hiện số trang</label>
+<label>Cách ghi số trang<input id="page-number-format" maxlength="80" value="Trang {page} / {total}"></label>
+<p class="hint">{page} là trang hiện tại, {total} là tổng số trang. Có thể để trống header hoặc footer để ẩn dòng đó.</p>
+<button id="reset-branding" class="secondary">Khôi phục header và footer mặc định</button>
+<label>Logo ở trang đầu<input id="logo-input" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></label>
+<div class="logo-tools"><img id="logo-preview" alt="Logo đã căn chỉnh" hidden><button id="logo-remove" class="secondary" hidden>Gỡ logo</button></div>
+<p id="logo-state" class="hint" role="status">PNG, JPG hoặc WebP, tối đa 5 MB. Tự cắt lề trắng / trong suốt, giữ màu và tỉ lệ, thu gọn vừa header trang đầu.</p>
+</section>
 <section class="panel"><h2>2. Chọn bài theo trình độ</h2>
 <label>Độ khó<select id="difficulty"></select></label>
 <p class="hint">Độ khó dựa trên điểm câu đố, không tương đương trực tiếp Elo hay Step của học sinh.</p>
@@ -38,7 +51,7 @@
 </aside>
 <section class="preview"><div class="preview-head"><div><h2>Bản xem trước</h2><p id="count" class="hint">Chưa có bài</p></div><span class="paper-badge">A4 · 3 cột × 4 hàng</span></div>
 <div id="selection-tools" class="selection-tools" hidden><strong id="selection-label"></strong><button id="replace" class="secondary">Đổi bài từ kho</button><button id="edit" class="secondary">Chỉnh bài</button><button id="up" class="secondary" aria-label="Đưa bài lên trước">←</button><button id="down" class="secondary" aria-label="Đưa bài xuống sau">→</button><button id="remove" class="secondary">Bỏ bài</button></div>
-<p class="hint">Bấm vào tiêu đề để sửa ngay trên phiếu. Bấm thế cờ để đổi bài hoặc sắp xếp. Mỗi lần tạo đề được tự lưu cùng đáp án trong Lịch sử tạo đề.</p>
+<p class="hint">Bấm vào tiêu đề, header hoặc footer để sửa ngay trên phiếu. Sửa cách ghi số trang trong Bố cục trang. Bấm thế cờ để đổi bài hoặc sắp xếp. Mỗi lần tạo đề được tự lưu cùng đáp án trong Lịch sử tạo đề.</p>
 <div id="sheets"></div>
 </section></div>
 <dialog id="editor"><form id="editor-form"><div class="dialog-head"><h2 id="editor-title">Bài tự soạn</h2><button id="close-editor" type="button" class="secondary">Đóng</button></div>
@@ -48,5 +61,5 @@
 <dialog id="history-dialog"><div class="dialog-head"><h2>Lịch sử tạo đề</h2><button id="history-close" class="secondary">Đóng</button></div><p class="hint">Các phiên bản được giữ riêng, gồm tiêu đề, trình độ, thế cờ và đáp án tại thời điểm tạo/lưu/xuất PDF.</p><label>Tìm đề<input id="history-search" maxlength="120" placeholder="Tiêu đề hoặc lớp / level"></label><p id="history-status" role="status"></p><div id="history-list"></div><div class="history-paging"><button id="history-prev" class="secondary">← Trước</button><span id="history-page"></span><button id="history-next" class="secondary">Sau →</button></div></dialog>
 <dialog id="answers-dialog"><div class="dialog-head"><h2 id="answers-title">Đáp án giáo viên</h2><button id="answers-close" class="secondary">Đóng</button></div><p class="hint">Dành riêng cho giáo viên. Bản PDF học sinh không chứa phần này.</p><div id="answers-list"></div></dialog>
 </main><svg id="piece-definitions" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden"></svg>
-<script type="module" src="/worksheets.js?v=2"></script>
+<script type="module" src="/worksheets.js?v=3"></script>
 </body></html>

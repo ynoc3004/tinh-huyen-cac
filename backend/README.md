@@ -6,6 +6,10 @@
 
 Mở **Soạn bài tập** trên thanh điều hướng (`/worksheets.html`). Chọn Bài tập/Bài kiểm tra, sửa tiêu đề bằng ô nhập hoặc bấm thẳng vào tiêu đề trên bản xem trước, nhập lớp/level và lời dặn; thời gian làm bài là tùy chọn. Trên mỗi trang học sinh luôn có dòng **Họ tên** và **Level** để tự điền.
 
+Trong **Bố cục trang**, bật/tắt yêu cầu dưới thế cờ (ví dụ “Chiếu hết trong 1 nước.”); số bài, bên đi và dòng trả lời vẫn giữ nguyên. Sửa header/tên đơn vị và footer bằng ô nhập hoặc trực tiếp trên bất kỳ trang xem trước nào; thay đổi áp dụng cho toàn bộ đề. Để trống để ẩn dòng, hoặc khôi phục mặc định bằng nút riêng. Có thể ẩn số trang hoặc đổi mẫu, dùng `{page}` cho trang hiện tại và `{total}` cho tổng số trang.
+
+**Logo ở trang đầu** nhận PNG/JPG/WebP tối đa 5 MB và 8 triệu điểm ảnh. Website tự xoay theo hướng ảnh, cắt lề trắng hoặc trong suốt, giữ màu/tỉ lệ/nền trong suốt, thêm khoảng đệm và thu gọn vào góc phải header trang đầu. Có bản xem trước và nút gỡ/thay ảnh. Logo đã xử lý được lưu ngay trong nội dung đề, cùng các tùy chọn bố cục; lịch sử và PDF học sinh/đáp án không phụ thuộc tệp gốc hoặc đường dẫn ảnh. Việc ẩn yêu cầu chỉ ảnh hưởng bản học sinh, không xóa yêu cầu hoặc đáp án đã lưu.
+
 Chọn độ khó hoặc khoảng điểm câu đố riêng, chủ đề và số trang, rồi bấm **Tạo 12 bài** (số bài thay đổi theo số trang). Bốn mức đi kèm là 400-899, 900-1299, 1300-1799 và 1800-2600; đây là điểm câu đố Lichess, không phải thang Elo học sinh hay tương đương Step. Có thể tạo tối đa 10 trang, mỗi trang đúng 12 bài, bố cục A4 dọc 3 cột × 4 hàng. Khi bộ lọc thiếu bài, ứng dụng giữ nguyên đề và báo lỗi, không tự nới độ khó hoặc lặp bài.
 
 Bấm vào một thế cờ để đổi bài, sửa yêu cầu/đáp án, sắp xếp hoặc bỏ bài. **Thêm bài tự soạn** mở công cụ đặt quân, chọn bên đi và nhập FEN. Đáp án nhận chuỗi nước SAN hoặc UCI; có thể để trống nếu chỉ cần bản học sinh. Thế cờ và chuỗi nước được kiểm tra tính hợp lệ; đáp án tối ưu của bài tự soạn vẫn cần giáo viên xác nhận. Dựng lại quân bằng công cụ sẽ bỏ quyền nhập thành và bắt tốt qua đường; dán FEN đầy đủ nếu cần giữ các quyền này.
@@ -14,7 +18,7 @@ Bấm vào một thế cờ để đổi bài, sửa yêu cầu/đáp án, sắp
 
 Kho khởi đầu gồm 20.000 bài Lichess (5.000 bài/mức), lấy từ bản dữ liệu công khai cập nhật 05/10/2026, kiểm tra lại toàn bộ nước đi, lọc Popularity >=85 và NbPlays >=250. Kho đi kèm được nén trong `services/worksheet_puzzles.json.gz`, tự đọc khi chọn bài và không cần tải trực tuyến. Không trùng vị trí sau nước thiết lập trong bộ 20.000 bài. Nguồn: [Lichess open database](https://database.lichess.org/#puzzles), giấy phép CC0. FEN gốc của Lichess nằm trước nước thiết lập của đối phương; trang áp dụng nước đầu đúng một lần trước khi in, chuỗi đáp án bắt đầu từ nước thứ hai. Nếu đã nhập kho `data/puzzles.db`, trang ưu tiên kho đó; xem `python import_puzzles.py --help` để nhập thêm.
 
-Cập nhật tính năng này cần chạy `python -m pip install -r requirements.txt` trong `backend` rồi khởi động lại server. Có thêm python-chess, ReportLab và svglib; font PDF được đóng gói tại `assets/worksheet`, không phụ thuộc font cài trên Windows. Database cũ được thêm bảng `worksheets` tự động, không cần tạo lại.
+Cập nhật tính năng này cần chạy `python -m pip install -r requirements.txt` trong `backend` rồi khởi động lại server. Có thêm python-chess, ReportLab, svglib và Pillow; font PDF được đóng gói tại `assets/worksheet`, không phụ thuộc font cài trên Windows. Database cũ được thêm bảng `worksheets` tự động, không cần tạo lại.
 
 ## Chạy trên Windows PowerShell
 

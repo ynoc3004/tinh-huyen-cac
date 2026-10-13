@@ -1,9 +1,11 @@
 """A4 portrait, twelve vector diagrams per page, embedded Vietnamese font."""
 from io import BytesIO
+import base64
 from pathlib import Path
 from threading import Lock
 
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
@@ -63,13 +65,27 @@ def text_lines(pdf, text, x, y, width, size=8, leading=11, maximum=None):
 def header(pdf, document, page, total, answers):
     width, height = A4
     pdf.setFillColorRGB(.15, .15, .15)
-    pdf.setFont(FONT, 7.5)
-    pdf.drawString(34, height - 30, "TĨNH HUYỀN QUÁN  /  " + ("ĐÁP ÁN GIÁO VIÊN" if answers else "BÀI KIỂM TRA" if document["kind"] == "test" else "PHIẾU BÀI TẬP"))
+    logo = document.get("logo") if page == 1 else None
+    heading_width = width - 68 - (88 if logo else 0)
+    brand = document.get("header_text")
+    if brand is None:
+        brand = "TĨNH HUYỀN QUÁN / " + ("ĐÁP ÁN GIÁO VIÊN" if answers else "BÀI KIỂM TRA" if document["kind"] == "test" else "PHIẾU BÀI TẬP")
+    brand_size = 7.5
+    while brand_size > 5 and len(wrap(brand, heading_width, brand_size)) > 2:
+        brand_size -= .5
+    text_lines(pdf, brand, 34, height - 30, heading_width, brand_size, 10, 2)
+    if logo:
+        image = ImageReader(BytesIO(base64.b64decode(logo.split(",", 1)[1])))
+        iw, ih = image.getSize()
+        scale = min(70 / iw, 58 / ih)
+        iw, ih = iw * scale, ih * scale
+        pdf.drawImage(image, width - 104 + (70 - iw) / 2, height - 84 + (58 - ih) / 2,
+                      width=iw, height=ih, mask="auto")
     title = document["title"]
     size = 16
-    while size > 10 and len(wrap(title, width - 68, size)) > 2:
+    while size > 7 and len(wrap(title, heading_width, size)) > 2:
         size -= 1
-    text_lines(pdf, title, 34, height - 52, width - 68, size, 19, 2)
+    text_lines(pdf, title, 34, height - 57, heading_width, size, 17, 2)
     pdf.setFont(FONT, 9)
     if not answers:
         pdf.drawString(34, height - 92, "Họ tên:")
@@ -85,13 +101,26 @@ def header(pdf, document, page, total, answers):
         detail.append(f"Điểm: ____ / {len(document['exercises'])}")
     if detail:
         text_lines(pdf, "  |  ".join(detail), 34, height - 110, width - 68, 8, 10, 1)
-    text_lines(pdf, "Chỉ dành cho giáo viên. Không phát kèm đề học sinh." if answers else document["instructions"],
+    text_lines(pdf, "ĐÁP ÁN GIÁO VIÊN - Chỉ dành cho giáo viên. Không phát kèm đề học sinh." if answers else document["instructions"],
                34, height - 123, width - 68, 7.5, 10, 2)
     pdf.setLineWidth(.5)
     pdf.line(34, height - 142, width - 34, height - 142)
-    pdf.setFont(FONT, 7)
-    pdf.drawString(34, 20, "Tĩnh Huyền Quán - " + ("Đáp án" if answers else "12 bài / trang"))
-    pdf.drawRightString(width - 34, 20, f"Trang {page} / {total}")
+    footer = document.get("footer_text")
+    if footer is None:
+        footer = "Tĩnh Huyền Quán - " + ("Đáp án" if answers else "12 bài / trang")
+    numbering = document.get("page_number_format", "Trang {page} / {total}").replace("{page}", str(page)).replace("{total}", str(total)) if document.get("show_page_numbers", True) else ""
+    right_width = min((width - 68) * .45, max(0, pdfmetrics.stringWidth(numbering, FONT, 7)))
+    left_width = width - 68 - (right_width + 16 if numbering else 0)
+    size = 7
+    while size > 4 and len(wrap(footer, left_width, size)) > 2:
+        size -= .5
+    text_lines(pdf, footer, 34, 20, left_width, size, 8, 2)
+    numbering_size = 7
+    while numbering_size > 4 and len(wrap(numbering, max(right_width, 1), numbering_size)) > 2:
+        numbering_size -= .5
+    pdf.setFont(FONT, numbering_size)
+    for line, text in enumerate(wrap(numbering, max(right_width, 1), numbering_size)[:2]):
+        pdf.drawRightString(width - 34, 20 - line * 8, text)
 
 
 def render_pdf(document, answers=False):
@@ -129,7 +158,8 @@ def render_pdf(document, answers=False):
                 size = 124
                 drawing.scale(size / drawing.width, size / drawing.height)
                 renderPDF.draw(drawing, pdf, x + (cell_width - size) / 2, y - 138)
-                text_lines(pdf, exercise["instruction"], x + 6, y - 147, cell_width - 12, 6.5, 8, 2)
+                if document.get("show_prompts", True):
+                    text_lines(pdf, exercise["instruction"], x + 6, y - 147, cell_width - 12, 6.5, 8, 2)
                 pdf.setStrokeColorRGB(.55, .55, .55)
                 pdf.setLineWidth(.4)
                 pdf.setDash(1, 2)

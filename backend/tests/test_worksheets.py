@@ -1,5 +1,7 @@
 """Worksheet generation, persistence and exact twelve-diagram PDF pagination."""
 from pathlib import Path
+from io import BytesIO
+import base64
 import json
 import sys
 import tempfile
@@ -16,6 +18,8 @@ from services import worksheets as service
 from services.worksheet_pdf import render_pdf
 import chess
 import fitz
+from PIL import Image, ImageDraw
+from services.worksheet_logo import MAX_UPLOAD, prepare_logo, validate_logo
 
 
 class WorksheetTests(unittest.TestCase):
@@ -35,6 +39,100 @@ class WorksheetTests(unittest.TestCase):
     def document(self, count=12):
         return {'title':'BÀI KIỂM TRA - CỜ VUA CĂN BẢN', 'kind':'test','level':'Bước 2 - Lớp thiếu nhi',
                 'duration':30,'exercises':self.select(count).json()['exercises']}
+
+    def logo_bytes(self, transparent=False, size=(800, 500)):
+        image=Image.new('RGBA',size,(255,255,255,0 if transparent else 255))
+        ImageDraw.Draw(image).rectangle((size[0]//4,size[1]//4,size[0]*3//4,size[1]*3//4),fill=(20,90,60,255))
+        stream=BytesIO();image.save(stream,format='PNG');return stream.getvalue()
+
+    def test_logo_upload_trims_whitespace_scales_without_distortion_and_preserves_alpha(self):
+        for transparent in (False,True):
+            original=self.logo_bytes(transparent,size=(2400,1600))
+            response=self.client.post('/api/worksheets/logo',content=original,headers={'Content-Type':'image/png'})
+            self.assertEqual(response.status_code,200,response.text)
+            result=response.json();image=Image.open(BytesIO(base64.b64decode(result['logo'].split(',')[1])))
+            self.assertLessEqual(max(image.size),512)
+            self.assertEqual(image.size,(result['width'],result['height']))
+            # Cropped content keeps its 3:2 shape; a small balanced border is restored.
+            self.assertAlmostEqual(image.width/image.height,1.5,delta=.08)
+            self.assertEqual(image.getpixel((image.width//2,image.height//2)),(20,90,60,255))
+            self.assertEqual(image.getpixel((0,0))[3],0 if transparent else 255)
+            self.assertEqual(validate_logo(result['logo']),result['logo'],'Repeated saves must not add borders or alter the image')
+
+    def test_logo_rejects_invalid_blank_oversized_and_external_images(self):
+        for raw in (b'',b'<svg onload="alert(1)"></svg>',b'not an image'):
+            self.assertEqual(self.client.post('/api/worksheets/logo',content=raw).status_code,400)
+        blank=BytesIO();Image.new('RGB',(20,20),'white').save(blank,format='PNG')
+        self.assertEqual(self.client.post('/api/worksheets/logo',content=blank.getvalue()).status_code,400)
+        huge=BytesIO();Image.new('RGB',(3000,3000),'green').save(huge,format='PNG')
+        self.assertEqual(self.client.post('/api/worksheets/logo',content=huge.getvalue()).status_code,400)
+        self.assertEqual(self.client.post('/api/worksheets/logo',content=b'x'*(MAX_UPLOAD+1)).status_code,413)
+        doc=self.document()
+        for logo in ('https://example.org/logo.png','file:///etc/passwd','data:image/png;base64,not-valid'):
+            doc['logo']=logo
+            self.assertEqual(self.client.put('/api/worksheets/'+str(uuid.uuid4()),json=doc).status_code,400)
+        doc['logo']='data:image/png;base64,'+base64.b64encode(self.logo_bytes()).decode()
+        self.assertEqual(self.client.post('/api/worksheets/pdf',json=doc).status_code,400,'Unprocessed full-size images are rejected')
+
+    def test_jpeg_webp_and_exif_orientation_are_supported(self):
+        image=Image.new('RGB',(180,90),(20,90,60))
+        for fmt in ('JPEG','WEBP'):
+            stream=BytesIO();image.save(stream,format=fmt)
+            self.assertTrue(prepare_logo(stream.getvalue())['logo'].startswith('data:image/png;base64,'))
+        exif=Image.Exif();exif[274]=6
+        stream=BytesIO();image.save(stream,format='JPEG',exif=exif)
+        result=prepare_logo(stream.getvalue())
+        self.assertGreater(result['height'],result['width'])
+
+    def test_pdf_layout_settings_and_logo_are_kept_in_immutable_history(self):
+        doc=self.document(24);id=str(uuid.uuid4())
+        doc.update(header_text='CLB CỜ VUA THỦ ĐỨC',footer_text='Giáo viên: Nguyễn An',show_prompts=False,
+                   page_number_format='Phiếu {page} trên {total}',logo=prepare_logo(self.logo_bytes(True))['logo'])
+        for exercise in doc['exercises']:
+            exercise['instruction']='Nội dung đề bài cần ẩn.'
+        saved=self.client.put('/api/worksheets/'+id,json=doc).json()
+        version=saved['version_id']
+        self.assertEqual(saved['document']['logo'],doc['logo'])
+        doc.update(header_text='Đơn vị mới',footer_text='',show_page_numbers=False,show_prompts=True,logo=None)
+        self.assertEqual(self.client.put('/api/worksheets/'+id,json=doc).status_code,200)
+        old=self.client.get('/api/worksheets/history/'+str(version)).json()['document']
+        self.assertEqual(old['header_text'],'CLB CỜ VUA THỦ ĐỨC');self.assertFalse(old['show_prompts'])
+        for answers in (False,True):
+            response=self.client.get(f'/api/worksheets/history/{version}/pdf?answers={str(answers).lower()}')
+            self.assertEqual(response.status_code,200)
+            pdf=fitz.open(stream=response.content,filetype='pdf')
+            self.assertEqual(len(pdf),2)
+            self.assertTrue(pdf[0].get_images(),'Logo must appear on the first page')
+            self.assertFalse(pdf[1].get_images(),'Subsequent pages must have no logo')
+            for n,page in enumerate(pdf,1):
+                text=page.get_text()
+                self.assertIn('CLB CỜ VUA THỦ ĐỨC',text);self.assertIn('Giáo viên: Nguyễn An',text)
+                self.assertIn(f'Phiếu {n} trên 2',text);self.assertNotIn('Nội dung đề bài cần ẩn.',text)
+                self.assertEqual(text.count('Trắng đi')+text.count('Đen đi'),12)
+                if not answers:
+                    self.assertIn('Họ tên:',text);self.assertIn('Level:',text)
+        latest=self.client.post('/api/worksheets/pdf',json=doc)
+        text=''.join(p.get_text() for p in fitz.open(stream=latest.content,filetype='pdf'))
+        self.assertIn('Nội dung đề bài cần ẩn.',text);self.assertNotIn('Trang ',text)
+        self.assertNotIn('Tĩnh Huyền Quán - 12 bài / trang',text)
+        self.assertNotIn('Giáo viên: Nguyễn An',text)
+
+    def test_long_custom_header_footer_and_logo_stay_in_header_footer_regions(self):
+        doc=self.document();doc.update(header_text='CLB CỜ VUA THỦ ĐỨC - LỚP CƠ BẢN VÀ NÂNG CAO - KIỂM TRA CHẤT LƯỢNG ĐẦU THÁNG',
+                                      title='BÀI KIỂM TRA KỸ NĂNG TÍNH TOÁN VÀ PHỐI HỢP QUÂN DÀNH CHO HỌC SINH CƠ BẢN NÂNG CAO',
+                                      footer_text='Giáo viên Nguyễn An - Lớp cờ vua thiếu nhi Thủ Đức - Kiểm tra và đánh giá tiến bộ học sinh',
+                                      page_number_format='Phiếu {page} / {total}',logo=prepare_logo(self.logo_bytes())['logo'])
+        response=self.client.post('/api/worksheets/pdf',json=doc);self.assertEqual(response.status_code,200)
+        page=fitz.open(stream=response.content,filetype='pdf')[0]
+        for block in page.get_text('dict')['blocks']:
+            for line in block.get('lines',[]):
+                for span in line['spans']:
+                    x0,y0,x1,y1=span['bbox']
+                    self.assertGreaterEqual(x0,33);self.assertLessEqual(x1,page.rect.width-33)
+                    self.assertGreaterEqual(y0,0);self.assertLessEqual(y1,page.rect.height-8)
+        all_text=page.get_text().replace('\n',' ')
+        self.assertIn(doc['title'],all_text);self.assertIn(doc['header_text'],all_text)
+        self.assertIn(doc['footer_text'],all_text)
 
     def test_starter_bank_supports_twelve_in_every_difficulty(self):
         options=self.client.get('/api/worksheets/options').json()

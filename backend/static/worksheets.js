@@ -5,7 +5,12 @@ const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const KEY='thc-worksheet-draft-v1';
 const INITIAL='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
-const blank=()=>({title:'BÀI TẬP CỜ VUA',kind:'exercise',level:'',instructions:'Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.',duration:null,rotate:false,filters:{min_rating:400,max_rating:899,theme:''},exercises:[]});
+const blank=()=>({title:'BÀI TẬP CỜ VUA',kind:'exercise',level:'',instructions:'Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.',duration:null,rotate:false,show_prompts:true,header_text:null,footer_text:null,show_page_numbers:true,page_number_format:'Trang {page} / {total}',logo:null,filters:{min_rating:400,max_rating:899,theme:''},exercises:[]});
+const textFields={title:'title',kind:'kind',level:'level',instructions:'instructions',header_text:'header-text',footer_text:'footer-text',page_number_format:'page-number-format'};
+const checkFields={rotate:'rotate',show_prompts:'show-prompts',show_page_numbers:'show-page-numbers'};
+const defaultHeader=()=>`TĨNH HUYỀN QUÁN / ${draft.kind==='test'?'BÀI KIỂM TRA':'PHIẾU BÀI TẬP'}`;
+const defaultFooter=()=> 'Tĩnh Huyền Quán - 12 bài / trang';
+const logoSource=()=> typeof draft.logo==='string'&&draft.logo.length<=1500000&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(draft.logo)?draft.logo:null;
 const uuid=()=>{if(typeof crypto.randomUUID==='function')return crypto.randomUUID();const bytes=crypto.getRandomValues(new Uint8Array(16));bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');};
 let historyOffset=0,historyTotal=0,historyRevision=0;
 let draft=blank(),documentId=uuid(),selected=-1,busy=false,options=null,editing=-1,paint='Q',squares=Array(64).fill(''),dirty=false;
@@ -17,15 +22,15 @@ async function request(path,body,method='POST'){
 }
 const api=async(path,body,method='POST')=>(await request(path,body,method)).json();
 const status=text=>$('status').textContent=text;
-function sync(){for(const key of ['title','kind','level','instructions'])draft[key]=$(key).value;draft.rotate=$('rotate').checked;draft.duration=$('duration').value===''?null:Number($('duration').value);draft.filters={min_rating:Number($('min-rating').value),max_rating:Number($('max-rating').value),theme:$('theme').value};}
-function hydrate(){for(const key of ['title','kind','level','instructions'])$(key).value=draft[key];$('rotate').checked=!!draft.rotate;$('duration').value=draft.duration??'';const f=draft.filters||blank().filters;$('min-rating').value=f.min_rating;$('max-rating').value=f.max_rating;$('theme').value=f.theme;$('difficulty').value=options?.levels.find(l=>l.min===f.min_rating&&l.max===f.max_rating)?.id||'custom';$('pages').value=Math.max(1,Math.ceil(draft.exercises.length/12));render();}
+function sync(){for(const [key,id] of Object.entries(textFields)){const value=$(id).value;if(key==='header_text'&&draft[key]===null&&value===defaultHeader()||key==='footer_text'&&draft[key]===null&&value===defaultFooter())continue;draft[key]=value;}for(const [key,id] of Object.entries(checkFields))draft[key]=$(id).checked;draft.duration=$('duration').value===''?null:Number($('duration').value);draft.filters={min_rating:Number($('min-rating').value),max_rating:Number($('max-rating').value),theme:$('theme').value};}
+function hydrate(){draft={...blank(),...draft};for(const [key,id] of Object.entries(textFields))$(id).value=draft[key]??(key==='header_text'?defaultHeader():key==='footer_text'?defaultFooter():'');for(const [key,id] of Object.entries(checkFields))$(id).checked=!!draft[key];$('duration').value=draft.duration??'';const f=draft.filters||blank().filters;$('min-rating').value=f.min_rating;$('max-rating').value=f.max_rating;$('theme').value=f.theme;$('difficulty').value=options?.levels.find(l=>l.min===f.min_rating&&l.max===f.max_rating)?.id||'custom';$('pages').value=Math.max(1,Math.ceil(draft.exercises.length/12));render();}
 function remember(){sync();dirty=true;try{localStorage.setItem(KEY,JSON.stringify({id:documentId,document:draft}));$('save-state').textContent='Bản nháp đã giữ trên máy';}catch{$('save-state').textContent='Chưa lưu - hãy bấm Lưu đề';}controls();}
 function controls(){
  const count=draft.exercises.length,ready=count>0&&count%12===0,hasSelection=selected>=0&&selected<count;
  for(const id of ['new','save','add-custom','history-open'])$(id).disabled=busy;
  $('saved').disabled=busy;$('generate').disabled=busy||!options;$('append-page').disabled=busy||!options||count>108;
- for(const id of ['title','kind','level','instructions','duration','rotate','pages','difficulty','min-rating','max-rating','theme'])$(id).disabled=busy;
- $('sheets').querySelectorAll('[data-sheet-title]').forEach(el=>el.contentEditable=busy?'false':'plaintext-only');
+ for(const id of [...Object.values(textFields),...Object.values(checkFields),'duration','pages','difficulty','min-rating','max-rating','theme','logo-input','logo-remove','reset-branding'])$(id).disabled=busy;
+ $('sheets').querySelectorAll('[data-sheet-title], [data-sheet-field]').forEach(el=>el.contentEditable=busy?'false':'plaintext-only');
  $('view-answers').disabled=busy||!count;
  $('export').disabled=busy||!ready;$('answers').disabled=busy||!ready||draft.exercises.some(e=>!e.solution);
  $('generate').textContent='Tạo '+(Number($('pages').value)||1)*12+' bài';
@@ -50,15 +55,17 @@ function diagram(fen,rotate=false){
  return `<svg viewBox="0 0 400 400" role="img" aria-label="Thế cờ, ${board.turn()==='w'?'Trắng':'Đen'} đi" style="color-scheme:only light;forced-color-adjust:none"><g fill="#222" font-family="Arial,sans-serif" font-size="12">${body}</g></svg>`;
 }
 function render(){
- const count=draft.exercises.length,total=Math.max(1,Math.ceil(count/12));let html='';
+ const count=draft.exercises.length,total=Math.max(1,Math.ceil(count/12)),logo=logoSource();let html='';
+ $('logo-preview').hidden=!logo;$('logo-remove').hidden=!logo;if(logo)$('logo-preview').src=logo;
  for(let page=0;page<total;page++){
   const details=[draft.level?'Dành cho: '+draft.level:'',draft.duration?'Thời gian: '+draft.duration+' phút':'',draft.kind==='test'?'Điểm: ____ / '+count:''].filter(Boolean).join(' | ');
-  html+=`<article class="sheet"><p class="sheet-brand">TĨNH HUYỀN QUÁN / ${draft.kind==='test'?'BÀI KIỂM TRA':'PHIẾU BÀI TẬP'}</p><h3 contenteditable="plaintext-only" data-sheet-title="${page}" role="textbox" aria-label="Sửa tiêu đề trực tiếp" aria-multiline="false" spellcheck="false" title="Bấm để sửa tiêu đề">${esc(draft.title)}</h3><div class="student-fields"><span>Họ tên: <i></i></span><span>Level: <i></i></span></div>${details?`<p class="sheet-details">${esc(details)}</p>`:''}<p class="sheet-instructions">${esc(draft.instructions)}</p>${!count?'<p class="empty-tip">12 thế cờ sẽ được bố trí tại đây.</p>':''}<div class="sheet-grid">`;
+  html+=`<article class="sheet"><div class="sheet-heading"><div class="sheet-heading-text"><p class="sheet-brand" contenteditable="plaintext-only" data-sheet-field="header_text" role="textbox" aria-label="Sửa header trực tiếp" aria-multiline="false" spellcheck="false" title="Bấm để sửa header">${esc(draft.header_text??defaultHeader())}</p><h3 contenteditable="plaintext-only" data-sheet-title="${page}" role="textbox" aria-label="Sửa tiêu đề trực tiếp" aria-multiline="false" spellcheck="false" title="Bấm để sửa tiêu đề">${esc(draft.title)}</h3></div>${page===0&&logo?`<img class="sheet-logo" src="${esc(logo)}" alt="Logo đơn vị">`:''}</div><div class="student-fields"><span>Họ tên: <i></i></span><span>Level: <i></i></span></div>${details?`<p class="sheet-details">${esc(details)}</p>`:''}<p class="sheet-instructions">${esc(draft.instructions)}</p>${!count?'<p class="empty-tip">12 thế cờ sẽ được bố trí tại đây.</p>':''}<div class="sheet-grid">`;
   for(let n=0;n<12;n++){
    const index=page*12+n,e=draft.exercises[index];
-   html+=e?`<section tabindex="0" role="button" aria-label="Chỉnh bài ${index+1}" aria-pressed="${index===selected}" class="sheet-exercise${index===selected?' selected':''}" data-exercise="${index}"><div class="caption"><span>${index+1}. ${e.fen.split(' ')[1]==='w'?'Trắng':'Đen'} đi</span></div>${diagram(e.fen,draft.rotate)}<p class="prompt">${esc(e.instruction)}</p><div class="write-line"></div></section>`:`<div class="placeholder">Bài ${index+1}<br>Chưa có thế cờ</div>`;
+   html+=e?`<section tabindex="0" role="button" aria-label="Chỉnh bài ${index+1}" aria-pressed="${index===selected}" class="sheet-exercise${index===selected?' selected':''}" data-exercise="${index}"><div class="caption"><span>${index+1}. ${e.fen.split(' ')[1]==='w'?'Trắng':'Đen'} đi</span></div>${diagram(e.fen,draft.rotate)}${draft.show_prompts?`<p class="prompt">${esc(e.instruction)}</p>`:'<div class="prompt-space" aria-hidden="true"></div>'}<div class="write-line"></div></section>`:`<div class="placeholder">Bài ${index+1}<br>Chưa có thế cờ</div>`;
   }
-  html+=`</div><footer class="sheet-footer"><span>Tĩnh Huyền Quán · 12 bài / trang</span><span>Trang ${page+1} / ${total}</span></footer></article>`;
+  const numbering=draft.show_page_numbers?draft.page_number_format.replaceAll('{page}',String(page+1)).replaceAll('{total}',String(total)):'';
+  html+=`</div><footer class="sheet-footer"><span contenteditable="plaintext-only" data-sheet-field="footer_text" role="textbox" aria-label="Sửa footer trực tiếp" aria-multiline="false" spellcheck="false" title="Bấm để sửa footer">${esc(draft.footer_text??defaultFooter())}</span><span class="sheet-pagination">${esc(numbering)}</span></footer></article>`;
  }
  $('sheets').innerHTML=html;controls();
 }
@@ -87,17 +94,31 @@ $('pages').oninput=controls;
 $('difficulty').onchange=()=>{const level=options.levels.find(l=>l.id===$('difficulty').value);if(level){$('min-rating').value=level.min;$('max-rating').value=level.max;}remember();};
 for(const id of ['min-rating','max-rating'])$(id).oninput=()=>{$('difficulty').value='custom';remember();};
 $('theme').onchange=remember;
-for(const id of ['title','level','instructions','duration','rotate'])$(id).addEventListener('input',()=>{remember();render();});
-$('kind').onchange=()=>{if(['BÀI TẬP CỜ VUA','BÀI KIỂM TRA CỜ VUA'].includes($('title').value))$('title').value=$('kind').value==='test'?'BÀI KIỂM TRA CỜ VUA':'BÀI TẬP CỜ VUA';remember();render();};
-$('sheets').onclick=event=>{if(event.target.closest('[data-sheet-title]'))return;const card=event.target.closest('[data-exercise]');if(card&&!busy){selected=Number(card.dataset.exercise);render();}};
-$('sheets').onkeydown=event=>{if(event.target.dataset.sheetTitle!==undefined){if(event.key==='Enter'){event.preventDefault();event.target.blur();}return;}if(['Enter',' '].includes(event.key)&&event.target.dataset.exercise!==undefined){event.preventDefault();selected=Number(event.target.dataset.exercise);render();}};
+for(const id of ['title','level','instructions','duration','rotate','show-prompts','header-text','footer-text','show-page-numbers','page-number-format'])$(id).addEventListener('input',()=>{remember();render();});
+$('kind').onchange=()=>{if(['BÀI TẬP CỜ VUA','BÀI KIỂM TRA CỜ VUA'].includes($('title').value))$('title').value=$('kind').value==='test'?'BÀI KIỂM TRA CỜ VUA':'BÀI TẬP CỜ VUA';if(draft.header_text===null){draft.kind=$('kind').value;$('header-text').value=defaultHeader();}remember();render();};
+$('reset-branding').onclick=()=>{if(busy)return;draft.header_text=null;draft.footer_text=null;$('header-text').value=defaultHeader();$('footer-text').value=defaultFooter();$('page-number-format').value=blank().page_number_format;remember();render();};
+$('sheets').onclick=event=>{if(event.target.closest('[data-sheet-title], [data-sheet-field]'))return;const card=event.target.closest('[data-exercise]');if(card&&!busy){selected=Number(card.dataset.exercise);render();}};
+$('sheets').onkeydown=event=>{if(event.target.dataset.sheetTitle!==undefined||event.target.dataset.sheetField!==undefined){if(event.key==='Enter'){event.preventDefault();event.target.blur();}return;}if(['Enter',' '].includes(event.key)&&event.target.dataset.exercise!==undefined){event.preventDefault();selected=Number(event.target.dataset.exercise);render();}};
 $('sheets').addEventListener('input',event=>{
- if(event.target.dataset.sheetTitle===undefined||busy)return;
+ const key=event.target.dataset.sheetTitle!==undefined?'title':event.target.dataset.sheetField;
+ if(!['title','header_text','footer_text'].includes(key)||busy)return;
  const text=(event.target.textContent||'').replace(/[\r\n]+/g,' ').slice(0,120);
  if(event.target.textContent!==text)event.target.textContent=text;
- $('title').value=text;remember();
- $('sheets').querySelectorAll('[data-sheet-title]').forEach(el=>{if(el!==event.target)el.textContent=text;});
+ $(textFields[key]).value=text;remember();
+ $('sheets').querySelectorAll(key==='title'?'[data-sheet-title]':`[data-sheet-field="${key}"]`).forEach(el=>{if(el!==event.target)el.textContent=text;});
 });
+
+$('logo-input').onchange=async()=>{
+ const file=$('logo-input').files?.[0];if(!file||busy)return;
+ try{
+  if(file.size>5*1024*1024)throw Error('Logo vượt quá 5 MB. Hãy chọn ảnh nhỏ hơn.');
+  busy=true;controls();$('logo-state').textContent='Đang căn chỉnh logo…';
+  const response=await fetch('/api/worksheets/logo',{method:'POST',headers:{'Content-Type':file.type||'application/octet-stream'},body:file});
+  const result=await response.json();if(!response.ok)throw Error(typeof result.detail==='string'?result.detail:'Không xử lý được logo. Hãy thử ảnh PNG, JPG hoặc WebP khác.');
+  draft.logo=result.logo;remember();render();$('logo-state').textContent='Đã căn chỉnh logo, chỉ đặt ở trang đầu. Logo được giữ cùng đề khi lưu hoặc xuất PDF.';status('Đã thêm logo. Bạn có thể sửa header, footer và xem bố cục trước khi xuất PDF.');
+ }catch(error){$('logo-state').textContent=error.message;}finally{$('logo-input').value='';busy=false;controls();}
+};
+$('logo-remove').onclick=()=>{if(busy)return;draft.logo=null;remember();render();$('logo-state').textContent='Đã gỡ logo khỏi bản nháp. Bạn có thể chọn ảnh khác.';};
 
 const actionLabel=action=>({generate:'Tạo đề',append:'Thêm trang',replace:'Đổi bài',save:'Lưu đề',export:'Xuất PDF',migration:'Đề đã lưu trước đây',before_generate:'Bản trước khi thay bài',edit:'Tự soạn / sửa bài',before_edit:'Bản trước khi sửa'}[action]||'Lưu phiên bản');
 function historyTime(value){const date=new Date(value.replace(' ','T')+'Z');return Number.isNaN(date.getTime())?value:date.toLocaleString('vi-VN');}

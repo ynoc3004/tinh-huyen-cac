@@ -57,6 +57,12 @@ class Document(BaseModel):
     instructions: str = Field(default="Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.", max_length=200)
     duration: int | None = Field(default=None, ge=1, le=240)
     rotate: bool = False
+    show_prompts: bool = True
+    header_text: str | None = Field(default=None, max_length=120)
+    footer_text: str | None = Field(default=None, max_length=120)
+    show_page_numbers: bool = True
+    page_number_format: str = Field(default="Trang {page} / {total}", max_length=80)
+    logo: str | None = Field(default=None, max_length=1_500_000)
     filters: Filters = Field(default_factory=Filters)
     exercises: list[Exercise] = Field(default_factory=list, max_length=120)
 
@@ -132,8 +138,12 @@ def validate_document(document, exporting=False):
     if exporting and (not document.exercises or len(document.exercises) % 12):
         raise ValueError("Mỗi trang cần đúng 12 bài. Hãy thêm đủ 12, 24, 36… bài trước khi xuất PDF.")
     data = document.model_dump()
-    for field in ("title", "level", "instructions"):
-        data[field] = clean_text(data[field])
+    for field in ("title", "level", "instructions", "header_text", "footer_text", "page_number_format"):
+        if data[field] is not None:
+            data[field] = clean_text(data[field])
+    if data["logo"]:
+        from services.worksheet_logo import validate_logo
+        data["logo"] = validate_logo(data["logo"])
     data["exercises"] = []
     for i, exercise in enumerate(document.exercises, 1):
         try:

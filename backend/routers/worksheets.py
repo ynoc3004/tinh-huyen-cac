@@ -1,12 +1,27 @@
 import json
 import uuid
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 from db import conn
 from services import worksheets as service
 from services import worksheet_history as history
 
 router = APIRouter(prefix="/api/worksheets")
+
+
+@router.post("/logo")
+async def upload_logo(request: Request):
+    from services.worksheet_logo import MAX_UPLOAD, prepare_logo
+    raw = bytearray()
+    async for chunk in request.stream():
+        if len(raw) + len(chunk) > MAX_UPLOAD:
+            raise HTTPException(413, "Logo vượt quá 5 MB. Hãy chọn ảnh nhỏ hơn.")
+        raw.extend(chunk)
+    try:
+        from starlette.concurrency import run_in_threadpool
+        return await run_in_threadpool(prepare_logo, bytes(raw))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 @router.get("/options")
