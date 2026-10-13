@@ -5,7 +5,7 @@
 <title>Soạn bài tập · Tĩnh Huyền Quán</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <link rel="stylesheet" href="/tien-canh.css?v=appearance-2"><script src="/tien-canh.js?v=worksheets-1"></script>
-<link rel="stylesheet" href="/worksheets.css?v=3">
+<link rel="stylesheet" href="/worksheets.css?v=4">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1"><link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg?v=1"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
 </head>
 <body><main class="wrap">
@@ -18,7 +18,7 @@
 <label>Loại phiếu<select id="kind"><option value="exercise">Bài tập</option><option value="test">Bài kiểm tra</option></select></label>
 <label>Tiêu đề<input id="title" maxlength="120" value="BÀI TẬP CỜ VUA"></label>
 <label>Dành cho lớp / level<input id="level" maxlength="60" placeholder="Ví dụ: Step 2, lớp U8"></label>
-<p class="hint">Trên phiếu luôn có ô Họ tên và Level để học sinh tự điền.</p>
+<p class="hint">Trang đầu có ô Họ tên và Level để học sinh tự điền. Từ trang 2 chỉ lặp lại header.</p>
 <label>Lời dặn<textarea id="instructions" maxlength="200" rows="3">Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.</textarea></label>
 <label>Thời gian làm bài (phút)<input id="duration" type="number" min="1" max="240" placeholder="Không bắt buộc"></label>
 <label class="check"><input id="rotate" type="checkbox"> Xoay bàn theo bên đi</label>
@@ -61,5 +61,5 @@
 <dialog id="history-dialog"><div class="dialog-head"><h2>Lịch sử tạo đề</h2><button id="history-close" class="secondary">Đóng</button></div><p class="hint">Các phiên bản được giữ riêng, gồm tiêu đề, trình độ, thế cờ và đáp án tại thời điểm tạo/lưu/xuất PDF.</p><label>Tìm đề<input id="history-search" maxlength="120" placeholder="Tiêu đề hoặc lớp / level"></label><p id="history-status" role="status"></p><div id="history-list"></div><div class="history-paging"><button id="history-prev" class="secondary">← Trước</button><span id="history-page"></span><button id="history-next" class="secondary">Sau →</button></div></dialog>
 <dialog id="answers-dialog"><div class="dialog-head"><h2 id="answers-title">Đáp án giáo viên</h2><button id="answers-close" class="secondary">Đóng</button></div><p class="hint">Dành riêng cho giáo viên. Bản PDF học sinh không chứa phần này.</p><div id="answers-list"></div></dialog>
 </main><svg id="piece-definitions" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden"></svg>
-<script type="module" src="/worksheets.js?v=3"></script>
+<script type="module" src="/worksheets.js?v=4"></script>
 </body></html>

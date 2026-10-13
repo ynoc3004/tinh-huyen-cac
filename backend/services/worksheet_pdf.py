@@ -81,30 +81,31 @@ def header(pdf, document, page, total, answers):
         iw, ih = iw * scale, ih * scale
         pdf.drawImage(image, width - 104 + (70 - iw) / 2, height - 84 + (58 - ih) / 2,
                       width=iw, height=ih, mask="auto")
-    title = document["title"]
-    size = 16
-    while size > 7 and len(wrap(title, heading_width, size)) > 2:
-        size -= 1
-    text_lines(pdf, title, 34, height - 57, heading_width, size, 17, 2)
-    pdf.setFont(FONT, 9)
-    if not answers:
-        pdf.drawString(34, height - 92, "Họ tên:")
-        pdf.line(72, height - 94, 363, height - 94)
-        pdf.drawString(383, height - 92, "Level:")
-        pdf.line(418, height - 94, width - 34, height - 94)
-    detail = []
-    if document["level"]:
-        detail.append("Dành cho: " + document["level"])
-    if document["duration"]:
-        detail.append(f"Thời gian: {document['duration']} phút")
-    if document["kind"] == "test":
-        detail.append(f"Điểm: ____ / {len(document['exercises'])}")
-    if detail:
-        text_lines(pdf, "  |  ".join(detail), 34, height - 110, width - 68, 8, 10, 1)
-    text_lines(pdf, "ĐÁP ÁN GIÁO VIÊN - Chỉ dành cho giáo viên. Không phát kèm đề học sinh." if answers else document["instructions"],
-               34, height - 123, width - 68, 7.5, 10, 2)
+    if page == 1:
+        title = document["title"]
+        size = 16
+        while size > 7 and len(wrap(title, heading_width, size)) > 2:
+            size -= 1
+        text_lines(pdf, title, 34, height - 57, heading_width, size, 17, 2)
+        pdf.setFont(FONT, 9)
+        if not answers:
+            pdf.drawString(34, height - 92, "Họ tên:")
+            pdf.line(72, height - 94, 363, height - 94)
+            pdf.drawString(383, height - 92, "Level:")
+            pdf.line(418, height - 94, width - 34, height - 94)
+        detail = []
+        if document["level"]:
+            detail.append("Dành cho: " + document["level"])
+        if document["duration"]:
+            detail.append(f"Thời gian: {document['duration']} phút")
+        if document["kind"] == "test":
+            detail.append(f"Điểm: ____ / {len(document['exercises'])}")
+        if detail:
+            text_lines(pdf, "  |  ".join(detail), 34, height - 110, width - 68, 8, 10, 1)
+        text_lines(pdf, "ĐÁP ÁN GIÁO VIÊN - Chỉ dành cho giáo viên. Không phát kèm đề học sinh." if answers else document["instructions"],
+                   34, height - 123, width - 68, 7.5, 10, 2)
     pdf.setLineWidth(.5)
-    pdf.line(34, height - 142, width - 34, height - 142)
+    pdf.line(34, height - (142 if page == 1 else 54), width - 34, height - (142 if page == 1 else 54))
     footer = document.get("footer_text")
     if footer is None:
         footer = "Tĩnh Huyền Quán - " + ("Đáp án" if answers else "12 bài / trang")
@@ -133,12 +134,13 @@ def render_pdf(document, answers=False):
     exercises = document["exercises"]
     total = len(exercises) // 12
     width, height = A4
-    top, bottom = height - 154, 36
+    bottom = 36
     cols, rows = (2, 6) if answers else (3, 4)
     cell_width = (width - 68) / cols
-    cell_height = (top - bottom) / rows
     for page in range(total):
         header(pdf, document, page + 1, total, answers)
+        top = height - (154 if page == 0 else 66)
+        cell_height = (top - bottom) / rows
         for local, exercise in enumerate(exercises[page * 12:(page + 1) * 12]):
             x = 34 + (local % cols) * cell_width
             y = top - (local // cols) * cell_height

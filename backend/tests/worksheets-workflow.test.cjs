@@ -34,6 +34,9 @@ await input('title','Đề kiểm tra lớp Step 2');await input('level','Step 2
 await click('export');const exported=requests.find(r=>r.url.startsWith('/api/worksheets/pdf?')&&!r.url.includes('answers=true'));assert.equal(exported.body.title,'Đề kiểm tra lớp Step 2');assert.equal(exported.body.level,'Step 2');assert.equal(exported.body.exercises.length,12);assert.equal(lastDownload,'Đề kiểm tra lớp Step 2.pdf');
 await click('answers');assert(requests.some(r=>r.url.includes('/api/worksheets/pdf?')&&r.url.includes('answers=true')));
 await click('append-page');assert.equal((node('sheets').innerHTML.match(/class="sheet"/g)||[]).length,2);assert.equal((node('sheets').innerHTML.match(/data-exercise=/g)||[]).length,24);
+for(const marker of ['class="student-fields"','class="sheet-details"','class="sheet-instructions"','data-sheet-title='])assert.equal(node('sheets').innerHTML.split(marker).length-1,1,'Student information/title/instructions must appear only on the first page');
+assert.equal(node('sheets').innerHTML.split('class="sheet-brand"').length-1,2,'Header must repeat on subsequent pages');
+assert(node('sheets').innerHTML.includes('data-continuation="true"'));
 await click('save');assert.equal(saved.size,1);assert.equal([...saved.values()][0].exercises.length,24);
 const stored=JSON.parse(storage.get('thc-worksheet-draft-v1'));assert.equal(stored.document.title,'Đề kiểm tra lớp Step 2');
 await click('replace');assert.equal(requests.filter(r=>r.url.endsWith('/generate')).at(-1).body.selection.count,1);assert.equal(requests.filter(r=>r.url.endsWith('/generate')).at(-1).body.selection.exclude.length,24);
@@ -49,10 +52,10 @@ await input('min-rating','2000');node('min-rating').oninput();assert.equal(node(
 await click('save');await click('new');node('saved').value=[...saved.keys()][0];await node('saved').onchange();await flush();assert.equal(node('min-rating').value,2000);assert.equal(node('max-rating').value,2600,'Saved band must survive reopening before replacing a puzzle');
 await click('edit');node('clear-board').onclick();assert.equal(node('editor-fen').value,'8/8/8/8/8/8/8/8 w - - 0 1');
 const sq={dataset:{square:'60'}};node('editor-board').onclick({target:{closest:()=>sq}});assert(node('editor-fen').value.startsWith('8/8/8/8/8/8/8/4Q3'));
-node('sheets').querySelectorAll=selector=>selector==='[data-sheet-title]'?[node('direct-title'),node('other-title')]:[];
+node('sheets').querySelectorAll=selector=>selector==='[data-sheet-title]'?[node('direct-title')]:[];
 node('direct-title').dataset={sheetTitle:'0'};node('direct-title').textContent='Đề sửa trực tiếp';
 for(const handler of node('sheets').events.input||[])await handler({target:node('direct-title')});
-assert.equal(node('title').value,'Đề sửa trực tiếp');assert.equal(node('other-title').textContent,'Đề sửa trực tiếp');
+assert.equal(node('title').value,'Đề sửa trực tiếp');
 await click('export');assert.equal(requests.filter(r=>r.url.includes('/pdf?')&&!r.url.includes('answers=true')).at(-1).body.title,'Đề sửa trực tiếp');
 await click('view-answers');assert.equal(node('answers-dialog').open,true);assert(node('answers-list').innerHTML.includes('e4'));await click('answers-close');
 await click('history-open');assert.equal(node('history-dialog').open,true);assert(node('history-list').innerHTML.includes('data-history-load="1"'));assert(node('history-list').innerHTML.includes('/history/1/pdf?answers=true'));

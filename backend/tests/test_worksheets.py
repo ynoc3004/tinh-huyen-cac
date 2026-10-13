@@ -109,8 +109,12 @@ class WorksheetTests(unittest.TestCase):
                 self.assertIn('CLB CỜ VUA THỦ ĐỨC',text);self.assertIn('Giáo viên: Nguyễn An',text)
                 self.assertIn(f'Phiếu {n} trên 2',text);self.assertNotIn('Nội dung đề bài cần ẩn.',text)
                 self.assertEqual(text.count('Trắng đi')+text.count('Đen đi'),12)
-                if not answers:
+                if not answers and n == 1:
                     self.assertIn('Họ tên:',text);self.assertIn('Level:',text)
+                if n > 1:
+                    self.assertNotIn('Họ tên:',text);self.assertNotIn('Level:',text)
+                    self.assertNotIn(old['title'],text);self.assertNotIn(old['level'],text)
+                    self.assertNotIn('Thời gian:',text);self.assertNotIn('Điểm:',text)
         latest=self.client.post('/api/worksheets/pdf',json=doc)
         text=''.join(p.get_text() for p in fitz.open(stream=latest.content,filetype='pdf'))
         self.assertIn('Nội dung đề bài cần ẩn.',text);self.assertNotIn('Trang ',text)
@@ -224,9 +228,17 @@ class WorksheetTests(unittest.TestCase):
         self.assertEqual(len(pdf),2)
         for index,page in enumerate(pdf):
             text=page.get_text()
-            self.assertIn(doc['title'],text)
-            self.assertIn('Họ tên:',text);self.assertIn('Level:',text)
-            self.assertIn(doc['level'],text)
+            self.assertIn('TĨNH HUYỀN QUÁN / BÀI KIỂM TRA',text)
+            if index == 0:
+                self.assertIn(doc['title'],text)
+                self.assertIn('Họ tên:',text);self.assertIn('Level:',text)
+                self.assertIn(doc['level'],text);self.assertIn('Thời gian:',text);self.assertIn('Điểm:',text)
+                self.assertIn('Ghi nước đi hoặc phương án',text)
+            else:
+                for removed in (doc['title'],'Họ tên:','Level:',doc['level'],'Thời gian:','Điểm:','Ghi nước đi hoặc phương án'):
+                    self.assertNotIn(removed,text)
+                caption=next(span for block in page.get_text('dict')['blocks'] for line in block.get('lines',[]) for span in line['spans'] if span['text'].startswith('13. '))
+                self.assertLess(caption['bbox'][1],90,'Exercise grid moves up under the compact header')
             self.assertEqual(text.count('Trắng đi')+text.count('Đen đi'),12)
             self.assertIn(f'Trang {index+1} / 2',text)
             self.assertAlmostEqual(page.rect.width,595.276,places=2)

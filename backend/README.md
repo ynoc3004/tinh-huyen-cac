@@ -4,7 +4,7 @@
 
 ## Soạn bài tập và bài kiểm tra
 
-Mở **Soạn bài tập** trên thanh điều hướng (`/worksheets.html`). Chọn Bài tập/Bài kiểm tra, sửa tiêu đề bằng ô nhập hoặc bấm thẳng vào tiêu đề trên bản xem trước, nhập lớp/level và lời dặn; thời gian làm bài là tùy chọn. Trên mỗi trang học sinh luôn có dòng **Họ tên** và **Level** để tự điền.
+Mở **Soạn bài tập** trên thanh điều hướng (`/worksheets.html`). Chọn Bài tập/Bài kiểm tra, sửa tiêu đề bằng ô nhập hoặc bấm thẳng vào tiêu đề trên bản xem trước, nhập lớp/level và lời dặn; thời gian làm bài là tùy chọn. Trang đầu có dòng **Họ tên** và **Level** để tự điền, cùng tiêu đề, thời gian/điểm và lời dặn. Từ trang 2 trở đi, phần đầu chỉ giữ header/tên đơn vị; phần bài tập được đưa lên trên, vẫn đủ 12 bài mỗi trang.
 
 Trong **Bố cục trang**, bật/tắt yêu cầu dưới thế cờ (ví dụ “Chiếu hết trong 1 nước.”); số bài, bên đi và dòng trả lời vẫn giữ nguyên. Sửa header/tên đơn vị và footer bằng ô nhập hoặc trực tiếp trên bất kỳ trang xem trước nào; thay đổi áp dụng cho toàn bộ đề. Để trống để ẩn dòng, hoặc khôi phục mặc định bằng nút riêng. Có thể ẩn số trang hoặc đổi mẫu, dùng `{page}` cho trang hiện tại và `{total}` cho tổng số trang.
 
