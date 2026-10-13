@@ -73,26 +73,26 @@ def header(pdf, document, page, total, answers):
     brand_size = 7.5
     while brand_size > 5 and len(wrap(brand, heading_width, brand_size)) > 2:
         brand_size -= .5
-    text_lines(pdf, brand, 34, height - 30, heading_width, brand_size, 10, 2)
+    text_lines(pdf, brand, 34, height - 22, heading_width, brand_size, 10, 2)
     if logo:
         image = ImageReader(BytesIO(base64.b64decode(logo.split(",", 1)[1])))
         iw, ih = image.getSize()
-        scale = min(70 / iw, 58 / ih)
+        scale = min(70 / iw, 48 / ih)
         iw, ih = iw * scale, ih * scale
-        pdf.drawImage(image, width - 104 + (70 - iw) / 2, height - 84 + (58 - ih) / 2,
+        pdf.drawImage(image, width - 104 + (70 - iw) / 2, height - 70 + (48 - ih) / 2,
                       width=iw, height=ih, mask="auto")
     if page == 1:
         title = document["title"]
         size = 16
         while size > 7 and len(wrap(title, heading_width, size)) > 2:
             size -= 1
-        text_lines(pdf, title, 34, height - 57, heading_width, size, 17, 2)
+        text_lines(pdf, title, 34, height - 48, heading_width, size, 16, 2)
         pdf.setFont(FONT, 9)
         if not answers:
-            pdf.drawString(34, height - 92, "Họ tên:")
-            pdf.line(72, height - 94, 363, height - 94)
-            pdf.drawString(383, height - 92, "Level:")
-            pdf.line(418, height - 94, width - 34, height - 94)
+            pdf.drawString(34, height - 80, "Họ tên:")
+            pdf.line(72, height - 82, 363, height - 82)
+            pdf.drawString(383, height - 80, "Level:")
+            pdf.line(418, height - 82, width - 34, height - 82)
         detail = []
         if document["level"]:
             detail.append("Dành cho: " + document["level"])
@@ -101,11 +101,14 @@ def header(pdf, document, page, total, answers):
         if document["kind"] == "test":
             detail.append(f"Điểm: ____ / {len(document['exercises'])}")
         if detail:
-            text_lines(pdf, "  |  ".join(detail), 34, height - 110, width - 68, 8, 10, 1)
-        text_lines(pdf, "ĐÁP ÁN GIÁO VIÊN - Chỉ dành cho giáo viên. Không phát kèm đề học sinh." if answers else document["instructions"],
-                   34, height - 123, width - 68, 7.5, 10, 2)
+            text_lines(pdf, "  |  ".join(detail), 34, height - 94, width - 68, 8, 10, 1)
+        end = text_lines(pdf, "ĐÁP ÁN GIÁO VIÊN - Chỉ dành cho giáo viên. Không phát kèm đề học sinh." if answers else document["instructions"],
+                         34, height - 106, width - 68, 7.5, 9, 2)
+        rule_y = end - 3
+    else:
+        rule_y = height - 54
     pdf.setLineWidth(.5)
-    pdf.line(34, height - (142 if page == 1 else 54), width - 34, height - (142 if page == 1 else 54))
+    pdf.line(34, rule_y, width - 34, rule_y)
     footer = document.get("footer_text")
     if footer is None:
         footer = "Tĩnh Huyền Quán - " + ("Đáp án" if answers else "12 bài / trang")
@@ -122,6 +125,7 @@ def header(pdf, document, page, total, answers):
     pdf.setFont(FONT, numbering_size)
     for line, text in enumerate(wrap(numbering, max(right_width, 1), numbering_size)[:2]):
         pdf.drawRightString(width - 34, 20 - line * 8, text)
+    return rule_y - 12
 
 
 def render_pdf(document, answers=False):
@@ -138,10 +142,13 @@ def render_pdf(document, answers=False):
     cols, rows = (2, 6) if answers else (3, 4)
     cell_width = (width - 68) / cols
     for page in range(total):
-        header(pdf, document, page + 1, total, answers)
-        top = height - (154 if page == 0 else 66)
+        top = header(pdf, document, page + 1, total, answers)
         cell_height = (top - bottom) / rows
-        for local, exercise in enumerate(exercises[page * 12:(page + 1) * 12]):
+        page_exercises = exercises[page * 12:(page + 1) * 12]
+        prompt_lines = max((min(2, len(wrap(e['instruction'], cell_width - 12, 6.5))) for e in page_exercises), default=0) if document.get('show_prompts', True) else 0
+        # Fill the available cell; captions/prompts stay outside the square diagram.
+        size = min(cell_width - 8, cell_height - 18 - prompt_lines * 8)
+        for local, exercise in enumerate(page_exercises):
             x = 34 + (local % cols) * cell_width
             y = top - (local // cols) * cell_height
             number = page * 12 + local + 1
@@ -157,16 +164,10 @@ def render_pdf(document, answers=False):
             else:
                 # Diagram stays vector; all coordinates and pieces come from the validated FEN.
                 drawing = svg2rlg(BytesIO(board_svg(exercise, document["rotate"]).encode()))
-                size = 124
                 drawing.scale(size / drawing.width, size / drawing.height)
-                renderPDF.draw(drawing, pdf, x + (cell_width - size) / 2, y - 138)
+                renderPDF.draw(drawing, pdf, x + (cell_width - size) / 2, y - 14 - size)
                 if document.get("show_prompts", True):
-                    text_lines(pdf, exercise["instruction"], x + 6, y - 147, cell_width - 12, 6.5, 8, 2)
-                pdf.setStrokeColorRGB(.55, .55, .55)
-                pdf.setLineWidth(.4)
-                pdf.setDash(1, 2)
-                pdf.line(x + 6, y - cell_height + 4, x + cell_width - 9, y - cell_height + 4)
-                pdf.setDash()
+                    text_lines(pdf, exercise["instruction"], x + 6, y - 21 - size, cell_width - 12, 6.5, 8, 2)
             pdf.setStrokeColorRGB(.85, .85, .85)
             pdf.setLineWidth(.35)
             if local % cols < cols - 1:

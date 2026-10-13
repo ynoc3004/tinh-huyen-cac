@@ -303,14 +303,20 @@ class WorksheetTests(unittest.TestCase):
         self.assertEqual(len(pdf),2)
         for index,page in enumerate(pdf):
             text=page.get_text()
+            drawings=page.get_drawings()
+            outlines=[d for d in drawings if d['type']=='s' and d['color'] and max(d['color'])<.3
+                      and d['rect'].width>120 and abs(d['rect'].width-d['rect'].height)<.01]
+            self.assertEqual(len(outlines),12)
+            self.assertTrue(all(d['rect'].width>128 for d in outlines),'Printed playing area must exceed the old 114-point board')
+            self.assertFalse(any(d['dashes'] and d['dashes'].split(']')[0].replace('[','').strip() for d in drawings),'No dashed answer lines')
             self.assertIn('TĨNH HUYỀN QUÁN / BÀI KIỂM TRA',text)
             if index == 0:
                 self.assertIn(doc['title'],text)
                 self.assertIn('Họ tên:',text);self.assertIn('Level:',text)
                 self.assertIn(doc['level'],text);self.assertIn('Thời gian:',text);self.assertIn('Điểm:',text)
-                self.assertIn('Ghi nước đi hoặc phương án',text)
+                self.assertIn('Quan sát thế cờ',text)
             else:
-                for removed in (doc['title'],'Họ tên:','Level:',doc['level'],'Thời gian:','Điểm:','Ghi nước đi hoặc phương án'):
+                for removed in (doc['title'],'Họ tên:','Level:',doc['level'],'Thời gian:','Điểm:','Quan sát thế cờ'):
                     self.assertNotIn(removed,text)
                 caption=next(span for block in page.get_text('dict')['blocks'] for line in block.get('lines',[]) for span in line['spans'] if span['text'].startswith('13. '))
                 self.assertLess(caption['bbox'][1],90,'Exercise grid moves up under the compact header')
@@ -319,6 +325,12 @@ class WorksheetTests(unittest.TestCase):
             self.assertAlmostEqual(page.rect.width,595.276,places=2)
             self.assertTrue(all(e['solution'] not in text for e in doc['exercises'] if len(e['solution'])>5))
         self.assertFalse(any(page.get_images() for page in pdf),'Diagrams should stay vector for sharp printing')
+
+    def test_legacy_default_instructions_adapt_without_overwriting_custom_text(self):
+        doc=self.document();doc['instructions']='Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.'
+        self.assertEqual(service.validate_document(service.Document(**doc))['instructions'],'Quan sát thế cờ và tìm phương án tốt nhất.')
+        doc['instructions']='Học sinh khoanh tròn quân cần di chuyển.'
+        self.assertEqual(service.validate_document(service.Document(**doc))['instructions'],doc['instructions'])
 
     def test_answers_are_separate_and_missing_solution_blocks_teacher_export_only(self):
         doc=self.document();response=self.client.post('/api/worksheets/pdf?answers=true',json=doc)

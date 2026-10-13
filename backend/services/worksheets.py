@@ -52,7 +52,7 @@ class Document(BaseModel):
     title: str = Field(default="BÀI TẬP CỜ VUA", min_length=1, max_length=120)
     kind: Literal["exercise", "test"] = "exercise"
     level: str = Field(default="", max_length=60)
-    instructions: str = Field(default="Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.", max_length=200)
+    instructions: str = Field(default="Quan sát thế cờ và tìm phương án tốt nhất.", max_length=200)
     duration: int | None = Field(default=None, ge=1, le=240)
     rotate: bool = False
     show_prompts: bool = True
@@ -139,6 +139,8 @@ def validate_document(document, exporting=False):
     for field in ("title", "level", "instructions", "header_text", "footer_text", "page_number_format"):
         if data[field] is not None:
             data[field] = clean_text(data[field])
+    if data['instructions'] == 'Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.':
+        data['instructions'] = Document.model_fields['instructions'].default
     if data["logo"]:
         from services.worksheet_logo import validate_logo
         data["logo"] = validate_logo(data["logo"])
