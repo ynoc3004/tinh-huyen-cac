@@ -469,6 +469,80 @@ class WorksheetTests(unittest.TestCase):
         self.assertEqual(first['items'][0]['action'],'migration')
         self.assertEqual(self.client.get('/api/worksheets/history/'+str(first['items'][0]['id'])).json()['document'],doc)
 
+    def test_history_names_are_searchable_without_changing_snapshots_or_pdf(self):
+        document_id=str(uuid.uuid4());saved=self.client.put('/api/worksheets/'+document_id,json=self.document()).json()
+        version=saved['version_id'];path=f'/api/worksheets/history/{version}'
+        before=self.client.get(path).json()
+        pdf_before=self.client.get(path+'/pdf?answers=true').content
+        response=self.client.patch(path,json={'name':'  Step 2 – Lớp thứ Bảy – Đề A  '})
+        self.assertEqual(response.status_code,200,response.text)
+        items=self.client.get('/api/worksheets/history?q=STEP 2 – LỚP THỨ BẢY').json()['items']
+        self.assertEqual([r['id'] for r in items],[version])
+        self.assertEqual(items[0]['display_name'],'Step 2 – Lớp thứ Bảy – Đề A')
+        self.assertEqual(items[0]['preview_fen'],saved['document']['exercises'][0]['fen'])
+        self.assertNotIn('payload',items[0]);self.assertNotIn('exercises',items[0])
+        self.assertEqual(self.client.get(path).json(),before)
+        self.assertEqual(self.client.get('/api/worksheets/'+document_id).json()['document'],saved['document'])
+        pdf_after=self.client.get(path+'/pdf?answers=true').content
+        with fitz.open(stream=pdf_before,filetype='pdf') as before_pdf, fitz.open(stream=pdf_after,filetype='pdf') as after_pdf:
+            self.assertEqual([p.get_text() for p in after_pdf],[p.get_text() for p in before_pdf])
+            self.assertEqual([p.get_drawings() for p in after_pdf],[p.get_drawings() for p in before_pdf])
+        self.assertEqual(self.client.patch(path,json={'name':' '}).status_code,400)
+        self.assertEqual(self.client.patch(path,json={'name':'x'*121}).status_code,422)
+        self.assertEqual(self.client.patch('/api/worksheets/history/999999',json={'name':'Đề B'}).status_code,404)
+        self.client.patch(path,json={'name':'Đề B'})
+        self.assertEqual(self.client.get('/api/worksheets/history?q=Step 2').json()['total'],0)
+        self.assertEqual(self.client.get('/api/worksheets/history?q=ĐỀ B').json()['total'],1)
+        db.init()
+        self.assertEqual(self.client.get('/api/worksheets/history?q=ĐỀ B').json()['total'],1)
+
+    def test_deleting_history_keeps_other_answers_and_updates_saved_head(self):
+        document_id=str(uuid.uuid4());doc=self.document()
+        first=self.client.put('/api/worksheets/'+document_id,json=doc).json()
+        doc['title']='Đề B';second=self.client.put('/api/worksheets/'+document_id,json=doc).json()
+        doc['title']='Đề C';third=self.client.put('/api/worksheets/'+document_id,json=doc).json()
+        other_id=str(uuid.uuid4());other=self.client.put('/api/worksheets/'+other_id,json=doc).json()
+        self.assertEqual(self.client.delete(f"/api/worksheets/history/{second['version_id']}").status_code,200)
+        self.assertEqual(self.client.get('/api/worksheets/'+document_id).json()['document'],third['document'])
+        self.assertEqual(self.client.delete(f"/api/worksheets/history/{third['version_id']}").status_code,200)
+        self.assertEqual(self.client.get('/api/worksheets/'+document_id).json()['document'],first['document'])
+        self.assertEqual(self.client.get(f"/api/worksheets/history/{first['version_id']}/pdf?answers=true").status_code,200)
+        self.assertEqual(self.client.get(f"/api/worksheets/history/{other['version_id']}").json()['document'],other['document'])
+        self.assertEqual(self.client.get(f"/api/worksheets/history/{second['version_id']}/pdf").status_code,404)
+        self.assertEqual(self.client.delete(f"/api/worksheets/history/{second['version_id']}").status_code,404)
+
+    def test_last_history_deletion_survives_restart_and_never_reuses_links(self):
+        document_id=str(uuid.uuid4());saved=self.client.put('/api/worksheets/'+document_id,json=self.document()).json()
+        version=saved['version_id'];path=f'/api/worksheets/history/{version}'
+        self.assertEqual(self.client.delete(path).status_code,200)
+        self.assertEqual(self.client.get('/api/worksheets/'+document_id).status_code,404)
+        db.init();db.init()
+        self.assertEqual(self.client.get('/api/worksheets/history').json()['total'],0)
+        self.assertEqual(self.client.get('/api/worksheets').json(),[])
+        newer=self.client.put('/api/worksheets/'+str(uuid.uuid4()),json=self.document()).json()
+        self.assertGreater(newer['version_id'],version)
+        self.assertEqual(self.client.get(path).status_code,404)
+
+    def test_old_history_schema_upgrade_keeps_ids_payloads_requests_and_names(self):
+        body=self.generation();saved=self.client.post('/api/worksheets/generate',json=body).json()
+        old_schema=next(sql for sql in db.SCHEMA.split(';') if 'CREATE TABLE IF NOT EXISTS worksheet_versions(' in sql)
+        old_schema=old_schema.replace('IF NOT EXISTS worksheet_versions(', 'worksheet_versions_old(').replace(' AUTOINCREMENT','').replace("display_name TEXT NOT NULL DEFAULT '', ",'')
+        columns='id,document_id,title,kind,level,count,answer_count,search_text,payload,fingerprint,action,request_id,request_hash,created_at'
+        with db.conn() as connection:
+            connection.execute(old_schema)
+            connection.execute(f'INSERT INTO worksheet_versions_old({columns}) SELECT {columns} FROM worksheet_versions')
+            connection.execute('DROP TABLE worksheet_versions')
+            connection.execute('ALTER TABLE worksheet_versions_old RENAME TO worksheet_versions')
+        db.init();db.init()
+        self.assertEqual(self.client.post('/api/worksheets/generate',json=body).json(),saved)
+        version=saved['version_id']
+        self.assertEqual(self.client.patch(f'/api/worksheets/history/{version}',json={'name':'Đề cũ – đã đặt tên'}).status_code,200)
+        db.init()
+        self.assertEqual(self.client.get('/api/worksheets/history').json()['items'][0]['display_name'],'Đề cũ – đã đặt tên')
+        self.assertEqual(self.client.delete(f'/api/worksheets/history/{version}').status_code,200)
+        newer=self.client.post('/api/worksheets/generate',json=self.generation()).json()
+        self.assertGreater(newer['version_id'],version)
+
     def test_append_and_replace_archived_without_duplicate_ids(self):
         body=self.generation();first=self.client.post('/api/worksheets/generate',json=body).json()
         next_body=self.generation(body['document_id'],first['document'],mode='append')

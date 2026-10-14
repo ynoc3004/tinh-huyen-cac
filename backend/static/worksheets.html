@@ -5,7 +5,7 @@
 <title>Soạn bài tập · Tĩnh Huyền Quán</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <link rel="stylesheet" href="/tien-canh.css?v=bagua-menu-1"><script src="/tien-canh.js?v=bagua-menu-1"></script>
-<link rel="stylesheet" href="/worksheets.css?v=5">
+<link rel="stylesheet" href="/worksheets.css?v=6">
 <link rel="icon" type="image/x-icon" href="/favicon.ico?v=1"><link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg?v=1"><link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1">
 </head>
 <body><main class="wrap">
@@ -61,8 +61,8 @@
 <div class="editor-grid"><div><div id="palette" class="palette" aria-label="Chọn quân để đặt lên bàn"></div><div id="editor-board" class="editor-board" aria-label="Bàn cờ để dựng thế"></div><div class="editor-tools"><button id="initial-board" type="button" class="secondary">Vị trí ban đầu</button><button id="clear-board" type="button" class="secondary">Xóa bàn</button></div><p class="hint">Chọn quân rồi bấm ô để đặt. Chọn tẩy để xóa quân. Khi dựng lại, quyền nhập thành và bắt tốt qua đường được bỏ; dùng FEN đầy đủ nếu bài cần các quyền này.</p></div>
 <div><label>Bên đi<select id="editor-turn"><option value="w">Trắng</option><option value="b">Đen</option></select></label><label>FEN<textarea id="editor-fen" maxlength="150" rows="3"></textarea></label><button id="load-fen" type="button" class="secondary">Hiện FEN lên bàn</button><label>Yêu cầu bài<input id="editor-instruction" maxlength="90" value="Tìm nước đi tốt nhất."></label><label>Đáp án (không in trên đề học sinh)<textarea id="editor-solution" maxlength="500" rows="3" placeholder="Ví dụ: Qh7# hoặc g6h7"></textarea></label><p class="hint">Nhập chuỗi nước SAN hoặc UCI, có thể để trống nếu chỉ xuất đề. Hệ thống kiểm tra nước đi hợp lệ; bài tự soạn cần bạn kiểm tra đáp án tốt nhất.</p><p id="editor-status" role="status"></p><button id="apply-exercise" type="submit">Kiểm tra và thêm bài</button></div></div>
 </form></dialog>
-<dialog id="history-dialog"><div class="dialog-head"><h2>Lịch sử tạo đề</h2><button id="history-close" class="secondary">Đóng</button></div><p class="hint">Các phiên bản được giữ riêng, gồm tiêu đề, trình độ, thế cờ và đáp án tại thời điểm tạo/lưu/xuất PDF.</p><label>Tìm đề<input id="history-search" maxlength="120" placeholder="Tiêu đề hoặc lớp / level"></label><p id="history-status" role="status"></p><div id="history-list"></div><div class="history-paging"><button id="history-prev" class="secondary">← Trước</button><span id="history-page"></span><button id="history-next" class="secondary">Sau →</button></div></dialog>
+<dialog id="history-dialog"><div class="dialog-head"><h2>Lịch sử tạo đề</h2><button id="history-close" class="secondary">Đóng</button></div><p class="hint">Mỗi bản giữ nguyên thế cờ và đáp án lúc lưu. Đặt tên riêng để dễ tìm, ví dụ “Step 2 – Lớp thứ Bảy – Đề A”; tên lưu không thay đổi tiêu đề PDF.</p><label>Tìm đề<input id="history-search" maxlength="120" placeholder="Tên lưu, tiêu đề hoặc lớp / level"></label><p id="history-status" role="status"></p><div id="history-list"></div><div class="history-paging"><button id="history-prev" class="secondary">← Trước</button><span id="history-page"></span><button id="history-next" class="secondary">Sau →</button></div></dialog>
 <dialog id="answers-dialog"><div class="dialog-head"><h2 id="answers-title">Đáp án giáo viên</h2><button id="answers-close" class="secondary">Đóng</button></div><p class="hint">Dành riêng cho giáo viên. Bản PDF học sinh không chứa phần này.</p><div id="answers-list"></div></dialog>
 </main><svg id="piece-definitions" width="0" height="0" aria-hidden="true" style="position:absolute;overflow:hidden"></svg>
-<script type="module" src="/worksheets.js?v=7"></script>
+<script type="module" src="/worksheets.js?v=8"></script>
 </body></html>

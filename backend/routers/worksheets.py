@@ -86,9 +86,51 @@ def list_history(q: str = Query(default="",max_length=120), offset: int = Query(
     search = service.clean_text(q).casefold()
     with conn() as db:
         total = db.execute("SELECT COUNT(*) FROM worksheet_versions WHERE instr(search_text,?)>0",(search,)).fetchone()[0]
-        rows = db.execute("SELECT id,document_id,title,kind,level,count,answer_count,action,created_at FROM worksheet_versions "
+        rows = db.execute("SELECT id,document_id,title,display_name,kind,level,count,answer_count,action,created_at,payload FROM worksheet_versions "
                           "WHERE instr(search_text,?)>0 ORDER BY id DESC LIMIT ? OFFSET ?",(search,limit,offset)).fetchall()
-    return {"items":[dict(r) for r in rows],"total":total,"offset":offset,"limit":limit}
+    items = []
+    for row in rows:
+        item = dict(row)
+        document = json.loads(item.pop('payload'))
+        item['preview_fen'] = next((e['fen'] for e in document['exercises']), None)
+        item['rotate'] = document.get('rotate', False)
+        items.append(item)
+    return {"items":items,"total":total,"offset":offset,"limit":limit}
+
+
+@router.patch("/history/{version_id}")
+def rename_history(version_id: int, body: history.Rename):
+    name = service.clean_text(body.name)
+    if not name:
+        raise HTTPException(400, "Tên lưu không được trống")
+    with conn() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT title,level FROM worksheet_versions WHERE id=?", (version_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "Không tìm thấy phiên bản đề")
+        db.execute("UPDATE worksheet_versions SET display_name=?,search_text=? WHERE id=?",
+                   (name, (name+' '+row['title']+' '+row['level']).casefold(), version_id))
+    return {"version_id": version_id, "display_name": name}
+
+
+@router.delete("/history/{version_id}")
+def delete_history(version_id: int):
+    with conn() as db:
+        db.execute("BEGIN IMMEDIATE")
+        row = db.execute("SELECT document_id FROM worksheet_versions WHERE id=?", (version_id,)).fetchone()
+        if not row:
+            raise HTTPException(404, "Không tìm thấy phiên bản đề")
+        document_id = row['document_id']
+        latest = db.execute("SELECT id FROM worksheet_versions WHERE document_id=? ORDER BY id DESC LIMIT 1", (document_id,)).fetchone()
+        db.execute("DELETE FROM worksheet_versions WHERE id=?", (version_id,))
+        if latest['id'] == version_id:
+            remaining = db.execute("SELECT title,payload FROM worksheet_versions WHERE document_id=? ORDER BY id DESC LIMIT 1", (document_id,)).fetchone()
+            if remaining:
+                db.execute("UPDATE worksheets SET title=?,payload=? WHERE id=?", (remaining['title'], remaining['payload'], document_id))
+            else:
+                # Remove the saved head too, so startup migration cannot recreate the deleted history.
+                db.execute("DELETE FROM worksheets WHERE id=?", (document_id,))
+    return {"deleted_version_id": version_id, "document_id": document_id}
 
 
 @router.post("/edit")

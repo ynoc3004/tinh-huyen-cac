@@ -13,6 +13,7 @@ const defaultFooter=()=> 'Tĩnh Huyền Quán - 12 bài / trang';
 const logoSource=()=> typeof draft.logo==='string'&&draft.logo.length<=1500000&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(draft.logo)?draft.logo:null;
 const uuid=()=>{if(typeof crypto.randomUUID==='function')return crypto.randomUUID();const bytes=crypto.getRandomValues(new Uint8Array(16));bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');};
 let historyOffset=0,historyTotal=0,historyRevision=0;
+let historyItems=new Map(),historyBusy=false,historyEditing=null,draftAutoArchive=true;
 let themeCounts=null,countsKey='',countsRevision=0,openingTagsAvailable=true;
 let draft=blank(),documentId=uuid(),selected=-1,busy=false,options=null,editing=-1,paint='Q',squares=Array(64).fill(''),dirty=false;
 
@@ -48,7 +49,8 @@ async function refreshThemeCounts(){
 }
 function sync(){for(const [key,id] of Object.entries(textFields)){const value=$(id).value;if(key==='header_text'&&draft[key]===null&&value===defaultHeader()||key==='footer_text'&&draft[key]===null&&value===defaultFooter())continue;draft[key]=value;}for(const [key,id] of Object.entries(checkFields))draft[key]=$(id).checked;draft.duration=$('duration').value===''?null:Number($('duration').value);draft.filters={min_rating:Number($('min-rating').value),max_rating:Number($('max-rating').value),theme:$('theme').value};}
 function hydrate(){draft={...blank(),...draft};if(draft.instructions==='Ghi nước đi hoặc phương án vào dòng bên dưới mỗi thế cờ.')draft.instructions=blank().instructions;for(const [key,id] of Object.entries(textFields))$(id).value=draft[key]??(key==='header_text'?defaultHeader():key==='footer_text'?defaultFooter():'');for(const [key,id] of Object.entries(checkFields))$(id).checked=!!draft[key];$('duration').value=draft.duration??'';const f=draft.filters||blank().filters;$('min-rating').value=f.min_rating;$('max-rating').value=f.max_rating;renderThemeOptions(f.theme);$('theme').value=f.theme;$('difficulty').value=options?.levels.find(l=>l.min===f.min_rating&&l.max===f.max_rating)?.id||'custom';$('pages').value=Math.max(1,Math.ceil(draft.exercises.length/12));render();refreshThemeCounts();}
-function remember(){sync();dirty=true;try{localStorage.setItem(KEY,JSON.stringify({id:documentId,document:draft}));$('save-state').textContent='Bản nháp đã giữ trên máy';}catch{$('save-state').textContent='Chưa lưu - hãy bấm Lưu đề';}controls();}
+function keepDraft(){localStorage.setItem(KEY,JSON.stringify({id:documentId,document:draft,auto_archive:draftAutoArchive}));}
+function remember(){sync();dirty=true;try{keepDraft();$('save-state').textContent='Bản nháp đã giữ trên máy';}catch{$('save-state').textContent='Chưa lưu - hãy bấm Lưu đề';}controls();}
 function controls(){
  const count=draft.exercises.length,ready=count>0&&count%12===0,hasSelection=selected>=0&&selected<count;
  for(const id of ['new','save','add-custom','history-open'])$(id).disabled=busy;
@@ -111,7 +113,7 @@ async function generate(append=false,replace=false){
   busy=true;controls();status('Đang chọn bài đúng bộ lọc…');
   sync();const result=await api('/generate',{document_id:documentId,request_id:uuid(),document:draft,selection:body,mode:replace?'replace':append?'append':'generate',index:replace?selected:null});
   draft=result.document;if(!append&&!replace)selected=0;hydrate();
-  remember();render();dirty=false;$('save-state').textContent='Đã tự lưu vào lịch sử';await loadSaved();status(`Đã ${replace?'đổi bài':append?'thêm 12 bài':'tạo '+count+' bài'} và lưu phiên bản kèm đáp án. Bạn có thể chỉnh từng thế cờ trước khi xuất PDF.`);
+  draftAutoArchive=true;remember();render();dirty=false;$('save-state').textContent='Đã tự lưu vào lịch sử';await loadSaved();status(`Đã ${replace?'đổi bài':append?'thêm 12 bài':'tạo '+count+' bài'} và lưu phiên bản kèm đáp án. Bạn có thể chỉnh từng thế cờ trước khi xuất PDF.`);
  }catch(error){status(error.message);}finally{busy=false;controls();}
 }
 $('generate').onclick=()=>generate();$('append-page').onclick=()=>generate(true);$('replace').onclick=()=>generate(false,true);
@@ -148,11 +150,18 @@ $('logo-remove').onclick=()=>{if(busy)return;draft.logo=null;remember();render()
 
 const actionLabel=action=>({generate:'Tạo đề',append:'Thêm trang',replace:'Đổi bài',save:'Lưu đề',export:'Xuất PDF',migration:'Đề đã lưu trước đây',before_generate:'Bản trước khi thay bài',edit:'Tự soạn / sửa bài',before_edit:'Bản trước khi sửa'}[action]||'Lưu phiên bản');
 function historyTime(value){const date=new Date(value.replace(' ','T')+'Z');return Number.isNaN(date.getTime())?value:date.toLocaleString('vi-VN');}
+function historyCard(item){
+ let preview='';try{if(item.preview_fen)preview=diagram(item.preview_fen,item.rotate);}catch{}
+ const name=item.display_name||item.title;
+ return `<article class="history-card"><div class="history-thumbnail" aria-label="Thế cờ đầu tiên">${preview||'<span>Chưa có<br>thế cờ</span>'}</div><div class="history-content"><div class="history-card-heading"><h3>${esc(name)}</h3><span class="history-id">#${item.id}</span></div>${item.display_name?`<p class="history-print-title">Tiêu đề PDF: ${esc(item.title)}</p>`:''}<div class="history-tags"><span>${item.kind==='test'?'Bài kiểm tra':'Bài tập'}</span><span>${item.count} bài · ${Math.ceil(item.count/12)} trang</span><span>${item.answer_count}/${item.count} đáp án</span>${item.level?`<span>${esc(item.level)}</span>`:''}</div><p class="history-date">${esc(historyTime(item.created_at))} · ${esc(actionLabel(item.action))}</p><div class="history-actions"><button data-history-load="${item.id}">Mở đề</button><button class="secondary" data-history-answers="${item.id}">Đáp án</button>${item.count&&item.count%12===0?`<a href="/api/worksheets/history/${item.id}/pdf" download>PDF học sinh</a>${item.answer_count===item.count?`<a href="/api/worksheets/history/${item.id}/pdf?answers=true" download>PDF đáp án</a>`:''}`:''}<div class="history-manage"><button class="secondary" data-history-rename="${item.id}" aria-expanded="false" aria-controls="history-name-form-${item.id}">Đổi tên</button><button class="secondary history-delete" data-history-delete="${item.id}">Xóa</button></div></div><form id="history-name-form-${item.id}" class="history-name-form" data-history-name-form="${item.id}" hidden><label>Tên lưu riêng<input id="history-name-${item.id}" name="name" maxlength="120" required value="${esc(name)}" placeholder="Ví dụ: Step 2 – Lớp thứ Bảy – Đề A"></label><div class="history-actions"><button type="submit">Lưu tên</button><button type="button" class="secondary" data-history-cancel="${item.id}">Hủy</button></div><p>Tên này dùng trong lịch sử; tiêu đề in trên PDF giữ nguyên.</p></form></div></article>`;
+}
 async function showHistory(){
  const revision=++historyRevision;$('history-status').textContent='Đang tải lịch sử…';
  try{const response=await api('/history?q='+encodeURIComponent($('history-search').value)+'&offset='+historyOffset,undefined,'GET');if(revision!==historyRevision)return;
   historyTotal=response.total;
-  $('history-list').innerHTML=response.items.map(item=>`<article class="history-card"><h3>${esc(item.title)}</h3><p>${esc(historyTime(item.created_at))} · ${esc(actionLabel(item.action))} · ${item.count} bài · ${item.answer_count} đáp án${item.level?' · '+esc(item.level):''}</p><div class="history-actions"><button class="secondary" data-history-load="${item.id}">Mở phiên bản này</button><button class="secondary" data-history-answers="${item.id}">Xem đáp án</button>${item.count&&item.count%12===0?`<a href="/api/worksheets/history/${item.id}/pdf" download>PDF học sinh</a>${item.answer_count===item.count?`<a href="/api/worksheets/history/${item.id}/pdf?answers=true" download>PDF đáp án</a>`:''}`:''}</div></article>`).join('')||'<p class="hint">Chưa có phiên bản phù hợp.</p>';
+  if(historyOffset>=response.total&&historyOffset>0){historyOffset=Math.max(0,(Math.ceil(response.total/12)-1)*12);return showHistory();}
+  historyItems=new Map(response.items.map(item=>[String(item.id),item]));historyEditing=null;
+  $('history-list').innerHTML=response.items.map(historyCard).join('')||'<p class="hint">Chưa có phiên bản phù hợp. Thử tên khác hoặc tạo một đề mới.</p>';
   $('history-page').textContent=`${response.total?'Trang '+(Math.floor(historyOffset/12)+1)+' / '+Math.ceil(response.total/12):'0 phiên bản'} · ${response.total} phiên bản`;
   $('history-prev').disabled=historyOffset===0;$('history-next').disabled=historyOffset+12>=historyTotal;$('history-status').textContent='';
  }catch(error){if(revision===historyRevision)$('history-status').textContent=error.message;}
@@ -169,29 +178,51 @@ function showAnswers(document){
 }
 $('view-answers').onclick=()=>{sync();showAnswers(draft);};$('answers-close').onclick=()=>$('answers-dialog').close();
 $('history-list').onclick=async event=>{
+ if(historyBusy||busy)return;
+ const rename=event.target.closest('[data-history-rename]'),cancel=event.target.closest('[data-history-cancel]'),remove=event.target.closest('[data-history-delete]');
+ if(rename||cancel){
+  if(historyEditing){$('history-name-form-'+historyEditing).hidden=true;$('history-list').querySelector(`[data-history-rename="${historyEditing}"]`)?.setAttribute('aria-expanded','false');}
+  historyEditing=rename?rename.dataset.historyRename:null;
+  if(rename){$('history-name-form-'+historyEditing).hidden=false;rename.setAttribute('aria-expanded','true');const input=$('history-name-'+historyEditing);input.focus();input.select();}return;
+ }
+ if(remove){
+  const item=historyItems.get(remove.dataset.historyDelete);if(!item)return;
+  if(!confirm(`Xóa bản #${item.id} “${item.display_name||item.title}” cùng đáp án đã lưu? Các bản khác vẫn được giữ. Không thể khôi phục bản đã xóa.`))return;
+  historyBusy=true;busy=true;controls();remove.disabled=true;$('history-status').textContent='Đang xóa…';
+  try{const result=await api('/history/'+item.id,undefined,'DELETE');
+   if(result.document_id===documentId){documentId=uuid();draftAutoArchive=false;dirty=true;try{keepDraft();}catch{localStorage.removeItem(KEY);}$('save-state').textContent='Bản nháp chưa lưu';status('Đã xóa bản lịch sử. Đề đang xem vẫn là bản nháp; bấm Lưu đề nếu muốn lưu lại.');}
+   await loadSaved();await showHistory();$('history-status').textContent='Đã xóa bản #'+item.id+'.';
+  }catch(error){$('history-status').textContent=error.message;}finally{historyBusy=false;busy=false;controls();remove.disabled=false;}return;
+ }
  const open=event.target.closest('[data-history-load]'),answers=event.target.closest('[data-history-answers]');if(!open&&!answers)return;
  if(open&&dirty&&!confirm('Mở phiên bản này và thay bản nháp hiện tại?'))return;
- const button=open||answers;button.disabled=true;
+ const button=open||answers;button.disabled=true;historyBusy=true;busy=true;controls();
  try{const snapshot=await api('/history/'+(open?open.dataset.historyLoad:answers.dataset.historyAnswers),undefined,'GET');
   if(answers){showAnswers(snapshot.document);return;}
-  draft=snapshot.document;documentId=snapshot.id;selected=draft.exercises.length?0:-1;hydrate();remember();dirty=false;
+  draft=snapshot.document;documentId=snapshot.id;draftAutoArchive=true;selected=draft.exercises.length?0:-1;hydrate();remember();dirty=false;
   $('save-state').textContent='Đã mở phiên bản lịch sử';$('history-dialog').close();status('Đã mở đúng đề và đáp án đã lưu. Khi sửa rồi lưu, ứng dụng tạo phiên bản mới.');
- }catch(error){$('history-status').textContent=error.message;}finally{button.disabled=false;}
+ }catch(error){$('history-status').textContent=error.message;}finally{historyBusy=false;busy=false;controls();button.disabled=false;}
+};
+$('history-list').onsubmit=async event=>{
+ const form=event.target.closest('[data-history-name-form]');if(!form)return;event.preventDefault();if(historyBusy||busy)return;
+ const id=form.dataset.historyNameForm,name=$('history-name-'+id).value.trim();if(!name){$('history-status').textContent='Tên lưu không được trống.';return;}
+ historyBusy=true;const button=form.querySelector('button[type="submit"]');button.disabled=true;
+ try{await api('/history/'+id,{name},'PATCH');await showHistory();$('history-status').textContent='Đã đổi tên lưu. Tiêu đề PDF giữ nguyên.';}catch(error){$('history-status').textContent=error.message;}finally{historyBusy=false;button.disabled=false;}
 };
 function move(delta){if(busy)return;const next=selected+delta;if(next<0||next>=draft.exercises.length)return;[draft.exercises[selected],draft.exercises[next]]=[draft.exercises[next],draft.exercises[selected]];selected=next;remember();render();}
 $('up').onclick=()=>move(-1);$('down').onclick=()=>move(1);
 $('remove').onclick=()=>{if(selected<0||busy||!confirm('Bỏ bài '+(selected+1)+' khỏi đề?'))return;draft.exercises.splice(selected,1);selected=Math.min(selected,draft.exercises.length-1);remember();render();};
 async function loadSaved(){const list=await api('',undefined,'GET');$('saved').innerHTML='<option value="">Chọn một đề…</option>'+list.map(item=>`<option value="${esc(item.id)}">${esc(item.title)} · ${item.count} bài</option>`).join('');}
 $('save').onclick=async()=>{
- if(busy)return;try{sync();const snapshot=JSON.stringify(draft);busy=true;controls();const result=await api('/'+documentId,draft,'PUT');sync();dirty=JSON.stringify(draft)!==snapshot;if(!dirty){draft=result.document;hydrate();try{localStorage.setItem(KEY,JSON.stringify({id:documentId,document:draft}));}catch{}}await loadSaved();$('save-state').textContent=dirty?'Đã lưu đề; còn thay đổi mới trong bản nháp':'Đề đã lưu';status('Đã lưu đề. Bạn có thể mở lại từ danh sách đề đã lưu.');}catch(error){status(error.message);}finally{busy=false;controls();}
+ if(busy)return;try{sync();const snapshot=JSON.stringify(draft);busy=true;controls();const result=await api('/'+documentId,draft,'PUT');sync();dirty=JSON.stringify(draft)!==snapshot;draftAutoArchive=true;if(!dirty){draft=result.document;hydrate();try{keepDraft();}catch{}}await loadSaved();$('save-state').textContent=dirty?'Đã lưu đề; còn thay đổi mới trong bản nháp':'Đề đã lưu';status('Đã lưu đề. Bạn có thể mở lại từ danh sách đề đã lưu.');}catch(error){status(error.message);}finally{busy=false;controls();}
 };
 $('saved').onchange=async()=>{
  const id=$('saved').value;if(!id||busy)return;if(dirty&&!confirm('Mở đề đã lưu và thay bản nháp hiện tại?')){$('saved').value='';return;}
- try{busy=true;controls();const result=await api('/'+id,undefined,'GET');draft=result.document;documentId=result.id;selected=draft.exercises.length?0:-1;hydrate();remember();dirty=false;$('save-state').textContent='Đề đã lưu';status('Đã mở đề.');}catch(error){status(error.message);}finally{busy=false;controls();}
+ try{busy=true;controls();const result=await api('/'+id,undefined,'GET');draft=result.document;documentId=result.id;draftAutoArchive=true;selected=draft.exercises.length?0:-1;hydrate();remember();dirty=false;$('save-state').textContent='Đề đã lưu';status('Đã mở đề.');}catch(error){status(error.message);}finally{busy=false;controls();}
 };
-$('new').onclick=()=>{if(busy||dirty&&!confirm('Tạo đề mới và thay bản nháp hiện tại?'))return;draft=blank();documentId=uuid();selected=-1;hydrate();remember();status('Đề mới: chọn bài từ kho hoặc tự biên soạn.');};
+$('new').onclick=()=>{if(busy||dirty&&!confirm('Tạo đề mới và thay bản nháp hiện tại?'))return;draft=blank();documentId=uuid();draftAutoArchive=true;selected=-1;hydrate();remember();status('Đề mới: chọn bài từ kho hoặc tự biên soạn.');};
 async function exportPdf(answers=false){
- if(busy)return;try{sync();if(!draft.title.trim())throw Error('Nhập tiêu đề trước khi xuất PDF.');const snapshot=JSON.parse(JSON.stringify(draft));busy=true;controls();status('Đang tạo PDF '+(answers?'đáp án giáo viên':'học sinh')+'…');const response=await request('/pdf?document_id='+encodeURIComponent(documentId)+(answers?'&answers=true':''),snapshot);const blob=await response.blob();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(snapshot.title.replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').slice(0,90)||'Bai-tap')+(answers?' - Dap-an':'')+'.pdf';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);await loadSaved();$('save-state').textContent='Đã lưu phiên bản xuất PDF';status('Đã tải PDF '+(answers?'đáp án':'học sinh')+' và giữ đề kèm đáp án trong lịch sử.');}catch(error){status(error.message);}finally{busy=false;controls();}
+ if(busy)return;try{sync();if(!draft.title.trim())throw Error('Nhập tiêu đề trước khi xuất PDF.');const snapshot=JSON.parse(JSON.stringify(draft));busy=true;controls();status('Đang tạo PDF '+(answers?'đáp án giáo viên':'học sinh')+'…');const response=await request('/pdf?document_id='+encodeURIComponent(documentId)+(answers?'&answers=true':''),snapshot);const blob=await response.blob();const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(snapshot.title.replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').slice(0,90)||'Bai-tap')+(answers?' - Dap-an':'')+'.pdf';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);draftAutoArchive=true;try{keepDraft();}catch{}await loadSaved();$('save-state').textContent='Đã lưu phiên bản xuất PDF';status('Đã tải PDF '+(answers?'đáp án':'học sinh')+' và giữ đề kèm đáp án trong lịch sử.');}catch(error){status(error.message);}finally{busy=false;controls();}
 }
 $('export').onclick=()=>exportPdf();$('answers').onclick=()=>exportPdf(true);
 
@@ -208,12 +239,12 @@ $('palette').onclick=event=>{const button=event.target.closest('[data-paint]');i
 $('editor-board').onclick=event=>{const b=event.target.closest('[data-square]');if(b){squares[Number(b.dataset.square)]=paint;writeFen();}};
 $('editor-turn').onchange=()=>{const fields=$('editor-fen').value.trim().split(/\s+/);fields[1]=$('editor-turn').value;$('editor-fen').value=fields.join(' ');};
 $('initial-board').onclick=()=>{$('editor-fen').value=INITIAL;loadFen();};$('clear-board').onclick=()=>{squares=Array(64).fill('');writeFen();};
-$('editor-form').onsubmit=async event=>{event.preventDefault();const button=$('apply-exercise');if(button.disabled)return;button.disabled=true;$('editor-status').textContent='Đang kiểm tra…';try{sync();const result=await api('/edit',{document_id:documentId,document:draft,index:editing>=0?editing:null,exercise:{id:'custom-'+uuid(),fen:$('editor-fen').value,instruction:$('editor-instruction').value,solution:$('editor-solution').value,source:'custom'}});draft=result.document;if(editing<0)selected=draft.exercises.length-1;remember();render();dirty=false;$('save-state').textContent='Đã tự lưu bài và đáp án';await loadSaved();$('editor').close();status('Đã lưu bài và đáp án vào lịch sử. Thế cờ và chuỗi nước hợp lệ; bạn cần kiểm tra đáp án tối ưu của bài tự soạn.');}catch(error){$('editor-status').textContent=error.message;}finally{button.disabled=false;}};
+$('editor-form').onsubmit=async event=>{event.preventDefault();const button=$('apply-exercise');if(button.disabled)return;button.disabled=true;$('editor-status').textContent='Đang kiểm tra…';try{sync();const result=await api('/edit',{document_id:documentId,document:draft,index:editing>=0?editing:null,exercise:{id:'custom-'+uuid(),fen:$('editor-fen').value,instruction:$('editor-instruction').value,solution:$('editor-solution').value,source:'custom'}});draft=result.document;draftAutoArchive=true;if(editing<0)selected=draft.exercises.length-1;remember();render();dirty=false;$('save-state').textContent='Đã tự lưu bài và đáp án';await loadSaved();$('editor').close();status('Đã lưu bài và đáp án vào lịch sử. Thế cờ và chuỗi nước hợp lệ; bạn cần kiểm tra đáp án tối ưu của bài tự soạn.');}catch(error){$('editor-status').textContent=error.message;}finally{button.disabled=false;}};
 
 async function boot(){
  $('piece-definitions').innerHTML='<defs>'+PIECE_DEFS+'</defs>';
  let restoredDraft=false;
- try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');if(stored?.document&&Array.isArray(stored.document.exercises)&&stored.document.exercises.length<=120&&stored.document.exercises.every(e=>{try{return typeof e.fen==='string'&&!!new Chess(e.fen)}catch{return false}})){draft={...blank(),...stored.document};documentId=stored.id||uuid();dirty=true;restoredDraft=draft.exercises.length>0;busy=restoredDraft;}}catch{}
+ try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');if(stored?.document&&Array.isArray(stored.document.exercises)&&stored.document.exercises.length<=120&&stored.document.exercises.every(e=>{try{return typeof e.fen==='string'&&!!new Chess(e.fen)}catch{return false}})){draft={...blank(),...stored.document};documentId=stored.id||uuid();dirty=true;draftAutoArchive=stored.auto_archive!==false;restoredDraft=draft.exercises.length>0&&draftAutoArchive;busy=restoredDraft;}}catch{}
  hydrate();
  const results=await Promise.allSettled([api('/options',undefined,'GET'),loadSaved()]);
  if(results[0].status==='fulfilled'){options=results[0].value;$('difficulty').innerHTML=options.levels.map(l=>`<option value="${esc(l.id)}">${esc(l.name)} (${l.min}-${l.max})</option>`).join('')+'<option value="custom">Tùy chỉnh</option>';renderThemeOptions(draft.filters.theme);$('bank').textContent=`${options.bank.name}: ${options.bank.count.toLocaleString('vi-VN')} bài. Không lặp bài trong một đề được tạo tự động.`;}else{status(results[0].reason.message);$('bank').textContent='Chưa kết nối kho. Bạn vẫn có thể tự soạn bài.';}

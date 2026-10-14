@@ -44,9 +44,9 @@ CREATE TABLE IF NOT EXISTS tournament_events(id INTEGER PRIMARY KEY,
   action TEXT NOT NULL, details TEXT NOT NULL, at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS worksheets(id TEXT PRIMARY KEY, title TEXT NOT NULL,
   payload TEXT NOT NULL, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE IF NOT EXISTS worksheet_versions(id INTEGER PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS worksheet_versions(id INTEGER PRIMARY KEY AUTOINCREMENT,
   document_id TEXT NOT NULL REFERENCES worksheets(id) ON DELETE CASCADE,
-  title TEXT NOT NULL, kind TEXT NOT NULL, level TEXT NOT NULL,
+  title TEXT NOT NULL, display_name TEXT NOT NULL DEFAULT '', kind TEXT NOT NULL, level TEXT NOT NULL,
   count INT NOT NULL, answer_count INT NOT NULL, search_text TEXT NOT NULL,
   payload TEXT NOT NULL, fingerprint TEXT NOT NULL, action TEXT NOT NULL,
   request_id TEXT UNIQUE, request_hash TEXT,
@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS worksheet_versions(id INTEGER PRIMARY KEY,
 
 # migrate columns if DB already exists without them
 MIGRATE = [
+    "ALTER TABLE worksheet_versions ADD COLUMN display_name TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE groups ADD COLUMN swiss_rounds INT",
     "ALTER TABLE tournaments ADD COLUMN notes TEXT DEFAULT ''",
     "ALTER TABLE tournaments ADD COLUMN kind TEXT DEFAULT 'classic'",
@@ -86,14 +87,24 @@ def conn():
 def init():
     with conn() as c:
         c.executescript(SCHEMA)
+        c.execute("BEGIN IMMEDIATE")
         c.execute("CREATE INDEX IF NOT EXISTS idx_pairings_group ON pairings(group_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_tournament_events_tour ON tournament_events(tournament_id,id)")
-        c.execute("CREATE INDEX IF NOT EXISTS idx_worksheet_versions_document ON worksheet_versions(document_id,id)")
         for sql in MIGRATE:
             try:
                 c.execute(sql)
             except sqlite3.OperationalError:
                 pass  # column already exists
+        # Deleted snapshot links must never point to an unrelated, newly saved version.
+        version_schema = c.execute("SELECT sql FROM sqlite_master WHERE name='worksheet_versions'").fetchone()[0]
+        if 'AUTOINCREMENT' not in version_schema.upper():
+            upgraded = next(sql for sql in SCHEMA.split(';') if 'CREATE TABLE IF NOT EXISTS worksheet_versions(' in sql)
+            c.execute(upgraded.replace('IF NOT EXISTS worksheet_versions(', 'worksheet_versions_upgraded('))
+            columns = 'id,document_id,title,display_name,kind,level,count,answer_count,search_text,payload,fingerprint,action,request_id,request_hash,created_at'
+            c.execute(f"INSERT INTO worksheet_versions_upgraded({columns}) SELECT {columns} FROM worksheet_versions")
+            c.execute("DROP TABLE worksheet_versions")
+            c.execute("ALTER TABLE worksheet_versions_upgraded RENAME TO worksheet_versions")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_worksheet_versions_document ON worksheet_versions(document_id,id)")
         # Preserve previously saved worksheet snapshots once; older generation history cannot be reconstructed.
         import hashlib, json
         for row in c.execute("SELECT * FROM worksheets w WHERE NOT EXISTS (SELECT 1 FROM worksheet_versions v WHERE v.document_id=w.id)").fetchall():

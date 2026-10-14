@@ -2,20 +2,20 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const html=fs.readFileSync(path.join(__dirname,'../static/worksheets.html'),'utf8');
 const script=fs.readFileSync(path.join(__dirname,'../static/worksheets.js'),'utf8').replace(/^import .*;\s*$/gm,'');
 const nodes=new Map(),requests=[],storage=new Map(),saved=new Map(),versions=[];let serial=0,lastDownload=null;
-function node(id){if(!nodes.has(id))nodes.set(id,{id,value:'',checked:false,disabled:false,hidden:false,textContent:'',innerHTML:'',dataset:{},events:{},classList:{toggle(){}},addEventListener(k,f){(this.events[k]??=[]).push(f)},querySelectorAll(){return[]},showModal(){this.open=true},close(){this.open=false},append(){},click(){lastDownload=this.download},remove(){}});return nodes.get(id)}
+function node(id){if(!nodes.has(id))nodes.set(id,{id,value:'',checked:false,disabled:false,hidden:false,textContent:'',innerHTML:'',dataset:{},events:{},classList:{toggle(){}},addEventListener(k,f){(this.events[k]??=[]).push(f)},querySelectorAll(){return[]},querySelector(){return node('form-submit')},focus(){this.focused=true},select(){this.selected=true},setAttribute(k,v){this[k]=v},showModal(){this.open=true},close(){this.open=false},append(){},click(){lastDownload=this.download},remove(){}});return nodes.get(id)}
 for(const m of html.matchAll(/id="([^"]+)"/g))node(m[1]);
 node('pages').value='1';node('min-rating').value='400';node('max-rating').value='899';
 const fen='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 const ex=id=>({id,fen,instruction:'Tìm nước đi tốt nhất.',solution:'e4',rating:800,source:'lichess',turn:'w',themes:[]});
-let gen=0,failSelect=false,failLogo=false,failCounts=false;
+let gen=0,failSelect=false,failLogo=false,failCounts=false,failHistory=false,confirmResult=true;
 const logo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==';
 const fetch=async(url,opt)=>{const body=typeof opt?.body==='string'?JSON.parse(opt.body):opt?.body;requests.push({url,body,method:opt?.method});let data;
 if(url==='/api/worksheets/options')data={levels:[{id:'beginner',name:'Mới bắt đầu',min:400,max:899},{id:'advanced',name:'Nâng cao',min:1800,max:2600}],themes:{'':'Mọi chủ đề',mateIn1:'Chiếu hết trong 1 nước','opening:French_Defense':'Phòng thủ Pháp (French)',underPromotion:'Phong cấp thành xe / tượng / mã'},theme_groups:[{name:'Chiếu hết',ids:['mateIn1']},{name:'Khai cuộc',ids:['opening:French_Defense']},{name:'Nước đặc biệt',ids:['underPromotion']}],bank:{name:'Kho đi kèm',count:22592}};
 else if(url.startsWith('/api/worksheets/theme-counts?')){if(failCounts)return{ok:false,json:async()=>({detail:'Không đọc được kho'})};const query=new URLSearchParams(url.split('?')[1]),min=Number(query.get('min_rating'));data={counts:{'':5000,mateIn1:120,'opening:French_Defense':min>=1800?48:24,underPromotion:3}};}
 else if(url==='/api/worksheets/logo'){assert.equal(node('logo-input').disabled,true,'Editing must freeze while a logo is processed');if(failLogo)return{ok:false,json:async()=>({detail:'Ảnh không hợp lệ'})};data={logo,width:1,height:1};}
 else if(url==='/api/worksheets/generate'){if(failSelect)return{ok:false,json:async()=>({detail:'Thiếu bài đúng độ khó'})};gen++;const document=structuredClone(body.document),selection=body.selection,chosen=Array.from({length:selection.count},(_,i)=>ex('G'+gen+'-'+i));if(body.mode==='replace')document.exercises[body.index]=chosen[0];else if(body.mode==='append')document.exercises.push(...chosen);else document.exercises=chosen;document.filters={min_rating:selection.min_rating,max_rating:selection.max_rating,theme:selection.theme};saved.set(body.document_id,structuredClone(document));versions.push({id:versions.length+1,document_id:body.document_id,document:structuredClone(document),title:document.title,count:document.exercises.length,answer_count:document.exercises.length,action:body.mode,created_at:'2026-10-13 05:00:00'});data={id:body.document_id,version_id:versions.length,document};}
-else if(url.startsWith('/api/worksheets/history?')){const q=new URLSearchParams(url.split('?')[1]),offset=Number(q.get('offset')||0);data={items:versions.slice().reverse().slice(offset,offset+12),total:versions.length};}
-else if(url.startsWith('/api/worksheets/history/')){const v=versions.find(v=>v.id===Number(url.split('/').at(-1)));data={id:v.document_id,document:structuredClone(v.document),version_id:v.id};}
+else if(url.startsWith('/api/worksheets/history?')){const q=new URLSearchParams(url.split('?')[1]),offset=Number(q.get('offset')||0),search=(q.get('q')||'').toLowerCase();const matches=versions.slice().reverse().filter(v=>[v.display_name,v.title,v.document.level].join(' ').toLowerCase().includes(search));data={items:matches.slice(offset,offset+12).map(v=>({...v,kind:v.document.kind,level:v.document.level,preview_fen:v.document.exercises[0]?.fen,rotate:v.document.rotate})),total:matches.length};}
+else if(url.startsWith('/api/worksheets/history/')){const v=versions.find(v=>v.id===Number(url.split('/').at(-1)));if(failHistory)return{ok:false,json:async()=>({detail:'Không cập nhật được lịch sử'})};if(opt.method==='PATCH'){v.display_name=body.name;data={version_id:v.id,display_name:v.display_name};}else if(opt.method==='DELETE'){versions.splice(versions.indexOf(v),1);const remaining=versions.filter(i=>i.document_id===v.document_id).at(-1);if(remaining)saved.set(v.document_id,structuredClone(remaining.document));else saved.delete(v.document_id);data={deleted_version_id:v.id,document_id:v.document_id};}else data={id:v.document_id,document:structuredClone(v.document),version_id:v.id};}
 else if(url==='/api/worksheets/edit'){const exercise={...body.exercise,turn:'w',solution:'e4'},document=structuredClone(body.document);if(body.index!==null)document.exercises[body.index]=exercise;else document.exercises.push(exercise);saved.set(body.document_id,structuredClone(document));data={document,exercise};}
 else if(url.startsWith('/api/worksheets/pdf'))return{ok:true,blob:async()=>({type:'application/pdf'})};
 else if(url==='/api/worksheets')data=[...saved].map(([id,document])=>({id,title:document.title,count:document.exercises.length}));
@@ -26,7 +26,7 @@ async function click(id){await node(id).onclick?.({target:node(id)});await flush
 async function input(id,value){node(id).value=value;for(const f of node(id).events.input||[])await f({target:node(id)});await flush()}
 (async()=>{
 const chess=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(__dirname,'../static/vendor/chess.js')).toString('base64'));
-const ctx={Chess:chess.Chess,PIECE_DEFS:'',console,fetch,URLSearchParams,Date,confirm:()=>true,crypto:{randomUUID:()=>`00000000-0000-4000-8000-${String(++serial).padStart(12,'0')}`},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},URL:{createObjectURL:()=>'/blob-pdf',revokeObjectURL(){}},setTimeout:()=>1,document:{getElementById:node,createElement:()=>node('download'),body:node('body')}};
+const ctx={Chess:chess.Chess,PIECE_DEFS:'',console,fetch,URLSearchParams,Date,confirm:()=>confirmResult,crypto:{randomUUID:()=>`00000000-0000-4000-8000-${String(++serial).padStart(12,'0')}`},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},URL:{createObjectURL:()=>'/blob-pdf',revokeObjectURL(){}},setTimeout:()=>1,document:{getElementById:node,createElement:()=>node('download'),body:node('body')}};
 vm.createContext(ctx);vm.runInContext(script,ctx);await flush();
 assert.equal(node('export').disabled,true);assert(node('sheets').innerHTML.includes('Họ tên:'));assert(node('sheets').innerHTML.includes('Level:'));assert.equal(node('generate').disabled,false);
 assert(node('theme').innerHTML.includes('<optgroup label="Khai cuộc">'));
@@ -108,5 +108,28 @@ assert.equal(node('save-state').textContent,'Bản nháp đã đưa vào lịch 
 assert.equal(node('logo-preview').src,logo);assert.equal(node('show-prompts').checked,false);
 failCounts=true;node('max-rating').value='2600';node('min-rating').value='2001';node('min-rating').oninput();await flush();assert(node('theme-count').textContent.includes('Chưa đếm được'));assert.equal(node('generate').disabled,false,'Count failures must not block generation');
 node('min-rating').value='3000';node('max-rating').value='1000';node('min-rating').oninput();assert(node('theme-count').textContent.includes('khoảng điểm hợp lệ'));
-console.log('PASS: grouped topic search/counts/shortage/failure handling, worksheet history, generation, editor, direct title/header/footer editing, prompt/page toggles, first-page logo and snapshot preservation');
+// Names label snapshots; cancellation/failure must not discard archived content.
+await click('history-open');assert(node('history-list').innerHTML.includes('history-thumbnail'));assert(node('history-list').innerHTML.includes('data-history-delete'));
+const originalSnapshot=JSON.stringify(archivedLayout.document),rename={dataset:{historyRename:String(archivedLayout.id)},setAttribute(){}};
+await node('history-list').onclick({target:{closest:s=>s==='[data-history-rename]'?rename:null}});
+assert.equal(node('history-name-form-'+archivedLayout.id).hidden,false);assert.equal(node('history-name-'+archivedLayout.id).focused,true);
+const nameForm={dataset:{historyNameForm:String(archivedLayout.id)},querySelector:()=>node('name-submit')};
+async function renameSubmit(name){node('history-name-'+archivedLayout.id).value=name;await node('history-list').onsubmit({preventDefault(){},target:{closest:()=>nameForm}});await flush()}
+await renameSubmit(' ');assert(node('history-status').textContent.includes('không được trống'));
+failHistory=true;await renameSubmit('Tên bị lỗi');assert.equal(node('history-status').textContent,'Không cập nhật được lịch sử');assert.equal(node('name-submit').disabled,false);failHistory=false;
+await renameSubmit('<img src=x onerror=alert(1)> – Đề A');assert(node('history-list').innerHTML.includes('&lt;img'));assert(!node('history-list').innerHTML.includes('<img src=x'));assert.equal(JSON.stringify(archivedLayout.document),originalSnapshot);
+node('history-search').value='Đề A';await node('history-search').oninput();assert(node('history-page').textContent.includes('1 phiên bản'));
+const removeHistory={dataset:{historyDelete:String(archivedLayout.id)},disabled:false};
+const deleteEvent={target:{closest:s=>s==='[data-history-delete]'?removeHistory:null}};
+confirmResult=false;await node('history-list').onclick(deleteEvent);assert(versions.includes(archivedLayout));confirmResult=true;
+failHistory=true;await node('history-list').onclick(deleteEvent);assert(versions.includes(archivedLayout));assert.equal(removeHistory.disabled,false);failHistory=false;
+await node('history-list').onclick(deleteEvent);assert(!versions.includes(archivedLayout));assert(node('history-page').textContent.includes('0 phiên bản'));
+const detached=JSON.parse(storage.get('thc-worksheet-draft-v1'));assert.equal(detached.auto_archive,false);assert.notEqual(detached.id,archivedLayout.document_id);
+const putsAfterDeletion=requests.filter(r=>r.method==='PUT').length;
+vm.runInNewContext(script,{...ctx});await flush();assert.equal(requests.filter(r=>r.method==='PUT').length,putsAfterDeletion,'Reload must not recreate deleted history');assert.equal(node('logo-preview').src,logo,'Deletion preserves the visible draft');
+versions.splice(0,versions.length,...Array.from({length:13},(_,i)=>({...archivedLayout,id:100+i,document_id:'other-history',display_name:'',title:'Bản '+i})));
+node('history-search').value='';await click('history-open');await click('history-next');assert(node('history-page').textContent.includes('Trang 2 / 2'));
+await node('history-list').onclick({target:{closest:s=>s==='[data-history-delete]'?{dataset:{historyDelete:'100'},disabled:false}:null}});
+assert(node('history-page').textContent.includes('Trang 1 / 1'));assert(node('history-page').textContent.includes('12 phiên bản'));
+console.log('PASS: worksheet creation/editing/export, archive names/search/escaping, delete/cancel/error/pagination/reload safety, snapshot preservation and layout controls');
 })().catch(e=>{console.error(e);process.exitCode=1});

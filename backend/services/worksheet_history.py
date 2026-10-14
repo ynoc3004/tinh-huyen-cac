@@ -2,6 +2,11 @@
 import hashlib
 import json
 import uuid
+from pydantic import BaseModel, Field
+
+
+class Rename(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
 
 
 def canonical(document):
