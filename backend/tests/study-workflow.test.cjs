@@ -22,7 +22,7 @@ async function run(offline=false){
  if(offline&&url.endsWith('/models'))return {ok:false,status:503,json:async()=>({detail:'Bộ dịch ngoại tuyến'})};
  if(offline&&url.endsWith('/cached'))return {ok:true,status:200,json:async()=>({translation:'Bản dịch tiếng Việt đã lưu.'})};
  if(url==='/api/library?kind=book')data=[{id:1,ext:'.pdf',title:'Book'}];
- else if(url.endsWith('/state'))data={page:1,model:'deepl:en-vi'};
+ else if(url.endsWith('/state'))data={page:1,model:'deepl:en-vi',translation_mode:'automatic'};
  else if(url.endsWith('/models'))data={models:['deepl:en-vi','gemini:configured',...(ollamaAvailable?['qwen3:4b']:[])],local_models:ollamaAvailable?['qwen3:4b']:[],recommended_local:ollamaAvailable?'qwen3:4b':''};
  else if(url.endsWith('/scan-probe'))data={ok:true,message:"Model nhận ảnh nhỏ thành công."};
  else if(url.endsWith('/batch/start')){const settings=JSON.parse(options.body);batchJob={...settings,done:batchJob.done||0,chunk:0,chunks:0,phase:"ready"};data=batchJob;}

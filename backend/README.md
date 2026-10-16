@@ -174,6 +174,21 @@ Mục **Dùng thêm Chessvision.ai** có liên kết [eBook Reader](https://eboo
 
 Đây là luồng chuyển kết quả thủ công, không phải API gọi tự động. Chưa tìm thấy API công khai được nhà cung cấp tài liệu hóa để tích hợp nhận diện trực tiếp. App không tự gửi sách, đăng ký hoặc mua thuê bao. [Reader miễn phí chỉ tương tác với hình trên vài trang đầu mỗi sách](https://chessvision.ai/docs/ebook-reader/subscription/); đầy đủ cần thuê bao riêng. Gói này không đi kèm bộ quét local.
 
+
+## Dịch bằng Claude / Gemini bản chat miễn phí
+
+Trong Dịch Kinh Các, chọn **Chat miễn phí**:
+
+1. Kiểm tra chữ gốc rồi bấm **Sao chép yêu cầu dịch trang này**. Yêu cầu có hướng dẫn văn phong, thuật ngữ cờ vua và giữ nguyên SAN. Nếu trình duyệt chặn clipboard, mở phần yêu cầu và dùng Ctrl+C.
+2. Mở **Claude** hoặc **Gemini** bằng liên kết trên trang, đăng nhập bằng tài khoản của bạn, dán yêu cầu và tự gửi trong chat. Model và hạn mức theo gói tài khoản; ứng dụng không chọn hay bảo đảm một model cụ thể. Không cần API key cho cách này.
+3. Sao chép phần bản dịch từ chat, dán về ứng dụng, chọn nơi đã dịch và bấm **Lưu bản dịch**. Ứng dụng kiểm tra thứ tự/ký hiệu nước đi trước khi lưu; lỗi giữ nguyên nội dung đang dán để sửa.
+
+Yêu cầu giữ lại trang, chữ gốc và thuật ngữ lúc sao chép: nếu chuyển sang trang khác trước khi dán, bản dịch vẫn được lưu cho trang ban đầu. Muốn dịch trang khác, bấm **Đổi trang dịch**; ứng dụng hỏi trước khi bỏ bản đang dán chưa lưu. Bản nháp trong ô nhập chưa được lưu sẽ mất khi tải lại hoặc đóng trang.
+
+Bản dịch đã lưu được mã hóa trong két, mở lại theo đúng sách/trang và không phụ thuộc Ollama hay phiên bản bộ dịch tự động. Nếu chữ gốc hoặc thuật ngữ đổi, bản cũ được giữ nhưng không hiển thị như bản dịch của nội dung mới. Khi đã lưu, phần nhập thu gọn để đọc sách, tiếng Việt và bàn cờ. **Dịch tự động** vẫn có các bộ dịch cũ và tiến trình dịch nhiều trang riêng.
+
+Ứng dụng không tự gửi chữ/sách, đăng nhập, đọc phản hồi hoặc điều khiển Claude/Gemini. Liên kết mở trang chat trống; bạn tự chọn nội dung gửi. Dùng gói chat miễn phí khác với gọi API dịch tự động.
+
 ### Gemini tùy chọn và dịch chữ
 
 Có thể chọn Gemini trong **Bộ quét** nếu backend có `GEMINI_API_KEY`. Danh sách model lấy từ Google; khóa không gửi ra trình duyệt. `GEMINI_SCAN_MODEL` là model dự phòng cho API cũ gửi tên model trống. Gemini gửi ảnh trang tới Google, có hạn mức/phí tùy tài khoản. Không tự chuyển từ local sang Gemini. Nút kiểm tra ảnh nhỏ với Gemini gọi một yêu cầu để kiểm tra dịch vụ lúc đó; lỗi 503 từ Google vẫn có thể xảy ra.

@@ -38,3 +38,7 @@ body[data-view=original] .reading{display:none}body[data-view=original] .layout{
 .model-info{font-size:11px;color:var(--muted);margin:10px 16px 0;line-height:1.7}#natural-translate{border-color:var(--jade);color:var(--jade)}#refresh-models{font-size:11px}
 
 .model-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 16px 0}.model-status .model-info{margin:0;flex:1}#choose-model{font-size:11px;padding:4px 7px;white-space:nowrap}#translate-stop{font-size:11px}
+
+/* Web chat hand-off keeps the saved translation next to the book. */
+.translation-methods button[aria-pressed=true]{background:var(--jade);border-color:var(--jade);color:var(--bg-deep)}
+.web-translation{padding:12px 16px;border-bottom:1px solid var(--line);font-size:12px}.web-translation>summary{font-size:12px}.web-step{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0}.web-step a{border-bottom:1px solid var(--jade);white-space:nowrap}.web-translation button,.web-translation select{font-size:12px}.web-translation textarea{margin:8px 0;font-size:13px;line-height:1.7}.web-translation .hint{margin:8px 0}.web-save{margin-bottom:0}.web-save button{margin-left:auto}#web-prepare,#web-save{border-color:var(--jade);color:var(--jade)}#web-prompt-details{margin-top:8px}#web-prompt{font-family:var(--font-body);background:var(--surface)}

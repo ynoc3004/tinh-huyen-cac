@@ -1,7 +1,7 @@
 import {Chess} from "/vendor/chess.js";
 import {PIECE_DEFS} from "/vendor/pieces.js?v=paint-2";
 const $=id=>document.getElementById(id),id=Number(new URLSearchParams(location.search).get("id"));
-let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual",translationAvailable=false,hasTranslation=false,loadingTranslationModels=false,pageChunking=false,pageStop=false,pageAttempt=null;
+let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual",translationAvailable=false,hasTranslation=false,loadingTranslationModels=false,pageChunking=false,pageStop=false,pageAttempt=null,translationMode="web",webDraft=null,webWorking=false;
 function status(t){$("status").textContent=t;}
 async function api(path,body,method="POST"){
  const r=await fetch("/api/library/translation/"+path,body===undefined?{}:{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -9,36 +9,97 @@ async function api(path,body,method="POST"){
  return data;
 }
 function controls(){
- const navigating=busy||translating||scanning||loadingTranslationModels;
+ const navigating=busy||translating||scanning||webWorking||(translationMode==="automatic"&&loadingTranslationModels);
  $("scan-page").disabled=busy||scanning||probing||!loaded;$("scan-again").disabled=busy||scanning||probing||!loaded;
  $("scan-model").disabled=busy||scanning||probing||loadingScanModels;$("scan-refresh").disabled=scanning||probing||loadingScanModels;$("scan-probe").disabled=busy||scanning||probing||!loaded||!$("scan-model").value;
  $("scan-import").disabled=!loaded;$("import-pgn").disabled=!loaded;$("scan-download").hidden=!loaded;
  for(const name of ["prev","next","page","ocr","books"])$(name).disabled=navigating||!loaded;
- for(const name of ["translate","translate-selection","save-source","source"])$(name).disabled=busy||translating||batchRunning||!loaded;
+ for(const name of ["translate","translate-selection","save-source","source"])$(name).disabled=busy||translating||webWorking||batchRunning||!loaded;
  $("prev").disabled=navigating||!loaded||page<=1;$("next").disabled=navigating||!loaded||page>=total;
  $("model").disabled=busy||translating||batchRunning||loadingTranslationModels;
  $("refresh-models").disabled=busy||translating||batchRunning||loadingTranslationModels;$("natural-translate").disabled=busy||translating||batchRunning||loadingTranslationModels||!loaded;
  $("model-info").textContent=$("model").value==="opus-mt-en-vi"?"Bộ dịch nhanh OPUS-MT · Câu văn còn hạn chế. Chọn Dịch bằng Ollama để dịch theo ngữ cảnh trên máy.":$("model").value?"Bộ dịch đang dùng: "+$("model").value:"Chưa kết nối bộ dịch.";
  $("books").disabled=navigating||batchRunning;$("ocr").disabled=navigating||batchRunning||!loaded;
- for(const name of ["batch-start","batch-end","batch-size","batch-ocr","glossary","upload"])$(name).disabled=batchRunning||translating;
- $("batch-run").disabled=busy||translating||batchRunning||loadingTranslationModels||!loaded||!$("model").value||!translationAvailable;$("batch-pause").hidden=!batchRunning;
+ for(const name of ["batch-start","batch-end","batch-size","batch-ocr","glossary","upload"])$(name).disabled=batchRunning||translating||webWorking;
+ $("batch-run").disabled=busy||translating||webWorking||batchRunning||loadingTranslationModels||!loaded||!$("model").value||!translationAvailable;$("batch-pause").hidden=!batchRunning;
  $("translate").disabled=busy||translating||batchRunning||loadingTranslationModels||!loaded||!$("model").value||!translationAvailable;$("translate-selection").disabled=$("translate").disabled;
- $("translate").textContent=translating?"Đang dịch…":hasTranslation?"Dịch lại":"Dịch trang";$("source-refresh").disabled=busy||translating||batchRunning||!loaded;
+ $("translate").textContent=translating?"Đang dịch…":hasTranslation?"Dịch lại":"Dịch trang";$("source-refresh").disabled=busy||translating||webWorking||batchRunning||!loaded;
  $("scan-page").textContent=scanning?"Đang quét…":"✦ Quét trang "+page;
  $("translate-stop").hidden=!translating||!pageChunking;$("translate-stop").disabled=pageStop;$("translate-stop").textContent=pageStop?"Chờ đoạn hiện tại…":"Tạm dừng";$("choose-model").disabled=busy||translating||batchRunning||loadingTranslationModels;
- $("reading-pane").setAttribute("aria-busy",String(translating));
+ const web=translationMode==="web",webBusy=busy||translating||webWorking||batchRunning||!loaded;
+ $("web-translation").hidden=!web;$("automatic-tools").hidden=web;$("model-status").hidden=web;
+ for(const [name,active] of [["web-mode",web],["automatic-mode",!web]]){$(name).setAttribute("aria-pressed",String(active));$(name).disabled=busy||translating||webWorking||loadingTranslationModels;}
+ $("web-prepare").disabled=webBusy||!webDraft&&(!$("source").value.trim()||$("source").value.length>12000);
+ $("web-prepare").textContent=webDraft?"1. Sao chép yêu cầu trang "+webDraft.page:"1. Sao chép yêu cầu dịch trang này";
+ $("web-reset").hidden=!webDraft;$("web-reset").disabled=webBusy;
+ $("web-result").disabled=webWorking||!loaded;$("web-provider").disabled=webWorking||!loaded;
+ $("web-save").disabled=webBusy||!webDraft||!$("web-result").value.trim();
+ $("web-page-label").textContent=webDraft?"Yêu cầu và bản dịch sẽ được lưu cho trang "+webDraft.page+(page!==webDraft.page?" · Bạn đang xem trang "+page:"")+".":"";
+ $("reading-pane").setAttribute("aria-busy",String(translating||webWorking));
  $("scan-section").setAttribute("aria-busy",String(scanning));
 }
 function isOllama(name){return !!name&&name!=="opus-mt-en-vi"&&!name.startsWith("gemini:")&&!name.startsWith("deepl:");}
 function translationStatus(t){$("translation-status").textContent=t;}
 function displayTranslation(text){hasTranslation=true;$("result").textContent=text;controls();}
-async function save(){state={...state,page,note:$("note").value,model:$("model").value};await api(id+"/state",state,"PUT");}
+async function save(){state={...state,page,note:$("note").value,model:$("model").value,translation_mode:translationMode};await api(id+"/state",state,"PUT");}
 function body(text=$("source").value){return {text,page,model:$("model").value,glossary:$("glossary").value};}
+async function chooseTranslationMode(mode){
+ if(busy||translating||webWorking||loadingTranslationModels)return;
+ translationMode=mode;cacheRevision++;controls();
+ try{
+ if(mode==="automatic"&&!translationAvailable)try{await refreshTranslationModels();}catch(e){translationStatus(e.message);}
+ if(loaded){await cached();await save();}
+ }catch(e){translationStatus(e.message);}
+}
+$("web-mode").onclick=()=>chooseTranslationMode("web");
+$("automatic-mode").onclick=()=>chooseTranslationMode("automatic");
+async function prepareWebTranslation(){
+ if(busy||translating||webWorking||batchRunning||!loaded)return;
+ webWorking=true;controls();$("web-status").textContent="Đang chuẩn bị yêu cầu dịch…";
+ try{
+ if(!webDraft){
+ const captured={page,text:$("source").value,glossary:$("glossary").value};
+ const data=await api(id+"/web/prompt",captured);
+ if(savedSource!==captured.text){await api(id+"/study/source",{page:captured.page,text:captured.text});savedSource=captured.text;}
+ webDraft={...captured,prompt:data.prompt};$("web-prompt").value=data.prompt;
+ }
+ try{await navigator.clipboard.writeText(webDraft.prompt);$("web-status").textContent="Đã sao chép yêu cầu trang "+webDraft.page+". Mở Claude hoặc Gemini, dán yêu cầu rồi gửi.";}
+ catch{$("web-prompt-details").open=true;$("web-prompt").focus();$("web-prompt").select?.();$("web-status").textContent="Trình duyệt chưa cho sao chép. Chọn nội dung yêu cầu bên trên và nhấn Ctrl+C, rồi dán vào chat.";}
+ }catch(e){$("web-status").textContent=e.message;}
+ finally{webWorking=false;controls();}
+}
+$("web-prepare").onclick=()=>prepareWebTranslation();
+$("web-reset").onclick=()=>{
+ if(webWorking||busy||translating||batchRunning)return;
+ if($("web-result").value.trim()&&!confirm("Bản dịch đang dán chưa được lưu. Bỏ bản nháp để dịch trang đang xem?"))return;
+ webDraft=null;$("web-prompt").value="";$("web-result").value="";controls();return prepareWebTranslation();
+};
+$("web-result").oninput=()=>controls();
+for(const provider of ["claude","gemini"])$("web-open-"+provider).onclick=()=>{$("web-provider").value=provider;};
+$("web-save").onclick=async()=>{
+ if(!webDraft||webWorking||busy||translating||batchRunning||!loaded||!$("web-result").value.trim())return;
+ const captured=webDraft;webWorking=true;cacheRevision++;controls();$("web-status").textContent="Đang kiểm tra nước đi và lưu bản dịch…";
+ try{
+ const data=await api(id+"/web/import",{page:captured.page,text:captured.text,glossary:captured.glossary,provider:$("web-provider").value||"claude",translation:$("web-result").value});
+ const matches=page===captured.page&&$("source").value===captured.text&&$("glossary").value===captured.glossary;
+ if(matches&&translationMode==="web")displayTranslation(data.translation);
+ $("web-status").textContent="Đã lưu bản dịch "+(data.provider==="claude"?"Claude":"Gemini")+" cho trang "+captured.page+(matches?".":" theo chữ gốc đã sao chép; bạn đang xem nội dung khác.");
+ webDraft=null;$("web-prompt").value="";$("web-result").value="";$("web-translation").open=!matches;
+ }catch(e){$("web-status").textContent=e.message;}
+ finally{webWorking=false;controls();}
+};
+window.addEventListener("beforeunload",event=>{if(webDraft&&$("web-result").value.trim()){event.preventDefault();event.returnValue="";}});
 let cacheRevision=0;
 async function cached(){
- const revision=++cacheRevision,requestedPage=page,requestedModel=$("model").value,requestedText=$("source").value;
- const current=()=>revision===cacheRevision&&page===requestedPage&&$("model").value===requestedModel&&$("source").value===requestedText&&!translating;
+ const revision=++cacheRevision,requestedPage=page,requestedMode=translationMode,requestedModel=$("model").value,requestedText=$("source").value,requestedGlossary=$("glossary").value;
+ const current=()=>revision===cacheRevision&&page===requestedPage&&$("model").value===requestedModel&&$("source").value===requestedText&&$("glossary").value===requestedGlossary&&translationMode===requestedMode&&!translating&&!webWorking;
  hasTranslation=false;controls();$("result").textContent="Trang này chưa có bản dịch. Kiểm tra chữ tiếng Anh rồi bấm Dịch trang.";
+ if(requestedMode==="web"){
+ const data=await api(id+"/web?page="+requestedPage);if(!current())return;
+ if(data.translation&&data.text===requestedText&&(data.glossary||"")===requestedGlossary){displayTranslation(data.translation);if(!webDraft){$("web-translation").open=false;$("web-status").textContent="Bản dịch "+(data.provider==="claude"?"Claude":"Gemini")+" đã lưu · trang "+requestedPage+".";}}
+ else{if(!webDraft){$("web-translation").open=true;$("web-status").textContent=data.translation?"Chữ gốc hoặc thuật ngữ đã đổi. Bản dịch cũ vẫn được giữ; hãy tạo yêu cầu dịch mới.":requestedText.trim()?"":"Trang chưa có chữ để dịch. Mở Hiệu đính chữ gốc hoặc bật OCR trong Tùy chọn.";}$("result").textContent="Trang này chưa có bản dịch chat phù hợp. Sao chép yêu cầu để bắt đầu.";}
+ return;
+ }
  if(!$("model").value)return;
  const batch=await api(id+"/batch/page?page="+page);if(!current())return;
  if(batch.outdated)translationStatus("Bản dịch nhiều trang dùng bộ đọc chữ cũ. Bấm Dịch trang để tạo bản mới cho trang này.");
@@ -48,7 +109,7 @@ async function cached(){
  }
 }
 async function openPage(n,initial=false){
- if(busy||translating||scanning||!id)return;busy=true;controls();
+ if(busy||translating||scanning||webWorking||!id)return;busy=true;controls();
  try{
  if(!initial){await save();if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}}
  let data,ocrWarning="";
@@ -184,14 +245,15 @@ const started=Date.now();setInterval(()=>{const m=Math.floor((Date.now()-started
  const books=(await r.json()).filter(x=>x.ext===".pdf");$("books").replaceChildren(new Option("Chọn sách PDF…",""),...books.map(x=>new Option(x.title,String(x.id))));
  if(!id){status("Chọn sách trong tủ. Nếu chưa có, tải PDF lên ở Tàng Kinh Các.");$("books").disabled=false;return;}
  $("books").value=String(id);$("batch-export").href="/api/library/translation/"+id+"/export";
- state=await api(id+"/state");job=await api(id+"/batch");$("note").value=state.note||"";$("return").hidden=!state.bookmark;$("ocr").checked=!!job.ocr;
- try{await refreshTranslationModels(state.model||job.model);}catch(e){translationAvailable=false;if(state.model)$("model").replaceChildren(new Option(state.model+" · bản dịch đã lưu",state.model));status(e.message);}
+ state=await api(id+"/state");translationMode=location.hash==="#batch-panel"||state.translation_mode==="automatic"?"automatic":"web";job=await api(id+"/batch");$("note").value=state.note||"";$("return").hidden=!state.bookmark;$("ocr").checked=!!job.ocr;
+ if(translationMode==="automatic")try{await refreshTranslationModels(state.model||job.model);}catch(e){translationAvailable=false;if(state.model)$("model").replaceChildren(new Option(state.model+" · bản dịch đã lưu",state.model));status(e.message);}
+ else if(state.model||job.model)$("model").replaceChildren(new Option(state.model||job.model,state.model||job.model));
  initializeBatch();
  await openPage(state.page||1,true);
- if(!job.end)$("batch-end").value=total;renderBatch();if(!translationAvailable)translationStatus("Bộ dịch chưa sẵn sàng. Bạn vẫn có thể đọc sách và bản dịch đã lưu; mở Tùy chọn để kiểm tra.");
+ if(!job.end)$("batch-end").value=total;renderBatch();if(translationMode==="automatic"&&!translationAvailable)translationStatus("Bộ dịch chưa sẵn sàng. Bạn vẫn có thể đọc sách và bản dịch đã lưu; mở Tùy chọn để kiểm tra.");
  if(location.hash==="#batch-panel")$("batch-panel").open=true;
  loadScanModels();
- setInterval(()=>fetch("/api/library/item/"+id).then(r=>{if(r.status===401){loaded=false;batchStop=true;clearScan();controls();$("pdf").removeAttribute("src");$("page-image-link").removeAttribute("href");$("pdf").alt="Két đã khóa";$("source").value="";$("result").textContent="";$("note").value="";status("Két đã khóa. Mở khóa rồi tải lại trang.");}}).catch(()=>{}),30000);
+ setInterval(()=>fetch("/api/library/item/"+id).then(r=>{if(r.status===401){loaded=false;batchStop=true;webDraft=null;$("web-prompt").value="";$("web-result").value="";$("web-status").textContent="";clearScan();controls();$("pdf").removeAttribute("src");$("page-image-link").removeAttribute("href");$("pdf").alt="Két đã khóa";$("source").value="";$("result").textContent="";$("note").value="";status("Két đã khóa. Mở khóa rồi tải lại trang.");}}).catch(()=>{}),30000);
  }catch(e){status(e.message);}
 })();
 
@@ -253,7 +315,7 @@ async function loadScanModels(){
 $("scan-refresh").onclick=()=>loadScanModels();
 $("scan-model").onchange=async()=>{scanRevision++;$("scan-probe-status").textContent="";scanSettings();clearScan();try{localStorage.setItem("thc-scan-engine-v2",$("scan-model").value);}catch{}if(loaded)await openScans();};
 
-$("translation").onclick=()=>{$("batch-panel").open=!$("batch-panel").open;};
+$("translation").onclick=async()=>{$("batch-panel").open=!$("batch-panel").open;if($("batch-panel").open&&translationMode!=="automatic")await chooseTranslationMode("automatic");};
 $("batch-panel").ontoggle=()=>$("translation").setAttribute("aria-expanded",String($("batch-panel").open));
 function initializeBatch(){
  if(job.phase&&job.phase!=="idle"){
@@ -270,7 +332,7 @@ function renderBatch(){
  $("batch-status").textContent=job.outdated?"Lượt dịch dùng bộ đọc chữ cũ. Bạn có thể xuất bản cũ trước khi bấm Bắt đầu / tiếp tục để tạo bản mới.":job.error||(job.phase==="completed"?"Đã hoàn thành và lưu bản dịch.":batchRunning?"Đang dịch; bạn vẫn có thể đọc và thử thế cờ.":"Tiến độ đã lưu. Bấm tiếp tục khi sẵn sàng.");
 }
 $("batch-run").onclick=async()=>{
- if(!loaded||batchRunning||translating||busy)return;
+ if(!loaded||batchRunning||translating||webWorking||busy)return;
  batchRunning=true;batchStop=false;controls();let batchError="";
  try{
  if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}
