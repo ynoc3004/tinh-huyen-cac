@@ -1,79 +1,44 @@
-<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tĩnh Tâm Thư Phòng</title><link rel="stylesheet" href="/study.css?v=appearance-1">
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dịch Kinh Các · Tĩnh Huyền Quán</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1"><link rel="stylesheet" href="/tien-canh.css?v=bagua-menu-1"><script src="/thien-co.js"></script><script src="/tien-canh.js?v=bagua-menu-1"></script>
 <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico?v=1">
 <link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg?v=1">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1">
-</head><body><header class="study-toolbar"><a href="/library.html">← Tàng Kinh Các</a><strong>Tĩnh Tâm Thư Phòng</strong><div><button id="theme" aria-label="Đổi chế độ ngày đêm">☾ Đêm</button><button id="focus">Chế độ tập trung</button><button id="fullscreen">Toàn màn hình</button>
-</div>
-</header><div class="top"><select id="books" aria-label="Chọn sách"><option>Chọn sách PDF…</option>
-</select><button id="translation" type="button">Dịch nhiều trang</button><span id="session">Phiên học · 00:00</span>
-</div><details id="batch-panel" class="batch-panel">
-<summary>Dịch nhiều trang · tiến độ và xuất bản dịch</summary>
+<link rel="stylesheet" href="/study.css?v=reader-2"></head><body data-section="original">
+<header class="study-toolbar"><div class="reader-heading"><a href="/library.html">← Tàng Kinh Các</a><h1>Dịch Kinh Các</h1><p>Đọc sách, hiểu lời bình, thực hành thế cờ.</p></div><span id="session">Phiên học · 00:00</span></header>
+<div class="reader-controls"><div class="book-row"><label for="books" class="sr-only">Chọn sách PDF</label><select id="books"><option value="">Chọn sách PDF…</option></select><label class="upload-label">＋ Tải sách PDF<input id="upload" type="file" accept=".pdf"></label></div>
+<div class="navigation"><div class="page-navigation"><button id="prev" aria-label="Trang trước">←</button><label for="page">Trang</label><input id="page" aria-label="Số trang" type="number" value="1" min="1"><span id="total">/ —</span><button id="next" aria-label="Trang sau">→</button><button id="bookmark" title="Đánh dấu trang đang đọc">☆ Dấu sách</button><button id="return" hidden>Về dấu</button></div><div class="workspace-actions"><button id="translation" aria-expanded="false" aria-controls="batch-panel">Dịch nhiều trang</button><button id="options-toggle" aria-expanded="false" aria-controls="reader-options">Tùy chọn</button></div></div>
+<details id="reader-options"><summary>Tùy chọn đọc và dịch</summary><div class="options-grid"><label>Bộ dịch <select id="model" aria-label="Bộ dịch tiếng Việt"></select></label><label class="check-label"><input id="ocr" type="checkbox"> Nhận chữ từ PDF scan (OCR)</label><div class="display-options"><button id="theme" aria-label="Đổi chế độ ngày đêm">☾ Đêm</button><button id="focus" aria-pressed="false">Chế độ tập trung</button><button id="fullscreen">Toàn màn hình</button></div><div class="view-options" aria-label="Bố cục đọc"><button data-view="bilingual" class="active" aria-pressed="true">Sách &amp; bản dịch</button><button data-view="original" aria-pressed="false">Chỉ sách</button><button data-view="text" aria-pressed="false">Chữ gốc</button></div></div></details>
+<details id="batch-panel" class="batch-panel">
+<summary>Dịch nhiều trang</summary>
 <div class="batch-content">
 <div class="batch-settings"><label>Từ trang<input id="batch-start" type="number" value="1" min="1"></label><label>Đến trang<input id="batch-end" type="number" value="1" min="1"></label><label>Độ dài đoạn<select id="batch-size"><option value="800">800 · nhẹ</option><option value="1500" selected>1.500 · cân bằng</option><option value="2500">2.500 · dài</option></select></label><label><input id="batch-ocr" type="checkbox"> OCR ảnh chữ</label></div>
 <label class="glossary-label">Thuật ngữ tùy chỉnh (Gemini / Ollama)<textarea id="glossary" rows="2" maxlength="4000" placeholder="fork = đòn đôi; pin = ghim; endgame = tàn cuộc"></textarea></label>
 <p class="hint">Dùng AI dịch đã chọn ở khung Bản dịch. Mỗi đoạn tự lưu; có thể tạm dừng và tiếp tục lần sau. Giữ trang mở để dịch liên tục.</p>
 <progress id="batch-progress" max="100" value="0"></progress><p id="batch-progress-label">Chưa bắt đầu</p>
-<div class="batch-actions"><button id="batch-run" disabled>✦ Bắt đầu / tiếp tục</button><button id="batch-pause" hidden>Tạm dừng</button><a id="batch-export" hidden>↓ Xuất bản dịch</a><label class="upload-label">＋ Tải sách PDF<input id="upload" type="file" accept=".pdf" hidden></label></div><p id="batch-status" class="task-status" role="status"></p>
-</div></details>
-<p id="status" role="status">Đang mở tủ sách…</p><div class="navigation"><div><button id="prev">←</button><label>Trang <input id="page" type="number" value="1" min="1">
-</label><span id="total">/ —</span><button id="next">→</button><button id="bookmark">☆ Dấu sách</button><button id="return" hidden>Về dấu</button>
-</div><div><button data-view="original">Bản gốc</button><button data-view="bilingual" class="active">Song ngữ</button><button data-view="text">Chữ tiếng Anh</button>
-</div>
-</div><div class="layout"><main><section class="original pane"><div class="pane-title">NGUYÊN BẢN <small>PDF · giữ nguyên hình bàn cờ</small>
+<div class="batch-actions"><button id="batch-run" disabled>Bắt đầu / tiếp tục</button><button id="batch-pause" hidden>Tạm dừng</button><a id="batch-export" hidden>↓ Xuất bản dịch</a></div><p id="batch-status" class="task-status" role="status"></p>
+</div></details><p id="status" role="status">Đang mở tủ sách…</p></div>
+<nav class="mobile-sections" aria-label="Nội dung đang đọc"><button data-section="original" aria-pressed="true">Sách gốc</button><button data-section="reading" aria-pressed="false">Tiếng Việt</button><button data-section="board" aria-pressed="false">Bàn cờ</button></nav>
+<div class="layout"><main><section class="original pane"><div class="pane-title"><span>Sách gốc</span> <a id="page-image-link" target="_blank" rel="noopener" aria-label="Mở ảnh trang sách ở kích thước lớn">Phóng lớn ↗</a>
 </div><div class="page-preview"><img id="pdf" alt="Trang sách gốc"></div>
 </section>
-<section id="reading-pane" class="reading pane" aria-busy="false"><div class="pane-title">BẢN DỊCH <select id="model" aria-label="Model dịch">
-</select>
-</div><div class="read-tools"><button id="translate">Dịch trang</button><label><input id="ocr" type="checkbox"> OCR</label><button id="text-toggle">Hiệu đính chữ gốc</button><span class="text-scale"><button id="text-smaller" aria-label="Giảm cỡ chữ">A−</button><button id="text-larger" aria-label="Tăng cỡ chữ">A+</button>
-</span>
-</div><p id="translation-status" class="task-status" role="status">
-</p><article id="result">Chọn sách để bắt đầu. Bản dịch đã lưu sẽ được mở khi có.</article><section id="editor" hidden><p>Kiểm tra tiếng Anh trước khi dịch. Sửa thứ tự đọc, câu ngắt hoặc chữ nhận nhầm.</p><textarea id="source" rows="15" aria-label="Chữ tiếng Anh">
+<section id="reading-pane" class="reading pane" aria-busy="false"><div class="pane-title"><span>Bản dịch tiếng Việt</span><span class="text-scale"><button id="text-smaller" aria-label="Giảm cỡ chữ">A−</button><button id="text-larger" aria-label="Tăng cỡ chữ">A+</button></span></div><div class="read-tools"><button id="translate">Dịch trang</button><button id="text-toggle" aria-expanded="false" aria-controls="editor">Hiệu đính chữ gốc</button></div><p id="translation-status" class="task-status" role="status"></p><article id="result">Chọn sách để bắt đầu. Bản dịch đã lưu sẽ được mở khi có.</article><section id="editor" hidden><p>Kiểm tra tiếng Anh trước khi dịch. Sửa thứ tự đọc, câu ngắt hoặc chữ nhận nhầm.</p><textarea id="source" rows="15" aria-label="Chữ tiếng Anh">
 </textarea><button id="save-source">Lưu chữ đã sửa</button><button id="translate-selection">Dịch đoạn bôi đen</button><button id="download">Tải TXT trang</button>
-</section>
-</section>
-</main><aside><div class="tabs"><button data-tab="board" class="active">Bàn cờ</button><button data-tab="notes">Ghi chú</button>
-</div><section id="board-tab"><section id="scan-section" aria-busy="false">
-<div class="section-heading"><span class="eyebrow">KỲ ĐẠO</span><h2>Thế cờ trong sách</h2>
-</div>
-<div class="scan-tools"><button id="scan-page" type="button" disabled>✦ Quét trang hiện tại</button><button id="scan-again" type="button" hidden>Quét lại</button>
-</div>
-<details class="scan-settings"><summary>Bộ quét · <span id="scan-model-label">Local miễn phí</span></summary><div class="model-row"><select id="scan-model" aria-label="Bộ quét ảnh"><option value="local:chessvision">Local · chessvision (miễn phí)</option>
-</select><button id="scan-refresh" type="button" aria-label="Tải lại danh sách bộ quét">↻</button>
-</div><button id="scan-probe" type="button">Kiểm tra bộ quét với ảnh nhỏ</button><small id="scan-probe-status" class="task-status" role="status"></small><small id="scan-model-status">Đang kiểm tra quét local…</small><p id="scan-privacy" class="hint">Local chạy trên máy, không cần API key. Kết quả lưu trong két.</p>
-</details>
-<details class="external-scan"><summary>Dùng thêm Chessvision.ai</summary><p class="hint">Dùng thử vài trang đầu mỗi sách; đầy đủ cần thuê bao riêng. Mở eBook Reader và tự tải PDF lên, hoặc dùng tiện ích trình duyệt để quét ảnh trang.</p><div class="external-actions"><a href="https://ebook.chessvision.ai" target="_blank" rel="noopener noreferrer">Mở eBook Reader ↗</a><a href="https://chessvision.ai" target="_blank" rel="noopener noreferrer">Tiện ích quét ảnh ↗</a><a id="scan-download" download>Tải ảnh trang</a><button id="scan-import" type="button">Nhập FEN / PGN đã quét</button></div><p class="hint">Xuất/copy kết quả ở Chessvision.ai rồi nhập vào bàn cờ dưới đây. App không tự gửi sách tới dịch vụ.</p></details>
-<p id="scan-status" class="task-status" role="status">
-</p>
-<div id="scan-results" aria-label="Các thế cờ trên trang">
-</div>
-</section>
-<div class="board-heading"><strong id="scan-selected">Bàn cờ thực hành</strong><span id="turn">
-</span>
-</div>
-<div id="board" aria-label="Bàn cờ thực hành">
-</div>
-<div class="board-actions"><button id="undo">↶ Lùi</button><button id="flip">⇅ Xoay</button><button id="reset">Ván mới</button>
-</div>
+</section></section></main>
+<aside aria-label="Thế cờ và ghi chú"><div class="tabs"><button data-tab="board" class="active" aria-pressed="true">Bàn cờ theo sách</button><button data-tab="notes" aria-pressed="false">Ghi chú</button></div><section id="board-tab"><section id="scan-section" aria-busy="false"><div class="section-heading"><h2>Thế cờ trong trang</h2><p class="hint">Quét trang rồi chọn hình để thử nước đi.</p></div><div class="scan-tools"><button id="scan-page" type="button" disabled>Quét trang hiện tại</button><button id="scan-again" type="button" hidden>Quét lại</button></div><p id="scan-status" class="task-status" role="status"></p><div id="scan-results" aria-label="Các thế cờ trên trang"></div></section>
+<div id="board-empty" class="board-empty"><span aria-hidden="true">♞</span><strong>Chưa chọn thế cờ</strong><p>Quét hình bàn cờ từ sách hoặc nhập FEN / PGN trong Công cụ bàn cờ.</p></div>
+<div id="board-stage" hidden><div class="board-heading"><strong id="scan-selected">Bàn cờ thực hành</strong><span id="turn"></span></div><div id="board" aria-label="Bàn cờ thực hành"></div><div class="board-actions"><button id="undo">↶ Lùi</button><button id="flip">⇅ Xoay</button><button id="restore-position" disabled>Về thế sách</button></div><p id="moves"></p></div><small id="board-status" role="status"></small>
 <details id="scan-editor" hidden><summary>Hiệu đính thế cờ · lượt đi và quân</summary><div class="scan-edit-controls"><label>Lượt đi <select id="scan-turn"><option value="w">Trắng</option><option value="b">Đen</option>
 </select>
 </label><button id="scan-edit" aria-pressed="false">Sửa quân</button><select id="scan-piece" aria-label="Quân để đặt"><option value="">Xóa quân</option><option value="wK">Vua trắng</option><option value="wQ">Hậu trắng</option><option value="wR">Xe trắng</option><option value="wB">Tượng trắng</option><option value="wN">Mã trắng</option><option value="wP">Tốt trắng</option><option value="bK">Vua đen</option><option value="bQ">Hậu đen</option><option value="bR">Xe đen</option><option value="bB">Tượng đen</option><option value="bN">Mã đen</option><option value="bP">Tốt đen</option>
 </select><button id="scan-play">✓ Thực hành thế đã sửa</button><small>Không suy đoán quyền nhập thành/bắt tốt qua đường. Có thể sửa đầy đủ trong ô FEN bên dưới.</small>
 </div>
-</details><details id="position-panel"><summary>Nhập thế cờ / ván đấu</summary><textarea id="position" rows="4" placeholder="Dán FEN hoặc PGN…" aria-label="FEN hoặc PGN">
+</details><details id="board-options"><summary>Công cụ bàn cờ</summary><details class="scan-settings"><summary>Bộ quét · <span id="scan-model-label">Local miễn phí</span></summary><div class="model-row"><select id="scan-model" aria-label="Bộ quét ảnh"><option value="local:chessvision">Local · chessvision (miễn phí)</option>
+</select><button id="scan-refresh" type="button" aria-label="Tải lại danh sách bộ quét">↻</button>
+</div><button id="scan-probe" type="button">Kiểm tra bộ quét với ảnh nhỏ</button><small id="scan-probe-status" class="task-status" role="status"></small><small id="scan-model-status">Đang kiểm tra quét local…</small><p id="scan-privacy" class="hint">Local chạy trên máy, không cần API key. Kết quả lưu trong két.</p>
+</details><details class="external-scan"><summary>Dùng thêm Chessvision.ai</summary><p class="hint">Dùng thử vài trang đầu mỗi sách; đầy đủ cần thuê bao riêng. Mở eBook Reader và tự tải PDF lên, hoặc dùng tiện ích trình duyệt để quét ảnh trang.</p><div class="external-actions"><a href="https://ebook.chessvision.ai" target="_blank" rel="noopener noreferrer">Mở eBook Reader ↗</a><a href="https://chessvision.ai" target="_blank" rel="noopener noreferrer">Tiện ích quét ảnh ↗</a><a id="scan-download" download>Tải ảnh trang</a><button id="scan-import" type="button">Nhập FEN / PGN đã quét</button></div><p class="hint">Xuất/copy kết quả ở Chessvision.ai rồi nhập vào bàn cờ dưới đây. App không tự gửi sách tới dịch vụ.</p></details><details id="position-panel"><summary>Nhập thế cờ / ván đấu</summary><textarea id="position" rows="4" placeholder="Dán FEN hoặc PGN…" aria-label="FEN hoặc PGN">
 </textarea><button id="load-position">Mở trên bàn cờ</button>
-</details><input id="pgn-file" type="file" accept=".pgn,.fen,.txt" hidden><button id="import-pgn" type="button">Nhập file PGN / FEN</button><p id="moves">
-</p><button id="download-pgn">Tải PGN thực hành</button><small id="board-status" role="status">
-</small>
-</section>
-<section id="notes-tab" hidden><h3>Điều học được</h3><p class="hint">Ghi lại kế hoạch, lỗi thường gặp và câu hỏi cần xem lại.</p><textarea id="note" rows="16" maxlength="6000" placeholder="Trang 25 · Vì sao đổi quân ở đây?">
+</details><input id="pgn-file" type="file" accept=".pgn,.fen,.txt" hidden><button id="import-pgn" type="button">Nhập file PGN / FEN</button><button id="download-pgn">Tải PGN thực hành</button><button id="reset">Ván mới từ thế ban đầu</button></details><p class="board-footnote">Đối chiếu quân và lượt đi với hình trong sách.</p></section><section id="notes-tab" hidden><h3>Điều học được</h3><p class="hint">Ghi lại kế hoạch, lỗi thường gặp và câu hỏi cần xem lại.</p><textarea id="note" rows="16" maxlength="6000" placeholder="Trang 25 · Vì sao đổi quân ở đây?">
 </textarea><button id="save-note">Lưu ghi chú</button><small id="note-status" role="status">
 </small>
-</section>
-<div class="footer-note">Một trang. Một ý tưởng. Một thế cờ.<br><small>Đối chiếu bản dịch và quân cờ với sách trước khi học.</small>
-</div>
-</aside>
-</div><script type="module" src="/study.js?v=appearance-1">
-</script>
-</body>
-</html>
+</section></aside></div><script type="module" src="/study.js?v=reader-2"></script></body></html>

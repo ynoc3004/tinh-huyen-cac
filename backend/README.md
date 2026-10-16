@@ -131,9 +131,13 @@ Mọi bản in mặc định khổ A4 ngang.
 - **Giới hạn:** tên file, ghi chú và nhãn lưu ở `data/app.db` dạng chưa mã hóa. Cần sao lưu cả thư mục két lẫn `data/app.db`. Cần `pip install -r requirements.txt` lại để có thư viện `cryptography`.
 
 
-## Thư Phòng: quét ảnh và dịch chữ
+## Dịch Kinh Các: sách, bản dịch và bàn cờ
 
-Thư Phòng là màn hình đọc/dịch chung; `translate.html?id=...` chuyển sang `study.html?id=...#batch-panel`. Mục **Dịch nhiều trang** giữ khoảng trang, thuật ngữ, OCR, dừng/tiếp tục và xuất bản dịch. Bản gốc hiển thị ảnh đúng trang đang chọn.
+Dịch Kinh Các (`study.html?id=...`) đặt **sách gốc**, **bản dịch tiếng Việt** và **bàn cờ theo sách** trong cùng không gian đọc. `translate.html?id=...` chuyển đến trang đọc, không tự mở thiết lập dịch hàng loạt. Trên màn hình lớn có ba cột; màn hình vừa giữ hai cột đọc và đưa bàn cờ xuống dưới; điện thoại có ba nút chuyển Sách gốc / Tiếng Việt / Bàn cờ. Chọn sách hoặc tải PDF ngay ở đầu trang, chuyển trang và đánh dấu bằng một thanh chung. Bấm **Phóng lớn** để mở ảnh trang sách ở kích thước lớn.
+
+**Tùy chọn** gom bộ dịch, OCR, bố cục và chế độ đọc; **Dịch nhiều trang** giữ khoảng trang, thuật ngữ, dừng/tiếp tục và xuất bản dịch. Bản gốc luôn hiển thị đúng trang đang chọn. Khi bộ dịch chưa kết nối, vẫn mở sách, đọc bản dịch đã lưu và quét thế cờ.
+
+Bàn cờ chỉ xuất hiện sau khi chọn hình đã quét hoặc nhập FEN/PGN. **Về thế sách** khôi phục vị trí đã chọn (hoặc đã hiệu đính) sau khi thử biến. Chuyển trang hoặc đổi bộ quét sẽ gỡ thế cờ cũ khỏi khung để tránh nhầm trang. Cấu hình bộ quét, công cụ ngoài và nhập/xuất PGN nằm trong **Công cụ bàn cờ**. Ghi chú, hiệu đính chữ/quân và tiến độ dịch tiếp tục lưu như trước.
 
 ### Quét local miễn phí
 
