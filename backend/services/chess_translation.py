@@ -1,7 +1,7 @@
 """Chess vocabulary and notation shared by every book translation provider."""
 import re
 
-REVISION = "chess-text-3"
+REVISION = "chess-context-4"
 TERMS = {
     "the London system": "hệ thống London", "London system": "hệ thống London",
     "King's Indian defence": "phòng thủ Ấn Độ Vua", "King's Indian defense": "phòng thủ Ấn Độ Vua",
@@ -53,11 +53,7 @@ def glossary_text(custom=""):
 
 
 def protected_parts(text, custom=""):
-    """Return (source, fixed Vietnamese/notation or None), longest phrase first.
-
-    A small NMT model cannot reliably copy placeholder tokens. Its narrative
-    spans are translated separately and fixed spans never enter that model.
-    """
+    """Legacy literal glossary substitution; do not use to split model input."""
     entries = glossary_entries(custom)
     terms = re.compile(r"(?<!\w)(?:" + "|".join(re.escape(k).replace(r"\ ", r"\s+") for k in sorted(entries, key=len, reverse=True)) + r")(?!\w)", re.I)
     moves = list(SAN.finditer(text))
@@ -133,6 +129,8 @@ def clean_source(text):
 
 
 def validate_output(source, result):
+    if re.search(r"Coptic\s+month|LongName|ShortName|__THC_(?:TERM|MOVE)_", result, re.I) and not re.search(r"Coptic\s+month|LongName|ShortName|__THC_(?:TERM|MOVE)_", source, re.I):
+        raise ValueError("Bộ dịch sinh nội dung lỗi ngoài nguyên bản. Bản lỗi chưa được lưu; thử Dịch bằng Ollama hoặc dịch đoạn ngắn hơn.")
     if not result.strip():
         raise ValueError("Bộ dịch trả nội dung trống; bản lỗi chưa được lưu.")
     if any(is_diagram_line(line) for line in result.splitlines()):
@@ -143,4 +141,39 @@ def validate_output(source, result):
         raise ValueError("Bộ dịch bị lặp nội dung; bản lỗi chưa được lưu. Thử dịch đoạn ngắn hơn.")
     if SAN.findall(source) != SAN.findall(result):
         raise ValueError("Bản dịch làm thay đổi thứ tự hoặc ký hiệu nước đi; bản lỗi chưa được lưu.")
+    return result
+
+
+# Correct only known non-chess senses when the corresponding source term occurs.
+# Full sentences, proper names and grammar are left for the translation model.
+TERM_CORRECTIONS = {
+    "bishop": (r"giám mục", "tượng"),
+    "knight": (r"hiệp sĩ|kỵ sĩ", "mã"),
+    "rook": (r"tòa tháp|toà tháp|lâu đài", "xe"),
+    "queen": (r"nữ hoàng", "hậu"),
+    "king": (r"nhà vua|vị vua", "vua"),
+    "square": (r"hình vuông", "ô"),
+    "rank": (r"cấp bậc", "hàng ngang"),
+    "the London system": (r"hệ thống Luân Đôn", "hệ thống London"),
+    "London system": (r"hệ thống Luân Đôn", "hệ thống London"),
+}
+
+for file in "abcdefgh":
+    TERM_CORRECTIONS[f"{file}-file"] = (rf"(?:tệp|tập tin)\s+(?:{file}-file|{file})|{file}-file", f"cột {file}")
+
+
+def polish_terms(source, result, custom=""):
+    entries = glossary_entries(custom)
+    for english, (wrong, default) in TERM_CORRECTIONS.items():
+        if re.search(r"(?<!\w)" + re.escape(english) + r"s?(?!\w)", source, re.I):
+            target = entries.get(english.casefold(), default)
+            result = re.sub(r"(?<!\w)(?:" + wrong + r")(?!\w)", lambda m: target[0].upper()+target[1:] if m.group()[0].isupper() else target, result, flags=re.I)
+    # Custom entries override known Vietnamese glossary forms after sentence
+    # translation, rather than breaking the English sentence into tiny fragments.
+    defaults = {k.casefold(): v for k, v in TERMS.items()}
+    for english, target in entries.items():
+        old = defaults.get(english)
+        if old and old != target and target.casefold() not in result.casefold() and re.search(
+                r"(?<!\w)" + re.escape(english) + r"(?!\w)", source, re.I):
+            result = re.sub(r"(?<!\w)" + re.escape(old) + r"(?!\w)", lambda m: target[0].upper()+target[1:] if m.group()[0].isupper() else target, result, flags=re.I)
     return result

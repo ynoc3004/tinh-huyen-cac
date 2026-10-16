@@ -13,7 +13,7 @@ async function run(offline=false){
  const sections=['original','reading','board'].map(section=>{const b=new Element();b.dataset.section=section;return b;});
  const document={body,documentElement:docRoot,getElementById:id=>{assert.ok(elements[id],`Missing HTML control: ${id}`);return elements[id]},createElement:()=>new Element(),createElementNS:()=>new Element(),querySelector:()=>new Element(),querySelectorAll:selector=>selector==='button[data-section]'?sections:selector==='.scan-card'?elements['scan-results'].children:selector==='[data-view]'?[body]:[]};
  const {Chess}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'vendor/chess.js')).toString('base64'));
- let confirmAnswer=true,ocrMissing=false;
+ let confirmAnswer=true,ocrMissing=false,ollamaAvailable=false;
  let scanResolve,translateResolve,batchResolve,batchJob={},batchSteps=0;const batchWait=new Promise(r=>batchResolve=r);const scanWait=new Promise(r=>scanResolve=r),translateWait=new Promise(r=>translateResolve=r),calls=[];
  const board={placement:'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',turn:'w',orientation:'white',image:'data:image/png;base64,example'};
  const fetch=async(url,options={})=>{
@@ -23,7 +23,7 @@ async function run(offline=false){
  if(offline&&url.endsWith('/cached'))return {ok:true,status:200,json:async()=>({translation:'Bản dịch tiếng Việt đã lưu.'})};
  if(url==='/api/library?kind=book')data=[{id:1,ext:'.pdf',title:'Book'}];
  else if(url.endsWith('/state'))data={page:1,model:'deepl:en-vi'};
- else if(url.endsWith('/models'))data={models:['deepl:en-vi','gemini:configured']};
+ else if(url.endsWith('/models'))data={models:['deepl:en-vi','gemini:configured',...(ollamaAvailable?['qwen3:4b']:[])],local_models:ollamaAvailable?['qwen3:4b']:[],recommended_local:ollamaAvailable?'qwen3:4b':''};
  else if(url.endsWith('/scan-probe'))data={ok:true,message:"Model nhận ảnh nhỏ thành công."};
  else if(url.endsWith('/batch/start')){const settings=JSON.parse(options.body);batchJob={...settings,done:batchJob.done||0,chunk:0,chunks:0,phase:"ready"};data=batchJob;}
  else if(url.endsWith('/batch/step')){batchSteps++;if(batchSteps===1)await batchWait;batchJob={...batchJob,done:batchSteps,phase:batchSteps===2?"completed":"ready"};data=batchJob;}
@@ -87,6 +87,7 @@ async function run(offline=false){
  await elements.next.onclick();assert.equal(elements.pdf.src,'/api/library/translation/1/study/page-image?page=2');assert.equal(elements['board-stage'].hidden,true,'Turning the page must hide the previous diagram');assert.equal(elements['restore-position'].disabled,true);
  const imageBefore=elements.pdf.src;const requestsBefore=calls.length;confirmAnswer=false;await elements['source-refresh'].onclick();assert.equal(calls.length,requestsBefore,'Cancelling source reload preserves edits');confirmAnswer=true;await elements['source-refresh'].onclick();assert.ok(calls.some(c=>c.url.includes('fresh=true')));assert.equal(elements.pdf.src,imageBefore,'Reloading text must keep the selected PDF page');assert.ok(elements['source-status'].textContent.includes('Đã đọc lại'));
  ocrMissing=true;elements.ocr.checked=true;await elements.ocr.onchange();assert.ok(elements.pdf.src.endsWith('page=2'),'Missing OCR data must not block PDF reading');assert.ok(elements['translation-status'].textContent.includes('eng.traineddata'));assert.ok(calls.at(-1));elements.source.value='Manual edits stay.';await elements['source-refresh'].onclick();assert.equal(elements.source.value,'Manual edits stay.','Failed explicit OCR must preserve current edits');assert.ok(elements['source-status'].textContent.includes('eng.traineddata'));
+ const beforeNatural=calls.filter(c=>c.url.endsWith('/translate')).length;await elements['natural-translate'].onclick();assert.equal(calls.filter(c=>c.url.endsWith('/translate')).length,beforeNatural,'No local model must not trigger a paid fallback');assert.ok(elements['translation-status'].textContent.includes('Ollama'));ollamaAvailable=true;await elements['natural-translate'].onclick();const natural=calls.filter(c=>c.url.endsWith('/translate')).at(-1);assert.equal(JSON.parse(natural.options.body).model,'qwen3:4b');assert.ok(elements['model-info'].textContent.includes('qwen3:4b'));
  const legacy=fs.readFileSync(path.join(root,'translate.html'),'utf8'),script=legacy.match(/<script>([\s\S]*?)<\/script>/)[1];let redirected='';
  vm.runInNewContext(script,{URL,location:{origin:'http://localhost:8000',search:'?id=1',replace:value=>redirected=value},document:{getElementById:()=>new Element()}});
  assert.equal(redirected,'http://localhost:8000/study.html?id=1');

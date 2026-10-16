@@ -3,7 +3,7 @@ import os
 import re
 import threading
 from pathlib import Path
-from services.chess_translation import protected_parts
+from services.chess_translation import SAN, polish_terms
 
 MODEL_ID = "Helsinki-NLP/opus-mt-en-vi"
 ENGINE = "opus-mt-en-vi"
@@ -28,20 +28,67 @@ def load_model():
     _loaded = (torch, tokenizer, model)
     return _loaded
 
+MOVE_ITEM = re.compile(r"(?:(?<![\w.])\d+\.(?:\.\.)?\s*)?" + SAN.pattern)
+
+
+def notation_only(text):
+    if not SAN.search(text):
+        return False
+    remainder = MOVE_ITEM.sub("", text)
+    remainder = re.sub(r"1/2-1/2|½-½|1-0|0-1", "", remainder)
+    return not re.search(r"[^\s.?!,;:()\[\]{}*+−–-]", remainder)
+
+
+def notation_runs(text):
+    """Copy long variations unchanged; do not split prose at every square/term."""
+    matches = list(MOVE_ITEM.finditer(text))
+    groups = []
+    for match in matches:
+        if groups and re.fullmatch(r"[\s()\[\],;]*", text[groups[-1][-1].end():match.start()]):
+            groups[-1].append(match)
+        else:
+            groups.append([match])
+    end = 0
+    for group in groups:
+        if len(group) < 3:
+            continue
+        start, stop = group[0].start(), group[-1].end()
+        result = re.match(r"\s+(?:1/2-1/2|½-½|1-0|0-1)(?!\w)", text[stop:])
+        if result:
+            stop += result.end()
+        if start > end:
+            yield text[end:start], False
+        yield text[start:stop], True
+        end = stop
+    if end < len(text):
+        yield text[end:], False
+
+
 def segments(text, tokenizer, limit=400):
-    # Split by sentences, then recursively split long sentences; never truncate input.
+    # Keep complete sentences, including a leading move such as 8.Bb5!? .
     output = []
     def add(part):
-        if not part: return
+        if not part:
+            return
         if len(tokenizer.encode(">>vie<< " + part)) <= limit:
-            output.append(part); return
+            output.append(part)
+            return
         middle = len(part) // 2
         cut = part.rfind(" ", 0, middle + 1)
-        if cut < 1: cut = max(1, middle)
+        if cut < 1:
+            cut = max(1, middle)
         add(part[:cut]); add(part[cut:].lstrip())
-    for sentence in re.split(r"(?<=[.!?])\s+", text.strip()):
-        add(sentence)
+    text = text.strip()
+    start = 0
+    for boundary in re.finditer(r"(?<=[.!?])\s+", text):
+        candidate = text[start:boundary.start()].strip()
+        if notation_only(candidate):
+            continue
+        add(candidate)
+        start = boundary.end()
+    add(text[start:].strip())
     return output
+
 
 def _translate_fragment(text, runtime):
     torch, tokenizer, model = runtime
@@ -62,23 +109,20 @@ def _translate_fragment(text, runtime):
 def translate_text(text, glossary=""):
     with _lock:
         runtime = None
-        output, fragments = [], {}
-        # Match names even when a PDF title splits them across lines/blocks.
-        for source, fixed in protected_parts(text, glossary):
-            if fixed is not None:
-                output.append(fixed)
+        output = []
+        for paragraph in re.split(r"(\n\s*\n)", text):
+            if not re.search(r"[A-Za-z]", paragraph) or notation_only(paragraph):
+                output.append(paragraph)
                 continue
-            for fragment in re.split(r"(\n\s*\n)", source):
-                # Copy punctuation, move numbers and whitespace verbatim.
-                if not re.search(r"[A-Za-z]", fragment):
-                    output.append(fragment)
+            for source, fixed in notation_runs(paragraph):
+                if fixed or not re.search(r"[A-Za-z]", source):
+                    output.append(source)
                     continue
-                prefix = re.match(r"^\s*", fragment).group()
-                suffix = re.search(r"\s*$", fragment).group()
-                core = fragment.strip()
-                if core not in fragments:
-                    if runtime is None:
-                        runtime = load_model()
-                    fragments[core] = _translate_fragment(core, runtime)
-                output.append(prefix + fragments[core] + suffix)
-        return "".join(output)
+                if runtime is None:
+                    runtime = load_model()
+                prefix = re.match(r"^\s*", source).group()
+                suffix = re.search(r"\s*$", source).group()
+                # Context includes the entire clause: never translate isolated
+                # fragments such as 'of', 'for the', or 'against the'.
+                output.append(prefix + _translate_fragment(source.strip(), runtime) + suffix)
+        return polish_terms(text, "".join(output), glossary)

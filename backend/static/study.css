@@ -34,3 +34,5 @@ body[data-view=original] .reading{display:none}body[data-view=original] .layout{
 /* Page controls belong to the PDF, within reach of the page being read. */
 .navigation{justify-content:flex-end;padding-top:8px}.original .page-navigation{padding:10px 12px;border-top:1px solid var(--line);background:var(--paper);gap:6px;justify-content:center}.original .page-navigation :is(button,input,label,span){font-size:12px}.original .page-navigation button{padding:7px 9px;min-height:36px}.original .page-preview{height:calc(100dvh - 360px)}#source-refresh{margin:0 0 10px}#source-status{margin:4px 0 10px}
 @media(max-width:900px){.original .page-navigation{gap:5px;padding:10px 8px}.original .page-navigation button{font-size:11px;padding:7px}.original .page-preview{height:calc(100dvh - 370px)}}
+
+.model-info{font-size:11px;color:var(--muted);margin:10px 16px 0;line-height:1.7}#natural-translate{border-color:var(--jade);color:var(--jade)}#refresh-models{font-size:11px}

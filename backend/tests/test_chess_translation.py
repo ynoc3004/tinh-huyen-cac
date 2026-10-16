@@ -56,27 +56,44 @@ class ChessTextTests(unittest.TestCase):
         self.assertIn('endgame',chess.glossary_entries('bishop=quân tượng'))
         with self.assertRaises(ValueError):chess.restore(protected+next(iter(tokens)),tokens)
 
-    def test_local_model_does_not_receive_terms_or_notation(self):
-        source='The London System in 12 practical lessons. White plays Nf3 and O-O.'
-        def narrative(text,runtime):
-            for word in ('Nf3','London','__THC'):self.assertNotIn(word,text)
-            return {'in 12':'qua 12','plays':'đi','and':'và'}.get(text,text)
-        with patch.object(local_translation,'load_model',return_value=object()),patch.object(local_translation,'_translate_fragment',side_effect=narrative):
+    def test_local_model_receives_whole_commentary_without_term_fragments(self):
+        source='After the opening of the h-file, White has plenty of attacking possibilities against the black king.'
+        expected='Sau khi cột h được mở, Trắng có nhiều cơ hội tấn công vua Đen.'
+        with patch.object(local_translation,'load_model',return_value=object()),patch.object(local_translation,'_translate_fragment',return_value=expected) as translate:
+            self.assertEqual(local_translation.translate_text(source),expected)
+        self.assertEqual(translate.call_args.args[0],source)
+        self.assertEqual(translate.call_count,1,'Do not translate isolated of/for the/against the fragments')
+
+    def test_long_variation_is_copied_but_bishop_sentence_keeps_context(self):
+        line='8...a6 9.Bxc6 bxc6 10.Qa4 Rb8 11.Qa3 Bxg3 12.hxg3 cxd4 1-0'
+        source='The natural square for the bishop. It controls e4 and points at h7.\n\n'+line
+        target='Đây là ô triển khai tự nhiên của tượng. Tượng kiểm soát e4 và nhắm vào h7.'
+        with patch.object(local_translation,'load_model',return_value=object()),patch.object(local_translation,'_translate_fragment',return_value=target) as translate:
             result=local_translation.translate_text(source)
-        self.assertIn('hệ thống London qua 12 bài học thực hành',result)
-        self.assertIn('Trắng đi Nf3 và O-O.',result);chess.validate_output(source,result)
+        self.assertEqual(translate.call_args.args[0],source.split('\n\n')[0]);self.assertEqual(translate.call_count,1)
+        self.assertTrue(result.endswith(line));chess.validate_output(source,result)
 
-    def test_title_terms_survive_pdf_line_and_block_breaks(self):
-        text='THE LONDON\n\nSYSTEM\nIN 12 PRACTICAL\n\nLESSONS'
-        with patch.object(local_translation,'load_model',return_value=object()),patch.object(local_translation,'_translate_fragment',side_effect=lambda text,runtime:text):
-            result=local_translation.translate_text(text)
-        self.assertIn('hệ thống London',result);self.assertIn('bài học thực hành',result)
-
-    def test_moves_only_and_custom_terms_need_no_model(self):
+    def test_moves_only_input_needs_no_model(self):
         with patch.object(local_translation,'load_model') as load:
             self.assertEqual(local_translation.translate_text('1. Nf3 d5 2. O-O Bxh7+'),'1. Nf3 d5 2. O-O Bxh7+')
-            self.assertEqual(local_translation.translate_text('bishop','bishop=quân tượng'),'quân tượng')
             load.assert_not_called()
+
+    def test_sentence_splitter_does_not_separate_move_from_its_comment(self):
+        class Tokenizer:
+            def encode(self,text):return text.split()
+        source='8.Bb5!? is another interesting possibility. Its attack is strong.'
+        self.assertEqual(local_translation.segments(source,Tokenizer()),['8.Bb5!? is another interesting possibility.','Its attack is strong.'])
+
+    def test_known_non_chess_senses_are_corrected_without_english_word_order(self):
+        self.assertEqual(chess.polish_terms('White attacks along the h-file.','Trắng tấn công dọc tập tin h.'),'Trắng tấn công dọc cột h.')
+        source='The bishop attacks the black king.'
+        self.assertEqual(chess.polish_terms(source,'Tượng tấn công vua Đen.'),'Tượng tấn công vua Đen.')
+        self.assertEqual(chess.polish_terms(source,'Giám mục tấn công vua Đen.'),'Tượng tấn công vua Đen.')
+        self.assertEqual(chess.polish_terms(source,'Tượng tấn công vua Đen.','bishop=quân tượng'),'Quân tượng tấn công vua Đen.')
+
+    def test_coptic_month_artifact_is_rejected(self):
+        with self.assertRaisesRegex(ValueError,'nội dung lỗi'):
+            chess.validate_output('After opening the h-file.','Sau khi mở Tháng BaCoptic month 12 - LongName cột h.')
 
     def test_opening_of_file_is_not_the_opening_phase(self):
         text,tokens=chess.protect('After the opening of the h-file, White attacks.')
@@ -99,9 +116,10 @@ class ChessTranslationAPITests(test_translation.TranslationTests):
 
     def test_bad_output_is_not_cached_and_failed_retry_keeps_good_cache(self):
         body={'text':'White plays Nf3 and O-O.','page':1,'model':local_translation.ENGINE}
-        with patch.object(local_translation,'translate_text',return_value='Rb.Rb.Rb.Rb.Rb.Rb.'):
-            self.assertEqual(self.client.post(self.base+'/translate',json=body).status_code,502)
-            self.assertIsNone(self.client.post(self.base+'/cached',json=body).json()['translation'])
+        for garbage in ('Rb.Rb.Rb.Rb.Rb.Rb.','Tháng BaCoptic month 12 - LongName Nf3 O-O.'):
+            with patch.object(local_translation,'translate_text',return_value=garbage):
+                self.assertEqual(self.client.post(self.base+'/translate',json=body).status_code,502)
+                self.assertIsNone(self.client.post(self.base+'/cached',json=body).json()['translation'])
         with patch.object(local_translation,'translate_text',return_value='Trắng đi Nf3 và O-O.'):
             self.assertEqual(self.client.post(self.base+'/translate',json=body).status_code,200)
         with patch.object(local_translation,'translate_text',return_value='Rb.Rb.Rb.Rb.Rb.Rb.'):
@@ -140,13 +158,13 @@ class ProviderChessTests(test_translation.TranslationTests):
             async def __aexit__(self,*args):pass
             async def post(self,url,headers,json):
                 calls.append(json)
-                return httpx.Response(200,json={'translations':[{'text':json['text'][0].replace(' plays ',' đi ')}]},request=httpx.Request('POST',url))
+                return httpx.Response(200,json={'translations':[{'text':json['text'][0].replace('White plays','Trắng đi').replace('with the bishop','với giám mục')}]},request=httpx.Request('POST',url))
         body={'text':'White plays Nf3 with the bishop.','page':1,'model':'deepl:en-vi','glossary':'bishop=quân tượng'}
         with patch.dict(os.environ,{'DEEPL_API_KEY':'test-only'}),patch.object(translation.httpx,'AsyncClient',Client):
             r=self.client.post(self.base+'/translate',json=body)
         self.assertEqual(r.status_code,200,r.text)
         self.assertIn('Trắng đi Nf3',r.json()['translation']);self.assertIn('quân tượng',r.json()['translation'])
-        self.assertNotIn('bishop',calls[0]['text'][0]);self.assertIn('__THC_TERM_',calls[0]['text'][0])
+        self.assertIn('bishop',calls[0]['text'][0]);self.assertNotIn('__THC_TERM_',calls[0]['text'][0]);self.assertIn('bishop=quân tượng',calls[0]['context'])
         self.assertIn('move',calls[0]['ignore_tags'])
 
     def test_gemini_terms_notation_and_supplemental_glossary(self):
@@ -158,12 +176,13 @@ class ProviderChessTests(test_translation.TranslationTests):
             async def __aexit__(self,*args):pass
             async def post(self,url,headers,json):
                 calls.append(json)
-                text=json['contents'][0]['parts'][0]['text'].replace(' plays ',' đi ')
+                text=json['contents'][0]['parts'][0]['text'].replace('White plays','Trắng đi').replace('The London System','hệ thống London')
                 return httpx.Response(200,json={'candidates':[{'finishReason':'STOP','content':{'parts':[{'text':text}]}}]},request=httpx.Request('POST',url))
         body={'text':'White plays Nf3. The London System.','page':1,'model':'gemini:'+translation.GEMINI_MODEL,'glossary':'bishop=quân tượng'}
         with patch.dict(os.environ,{'GEMINI_API_KEY':'test-only'}),patch.object(translation.httpx,'AsyncClient',Client):
             r=self.client.post(self.base+'/translate',json=body)
         self.assertEqual(r.status_code,200,r.text);self.assertIn('hệ thống London',r.json()['translation'])
         self.assertIn('Nf3',r.json()['translation'])
+        self.assertIn('The London System',calls[0]['contents'][0]['parts'][0]['text']);self.assertNotIn('__THC_TERM_',calls[0]['contents'][0]['parts'][0]['text'])
         system=calls[0]['systemInstruction']['parts'][0]['text']
         self.assertIn('endgame=tàn cuộc',system);self.assertIn('bishop=quân tượng',system)

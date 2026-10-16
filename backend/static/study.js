@@ -1,7 +1,7 @@
 import {Chess} from "/vendor/chess.js";
 import {PIECE_DEFS} from "/vendor/pieces.js?v=paint-2";
 const $=id=>document.getElementById(id),id=Number(new URLSearchParams(location.search).get("id"));
-let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual",translationAvailable=false,hasTranslation=false;
+let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual",translationAvailable=false,hasTranslation=false,loadingTranslationModels=false;
 function status(t){$("status").textContent=t;}
 async function api(path,body,method="POST"){
  const r=await fetch("/api/library/translation/"+path,body===undefined?{}:{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -9,18 +9,20 @@ async function api(path,body,method="POST"){
  return data;
 }
 function controls(){
- const navigating=busy||translating||scanning;
+ const navigating=busy||translating||scanning||loadingTranslationModels;
  $("scan-page").disabled=busy||scanning||probing||!loaded;$("scan-again").disabled=busy||scanning||probing||!loaded;
  $("scan-model").disabled=busy||scanning||probing||loadingScanModels;$("scan-refresh").disabled=scanning||probing||loadingScanModels;$("scan-probe").disabled=busy||scanning||probing||!loaded||!$("scan-model").value;
  $("scan-import").disabled=!loaded;$("import-pgn").disabled=!loaded;$("scan-download").hidden=!loaded;
  for(const name of ["prev","next","page","ocr","books"])$(name).disabled=navigating||!loaded;
  for(const name of ["translate","translate-selection","save-source","source"])$(name).disabled=busy||translating||batchRunning||!loaded;
  $("prev").disabled=navigating||!loaded||page<=1;$("next").disabled=navigating||!loaded||page>=total;
- $("model").disabled=busy||translating||batchRunning;
+ $("model").disabled=busy||translating||batchRunning||loadingTranslationModels;
+ $("refresh-models").disabled=busy||translating||batchRunning||loadingTranslationModels;$("natural-translate").disabled=busy||translating||batchRunning||loadingTranslationModels||!loaded;
+ $("model-info").textContent=$("model").value==="opus-mt-en-vi"?"Bộ dịch nhanh OPUS-MT · Câu văn còn hạn chế. Chọn Dịch bằng Ollama để dịch theo ngữ cảnh trên máy.":$("model").value?"Bộ dịch đang dùng: "+$("model").value:"Chưa kết nối bộ dịch.";
  $("books").disabled=navigating||batchRunning;$("ocr").disabled=navigating||batchRunning||!loaded;
  for(const name of ["batch-start","batch-end","batch-size","batch-ocr","glossary","upload"])$(name).disabled=batchRunning||translating;
- $("batch-run").disabled=busy||translating||batchRunning||!loaded||!$("model").value||!translationAvailable;$("batch-pause").hidden=!batchRunning;
- $("translate").disabled=busy||translating||batchRunning||!loaded||!$("model").value||!translationAvailable;$("translate-selection").disabled=$("translate").disabled;
+ $("batch-run").disabled=busy||translating||batchRunning||loadingTranslationModels||!loaded||!$("model").value||!translationAvailable;$("batch-pause").hidden=!batchRunning;
+ $("translate").disabled=busy||translating||batchRunning||loadingTranslationModels||!loaded||!$("model").value||!translationAvailable;$("translate-selection").disabled=$("translate").disabled;
  $("translate").textContent=translating?"Đang dịch…":hasTranslation?"Dịch lại":"Dịch trang";$("source-refresh").disabled=busy||translating||batchRunning||!loaded;
  $("scan-page").textContent=scanning?"Đang quét…":"✦ Quét trang "+page;
  $("reading-pane").setAttribute("aria-busy",String(translating));
@@ -61,7 +63,7 @@ async function openPage(n,initial=false){
 $("prev").onclick=()=>openPage(page-1);$("next").onclick=()=>openPage(page+1);
 $("page").onchange=()=>openPage(Math.max(1,Math.min(total,Number($("page").value)||1)));
 $("ocr").onchange=()=>openPage(page);
-$("model").onchange=async()=>{try{await cached();await save();}catch(e){translationStatus(e.message);}};
+$("model").onchange=async()=>{controls();try{await cached();await save();}catch(e){translationStatus(e.message);}};
 $("source").oninput=()=>{hasTranslation=false;controls();$("result").textContent="Chữ gốc đã thay đổi. Lưu chữ đã sửa rồi dịch lại.";};
 $("source-refresh").onclick=async()=>{
  if(busy||translating||batchRunning||!loaded)return;
@@ -75,7 +77,7 @@ $("source-refresh").onclick=async()=>{
 };
 $("save-source").onclick=async()=>{try{await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;status("Đã lưu chữ hiệu đính trong két.");}catch(e){status(e.message);}};
 async function translatePage(selection=false){
- if(busy||translating||batchRunning||!loaded||!$("model").value||!translationAvailable)return;
+ if(busy||translating||batchRunning||loadingTranslationModels||!loaded||!$("model").value||!translationAvailable)return;
  const text=selection?$("source").value.slice($("source").selectionStart,$("source").selectionEnd):$("source").value;
  if(!text.trim()){translationStatus(selection?"Bôi đen đoạn tiếng Anh cần dịch trước.":"Không có chữ để dịch.");return;}
  if(text.length>12000){translationStatus("Nội dung dài quá 12.000 ký tự. Bôi đen từng đoạn hoặc dùng Dịch nhiều trang.");return;}
@@ -84,6 +86,27 @@ async function translatePage(selection=false){
  const data=await api(id+"/translate",{...body(text),force:true});displayTranslation(data.translation);translationStatus("Bản dịch đã lưu · đối chiếu nguyên bản khi học.");
  }catch(e){translationStatus(e.message);}finally{translating=false;controls();}
 }
+async function refreshTranslationModels(preferred=$("model").value){
+ loadingTranslationModels=true;controls();
+ try{
+ const data=await api("models");translationAvailable=!!data.models.length;
+ $("model").replaceChildren(...data.models.map(name=>new Option(name==="opus-mt-en-vi"?"OPUS-MT · Dịch nhanh (cơ bản)":name==="deepl:en-vi"?"DeepL · Anh → Việt":name.startsWith("gemini:")?"Gemini · "+name.slice(7):name+" · Ollama local",name)));
+ const choice=data.models.includes(preferred)?preferred:data.recommended_local;
+ if(choice&&data.models.includes(choice))$("model").value=choice;
+ return data;
+ }finally{loadingTranslationModels=false;controls();}
+}
+$("refresh-models").onclick=async()=>{try{await refreshTranslationModels();await cached();}catch(e){translationStatus(e.message);}};
+$("natural-translate").onclick=async()=>{
+ if(busy||translating||batchRunning||loadingTranslationModels||!loaded)return;
+ try{
+ const previous=$("model").value,data=await refreshTranslationModels(previous);
+ const locals=data.local_models||data.models.filter(name=>name!=="opus-mt-en-vi"&&!name.startsWith("gemini:")&&!name.startsWith("deepl:"));
+ const choice=locals.includes(previous)?previous:locals.includes(data.recommended_local)?data.recommended_local:locals[0];
+ if(!choice){$("reader-options").open=true;translationStatus("Chưa tìm thấy model Ollama local đang chạy. Mở Ollama trên máy rồi bấm Kết nối lại. Nếu đã cài qwen3:4b, chọn model đó. Không tự tải model hoặc dùng API trả phí.");return;}
+ $("model").value=choice;controls();await save();await translatePage();
+ }catch(e){translationStatus(e.message);}
+};
 $("translate").onclick=()=>translatePage();$("translate-selection").onclick=()=>translatePage(true);
 $("bookmark").onclick=async()=>{if(!loaded)return;state.bookmark=page;try{await save();$("return").hidden=false;status("Đã đánh dấu trang "+page);}catch(e){status(e.message);}};
 $("return").onclick=()=>openPage(Math.min(total,state.bookmark||1));
@@ -140,9 +163,8 @@ const started=Date.now();setInterval(()=>{const m=Math.floor((Date.now()-started
  if(!id){status("Chọn sách trong tủ. Nếu chưa có, tải PDF lên ở Tàng Kinh Các.");$("books").disabled=false;return;}
  $("books").value=String(id);$("batch-export").href="/api/library/translation/"+id+"/export";
  state=await api(id+"/state");job=await api(id+"/batch");$("note").value=state.note||"";$("return").hidden=!state.bookmark;$("ocr").checked=!!job.ocr;
- let models={models:[]};try{models=await api("models");}catch(e){status("Chưa kết nối bộ dịch: "+e.message);} translationAvailable=!!models.models.length;$("model").replaceChildren(...models.models.map(x=>new Option(x==="deepl:en-vi"?"DeepL · Anh → Việt":x.startsWith("gemini:")?"Gemini · "+x.slice(7):x==="opus-mt-en-vi"?"OPUS-MT · Anh → Việt":x,x)));
+ try{await refreshTranslationModels(state.model||job.model);}catch(e){translationAvailable=false;if(state.model)$("model").replaceChildren(new Option(state.model+" · bản dịch đã lưu",state.model));status(e.message);}
  initializeBatch();
- const preferred=state.model||job.model;if(models.models.includes(preferred))$("model").value=preferred;else if(!translationAvailable&&preferred)$("model").replaceChildren(new Option(preferred+" · bản dịch đã lưu",preferred));
  await openPage(state.page||1,true);
  if(!job.end)$("batch-end").value=total;renderBatch();if(!translationAvailable)translationStatus("Bộ dịch chưa sẵn sàng. Bạn vẫn có thể đọc sách và bản dịch đã lưu; mở Tùy chọn để kiểm tra.");
  if(location.hash==="#batch-panel")$("batch-panel").open=true;
