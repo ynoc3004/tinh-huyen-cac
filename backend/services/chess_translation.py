@@ -48,8 +48,14 @@ def glossary_entries(custom=""):
     return entries
 
 
-def glossary_text(custom=""):
-    return "; ".join(f"{a}={b}" for a, b in glossary_entries(custom).items())
+def glossary_text(custom="", source=None):
+    entries = glossary_entries(custom)
+    # Keep local-model prompts small: include terms present in this chunk and
+    # user overrides, rather than the entire dictionary for every request.
+    overrides = {" ".join(line.split("=", 1)[0].split()).casefold() for line in re.split(r"[;\n]", custom) if "=" in line}
+    normalized = " ".join(source.split()) if source is not None else None
+    return "; ".join(f"{a}={b}" for a, b in entries.items() if normalized is None or a in overrides or
+                     re.search(r"(?<!\w)" + re.escape(a) + r"(?!\w)", normalized, re.I))
 
 
 def protected_parts(text, custom=""):

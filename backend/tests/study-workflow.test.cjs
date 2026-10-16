@@ -13,7 +13,7 @@ async function run(offline=false){
  const sections=['original','reading','board'].map(section=>{const b=new Element();b.dataset.section=section;return b;});
  const document={body,documentElement:docRoot,getElementById:id=>{assert.ok(elements[id],`Missing HTML control: ${id}`);return elements[id]},createElement:()=>new Element(),createElementNS:()=>new Element(),querySelector:()=>new Element(),querySelectorAll:selector=>selector==='button[data-section]'?sections:selector==='.scan-card'?elements['scan-results'].children:selector==='[data-view]'?[body]:[]};
  const {Chess}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'vendor/chess.js')).toString('base64'));
- let confirmAnswer=true,ocrMissing=false,ollamaAvailable=false;
+ let confirmAnswer=true,ocrMissing=false,ollamaAvailable=false,pageChunks=null,failChunk='',pauseChunk='',chunkActions=[];
  let scanResolve,translateResolve,batchResolve,batchJob={},batchSteps=0;const batchWait=new Promise(r=>batchResolve=r);const scanWait=new Promise(r=>scanResolve=r),translateWait=new Promise(r=>translateResolve=r),calls=[];
  const board={placement:'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',turn:'w',orientation:'white',image:'data:image/png;base64,example'};
  const fetch=async(url,options={})=>{
@@ -32,7 +32,13 @@ async function run(offline=false){
  else if(url.endsWith('/scan-models'))data={models:['local:chessvision','gemini-configured','gemini-selected'],default:'local:chessvision',available:true};
  else if(url.includes('/page?page=')&&!url.includes('/batch/'))data={page:Number(new URL(url,'http://local').searchParams.get('page')),pages:10,text:'White plays Nf3.',title:'Book'};
  else if(url.includes('/study/boards')){if(options.method==='POST'){await scanWait;data={boards:[board,board]};}else data={boards:null,available:true};}
- else if(url.endsWith('/translate')){await translateWait;data={translation:'Trắng đi Nf3.'};}
+ else if(url.endsWith('/translate/plan'))data={chunks:pageChunks||[JSON.parse(options.body).text]};
+ else if(url.endsWith('/translate/complete'))data={translation:'Trắng đi Nf3.'};
+ else if(url.endsWith('/translate')){
+ await translateWait;const request=JSON.parse(options.body);
+ if(pageChunks){chunkActions.push(request);if(request.text===failChunk)return {ok:false,status:504,json:async()=>({detail:'Ollama chưa trả kết quả trong thời gian chờ.'})};if(request.text===pauseChunk)elements['translate-stop'].onclick();}
+ data={translation:'Trắng đi Nf3.'};
+ }
  return {ok:true,status:200,json:async()=>data};
  };
  const store=new Map(),context={Chess,PIECE_DEFS:'',document,fetch,location:{search:'?id=1'},URLSearchParams,URL,Option:class extends Element{constructor(text,value){super();this.textContent=text;this.value=value;}},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},setInterval(){},setTimeout,Date,console,confirm:()=>confirmAnswer};
@@ -88,6 +94,15 @@ async function run(offline=false){
  const imageBefore=elements.pdf.src;const requestsBefore=calls.length;confirmAnswer=false;await elements['source-refresh'].onclick();assert.equal(calls.length,requestsBefore,'Cancelling source reload preserves edits');confirmAnswer=true;await elements['source-refresh'].onclick();assert.ok(calls.some(c=>c.url.includes('fresh=true')));assert.equal(elements.pdf.src,imageBefore,'Reloading text must keep the selected PDF page');assert.ok(elements['source-status'].textContent.includes('Đã đọc lại'));
  ocrMissing=true;elements.ocr.checked=true;await elements.ocr.onchange();assert.ok(elements.pdf.src.endsWith('page=2'),'Missing OCR data must not block PDF reading');assert.ok(elements['translation-status'].textContent.includes('eng.traineddata'));assert.ok(calls.at(-1));elements.source.value='Manual edits stay.';await elements['source-refresh'].onclick();assert.equal(elements.source.value,'Manual edits stay.','Failed explicit OCR must preserve current edits');assert.ok(elements['source-status'].textContent.includes('eng.traineddata'));
  const beforeNatural=calls.filter(c=>c.url.endsWith('/translate')).length;await elements['natural-translate'].onclick();assert.equal(calls.filter(c=>c.url.endsWith('/translate')).length,beforeNatural,'No local model must not trigger a paid fallback');assert.ok(elements['translation-status'].textContent.includes('Ollama'));ollamaAvailable=true;await elements['natural-translate'].onclick();const natural=calls.filter(c=>c.url.endsWith('/translate')).at(-1);assert.equal(JSON.parse(natural.options.body).model,'qwen3:4b');assert.ok(elements['model-info'].textContent.includes('qwen3:4b'));
+ // A failed retranslation must resume saved chunks even when an older full page exists.
+ pageChunks=['First sentence.','Second sentence.'];failChunk=pageChunks[1];
+ await elements.translate.onclick();assert.equal(elements.result.textContent,'Trắng đi Nf3.');assert.ok(elements['translation-status'].textContent.includes('1 / 2'));assert.equal(elements['translate-stop'].hidden,true);
+ assert.deepEqual(chunkActions.map(x=>x.force),[true,true]);
+ failChunk='';chunkActions=[];await elements.translate.onclick();assert.deepEqual(chunkActions.map(x=>x.force),[false,true]);assert.ok(elements['translation-status'].textContent.includes('Bản dịch đã lưu'));
+ chunkActions=[];pauseChunk=pageChunks[0];const completeBefore=calls.filter(c=>c.url.endsWith('/translate/complete')).length;
+ await elements.translate.onclick();assert.equal(chunkActions.length,1);assert.ok(elements['translation-status'].textContent.includes('tạm dừng'));assert.equal(calls.filter(c=>c.url.endsWith('/translate/complete')).length,completeBefore);
+ pauseChunk='';chunkActions=[];await elements.translate.onclick();assert.deepEqual(chunkActions.map(x=>x.force),[false,true]);assert.equal(elements['translate-stop'].hidden,true);
+ elements['reader-options'].open=false;elements['focus'].onclick();elements['choose-model'].onclick();assert.equal(elements['reader-options'].open,true);assert.equal(body.classList.contains('focus'),false,'Model selection must be visible in focus mode');
  const legacy=fs.readFileSync(path.join(root,'translate.html'),'utf8'),script=legacy.match(/<script>([\s\S]*?)<\/script>/)[1];let redirected='';
  vm.runInNewContext(script,{URL,location:{origin:'http://localhost:8000',search:'?id=1',replace:value=>redirected=value},document:{getElementById:()=>new Element()}});
  assert.equal(redirected,'http://localhost:8000/study.html?id=1');

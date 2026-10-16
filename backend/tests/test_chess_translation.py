@@ -56,6 +56,13 @@ class ChessTextTests(unittest.TestCase):
         self.assertIn('endgame',chess.glossary_entries('bishop=quân tượng'))
         with self.assertRaises(ValueError):chess.restore(protected+next(iter(tokens)),tokens)
 
+    def test_prompt_glossary_handles_wrapped_terms_and_custom_overrides(self):
+        terms=chess.glossary_text('special  term=thuật ngữ riêng','The London\nsystem with a bishop.')
+        self.assertIn('london system=hệ thống London',terms)
+        self.assertIn('bishop=tượng',terms)
+        self.assertIn('special term=thuật ngữ riêng',terms)
+        self.assertNotIn('endgame=',terms)
+
     def test_local_model_receives_whole_commentary_without_term_fragments(self):
         source='After the opening of the h-file, White has plenty of attacking possibilities against the black king.'
         expected='Sau khi cột h được mở, Trắng có nhiều cơ hội tấn công vua Đen.'
@@ -185,4 +192,4 @@ class ProviderChessTests(test_translation.TranslationTests):
         self.assertIn('Nf3',r.json()['translation'])
         self.assertIn('The London System',calls[0]['contents'][0]['parts'][0]['text']);self.assertNotIn('__THC_TERM_',calls[0]['contents'][0]['parts'][0]['text'])
         system=calls[0]['systemInstruction']['parts'][0]['text']
-        self.assertIn('endgame=tàn cuộc',system);self.assertIn('bishop=quân tượng',system)
+        self.assertNotIn('endgame=tàn cuộc',system);self.assertIn('london system=hệ thống London',system);self.assertIn('bishop=quân tượng',system)

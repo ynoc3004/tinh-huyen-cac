@@ -36,3 +36,5 @@ body[data-view=original] .reading{display:none}body[data-view=original] .layout{
 @media(max-width:900px){.original .page-navigation{gap:5px;padding:10px 8px}.original .page-navigation button{font-size:11px;padding:7px}.original .page-preview{height:calc(100dvh - 370px)}}
 
 .model-info{font-size:11px;color:var(--muted);margin:10px 16px 0;line-height:1.7}#natural-translate{border-color:var(--jade);color:var(--jade)}#refresh-models{font-size:11px}
+
+.model-status{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 16px 0}.model-status .model-info{margin:0;flex:1}#choose-model{font-size:11px;padding:4px 7px;white-space:nowrap}#translate-stop{font-size:11px}

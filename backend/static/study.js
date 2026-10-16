@@ -1,7 +1,7 @@
 import {Chess} from "/vendor/chess.js";
 import {PIECE_DEFS} from "/vendor/pieces.js?v=paint-2";
 const $=id=>document.getElementById(id),id=Number(new URLSearchParams(location.search).get("id"));
-let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual",translationAvailable=false,hasTranslation=false,loadingTranslationModels=false;
+let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual",translationAvailable=false,hasTranslation=false,loadingTranslationModels=false,pageChunking=false,pageStop=false,pageAttempt=null;
 function status(t){$("status").textContent=t;}
 async function api(path,body,method="POST"){
  const r=await fetch("/api/library/translation/"+path,body===undefined?{}:{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -25,9 +25,11 @@ function controls(){
  $("translate").disabled=busy||translating||batchRunning||loadingTranslationModels||!loaded||!$("model").value||!translationAvailable;$("translate-selection").disabled=$("translate").disabled;
  $("translate").textContent=translating?"Đang dịch…":hasTranslation?"Dịch lại":"Dịch trang";$("source-refresh").disabled=busy||translating||batchRunning||!loaded;
  $("scan-page").textContent=scanning?"Đang quét…":"✦ Quét trang "+page;
+ $("translate-stop").hidden=!translating||!pageChunking;$("translate-stop").disabled=pageStop;$("translate-stop").textContent=pageStop?"Chờ đoạn hiện tại…":"Tạm dừng";$("choose-model").disabled=busy||translating||batchRunning||loadingTranslationModels;
  $("reading-pane").setAttribute("aria-busy",String(translating));
  $("scan-section").setAttribute("aria-busy",String(scanning));
 }
+function isOllama(name){return !!name&&name!=="opus-mt-en-vi"&&!name.startsWith("gemini:")&&!name.startsWith("deepl:");}
 function translationStatus(t){$("translation-status").textContent=t;}
 function displayTranslation(text){hasTranslation=true;$("result").textContent=text;controls();}
 async function save(){state={...state,page,note:$("note").value,model:$("model").value};await api(id+"/state",state,"PUT");}
@@ -81,11 +83,31 @@ async function translatePage(selection=false){
  const text=selection?$("source").value.slice($("source").selectionStart,$("source").selectionEnd):$("source").value;
  if(!text.trim()){translationStatus(selection?"Bôi đen đoạn tiếng Anh cần dịch trước.":"Không có chữ để dịch.");return;}
  if(text.length>12000){translationStatus("Nội dung dài quá 12.000 ký tự. Bôi đen từng đoạn hoặc dùng Dịch nhiều trang.");return;}
- cacheRevision++;translating=true;controls();translationStatus($("model").value==="deepl:en-vi"?"Đang gửi đoạn chữ tới DeepL để dịch…":$("model").value.startsWith("gemini:")?"Đang gửi đoạn chữ tới Gemini để dịch…":"Đang dịch trên máy…");
- try{if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}
- const data=await api(id+"/translate",{...body(text),force:true});displayTranslation(data.translation);translationStatus("Bản dịch đã lưu · đối chiếu nguyên bản khi học.");
- }catch(e){translationStatus(e.message);}finally{translating=false;controls();}
+ const snapshot=body(text),signature=JSON.stringify(snapshot);let done=0,parts=0;
+ cacheRevision++;translating=true;pageChunking=isOllama(snapshot.model);pageStop=false;controls();
+ translationStatus(pageChunking?"Đang chia trang thành các đoạn ngắn…":snapshot.model==="deepl:en-vi"?"Đang gửi đoạn chữ tới DeepL để dịch…":snapshot.model.startsWith("gemini:")?"Đang gửi đoạn chữ tới Gemini để dịch…":"Đang dịch trên máy…");
+ try{
+ if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}
+ let data;
+ if(pageChunking){
+ if(pageAttempt?.signature!==signature)pageAttempt={signature,force:hasTranslation,done:new Set()};
+ const plan=await api(id+"/translate/plan",snapshot),translations=[];parts=plan.chunks.length;
+ for(const [index,chunk] of plan.chunks.entries()){
+ if(pageStop)break;
+ translationStatus("Đang dịch đoạn "+(index+1)+" / "+parts+" · "+done+" đoạn đã lưu."+(index===0?" Lần đầu có thể cần chờ model nạp vào bộ nhớ.":""));
+ const part=await api(id+"/translate",{...snapshot,text:chunk,force:pageAttempt.force&&!pageAttempt.done.has(index)});translations.push(part.translation);done++;pageAttempt.done.add(index);
+ $("result").textContent=translations.join("\n\n");
+ }
+ if(pageStop){translationStatus("Đã tạm dừng · "+done+" / "+parts+" đoạn đã lưu. Bấm dịch để tiếp tục.");return;}
+ data=await api(id+"/translate/complete",snapshot);pageAttempt=null;
+ }else data=await api(id+"/translate",{...snapshot,force:true});
+ displayTranslation(data.translation);translationStatus("Bản dịch đã lưu · đối chiếu nguyên bản khi học.");
+ }catch(e){translationStatus(e.message+(parts?" Đã lưu "+done+" / "+parts+" đoạn; bấm dịch để tiếp tục.":""));}
+ finally{translating=false;pageChunking=false;pageStop=false;controls();}
 }
+$("translate-stop").onclick=()=>{pageStop=true;controls();};
+$("choose-model").onclick=()=>{if(document.body.classList.contains("focus"))$("focus").click();$("reader-options").open=true;$("reader-options").scrollIntoView({behavior:"smooth",block:"nearest"});$("model").focus();};
+
 async function refreshTranslationModels(preferred=$("model").value){
  loadingTranslationModels=true;controls();
  try{

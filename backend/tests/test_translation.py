@@ -70,6 +70,69 @@ class TranslationTests(unittest.TestCase):
         self.assertTrue(files)
         self.assertNotIn(b"White plays", files[0].read_bytes())
         self.assertNotIn("Trắng đi".encode(), files[0].read_bytes())
+    def test_ollama_page_checkpoints_resume_and_do_not_replace_book_job(self):
+        source = "White plays Nf3 and O-O. " + " ".join(
+            f"The bishop has an active role in variation number {n}." for n in range(18))
+        body = {"text": source, "model": "qwen3:4b", "page": 1, "glossary": "bishop=quân tượng"}
+        job = self.client.post(self.base + "/batch/start", json={"model": "qwen3:4b", "start": 1, "end": 2}).json()
+        plan = self.client.post(self.base + "/translate/plan", json=body)
+        self.assertEqual(plan.status_code, 200, plan.text)
+        chunks = plan.json()["chunks"]
+        self.assertGreater(len(chunks), 1)
+        self.assertTrue(all(len(chunk) <= 600 for chunk in chunks))
+        self.assertEqual(" ".join(" ".join(chunks).split()), " ".join(source.split()))
+        LocalOllama.calls = 0
+        with patch.object(translation.httpx, "AsyncClient", LocalOllama):
+            first = {**body, "text": chunks[0]}
+            self.assertEqual(self.client.post(self.base + "/translate", json=first).status_code, 200)
+            self.assertEqual(self.client.post(self.base + "/translate/complete", json=body).status_code, 409)
+            self.assertIsNone(self.client.post(self.base + "/cached", json=body).json()["translation"])
+            class TimedOut(LocalOllama):
+                async def post(self, url, json):
+                    raise httpx.ReadTimeout("test timeout")
+            with patch.object(translation.httpx, "AsyncClient", TimedOut):
+                failed = self.client.post(self.base + "/translate", json={**body, "text": chunks[1]})
+                self.assertEqual(failed.status_code, 504, failed.text)
+            self.assertTrue(self.client.post(self.base + "/translate", json=first).json()["cached"])
+            self.assertEqual(LocalOllama.calls, 1)
+            for chunk in chunks[1:]:
+                result = self.client.post(self.base + "/translate", json={**body, "text": chunk})
+                self.assertEqual(result.status_code, 200, result.text)
+            # Cache identity includes model and user terminology.
+            for change in ({"model": "qwen3:1.7b"}, {"glossary": "bishop=tượng"}, {"page": 2}):
+                self.assertEqual(self.client.post(self.base + "/translate/complete", json={**body, **change}).status_code, 409)
+            result = self.client.post(self.base + "/translate/complete", json=body)
+            self.assertEqual(result.status_code, 200, result.text)
+            self.assertIn("Trắng đi Nf3 and O-O.", result.json()["translation"])
+            self.assertEqual(self.client.post(self.base + "/cached", json=body).json()["translation"], result.json()["translation"])
+        self.assertEqual(self.client.get(self.base + "/batch").json()["signature"], job["signature"])
+        self.assertEqual(self.client.get(self.base + "/batch").json()["done"], 0)
+        self.client.post("/api/library/vault/lock")
+        for endpoint in ("plan", "complete"):
+            self.assertEqual(self.client.post(self.base + "/translate/" + endpoint, json=body).status_code, 401)
+
+    def test_ollama_short_prompt_and_notation_only_skip_generation(self):
+        calls = []
+        class Capture(LocalOllama):
+            async def post(self, url, json):
+                calls.append(json)
+                return await super().post(url, json)
+        body = {"text": "White plays Nf3 with the bishop.", "model": "qwen3:4b", "page": 1}
+        with patch.object(translation.httpx, "AsyncClient", Capture):
+            self.assertEqual(self.client.post(self.base + "/translate", json=body).status_code, 200)
+            self.assertIn("bishop=tượng", calls[0]["system"])
+            self.assertNotIn("endgame=tàn cuộc", calls[0]["system"])
+            self.assertFalse(calls[0]["think"])
+            self.assertEqual(calls[0]["options"]["num_ctx"], 4096)
+            self.assertLessEqual(calls[0]["options"]["num_predict"], 2048)
+            moves = {**body, "text": "1. Nf3 d5 2. O-O Bxh7+"}
+            result = self.client.post(self.base + "/translate", json=moves)
+            self.assertEqual(result.status_code, 200, result.text)
+            self.assertEqual(result.json()["translation"], moves["text"])
+            self.assertEqual(len(calls), 1)
+        for model in ("opus-mt-en-vi", "deepl:en-vi", "gemini:test"):
+            self.assertEqual(self.client.post(self.base + "/translate/plan", json={**body, "model": model}).status_code, 400)
+
     def test_notation_tokens(self):
         original = "1. Nf3 d5 2. O-O Bxh7+ e8=Q#"
         text, tokens = translation.protect_moves(original)

@@ -76,3 +76,9 @@ Trong Tạo giải mới, chọn Tự tạo bảng: nhập U6/U7 mỗi tên mộ
 Mở **Đấu Trường → Các giải đấu** rồi chọn giải. Mỗi giải có trang riêng `/tournament.html?id=...`, có thể lưu dấu trang. Chọn **Theo dõi bảng** để xem một bảng hoặc tất cả. **In danh sách**, **In lịch đấu**, **In xếp hạng** dùng phạm vi đang chọn; hộp thoại in của trình duyệt cũng cho phép lưu PDF. Bản in xếp hạng ghi rõ tạm thời khi giải chưa kết thúc. Thể thức và danh sách mỗi bảng được khóa sau khi ghép cặp.
 
 Khi cập nhật giao diện, sao chép đủ `backend/static/arena.html`, `arena.js`, `arena.css` và `tournament.html`, rồi tải lại trang với Ctrl+F5. Giữ nguyên cơ sở dữ liệu hiện có.
+
+## Dịch Kinh Các: dịch bằng Ollama
+
+Mở sách trong Dịch Kinh Các, kiểm tra chữ gốc rồi chọn **Dịch bằng Ollama**. Mỗi trang được chia thành các đoạn khoảng 600 ký tự; kết quả hiện dần và từng đoạn được lưu trong két. **Tạm dừng** chờ đoạn đang chạy hoàn tất. Nếu quá thời gian chờ, bấm dịch để tiếp tục với các đoạn đã lưu. Tiến trình này độc lập với Dịch nhiều trang.
+
+Nút **Đổi model** cạnh tên bộ dịch mở danh sách model đã cài. Nếu `qwen3:4b` quá chậm và máy đã có `qwen3:1.7b`, có thể chọn bản 1.7b rồi thử lại. Tốc độ và chất lượng còn phụ thuộc model, RAM và phần cứng; kiểm thử tự động không chạy model thật. Chỉ đoạn chữ được gửi tới Ollama trên máy; ký hiệu nước đi được giữ nguyên và bản dịch được kiểm tra trước khi lưu.
