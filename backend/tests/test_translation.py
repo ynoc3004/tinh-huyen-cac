@@ -19,7 +19,7 @@ class LocalOllama:
         return httpx.Response(200, json={"models": [{"name": "qwen3:4b"}, {"name": "remote-cloud", "remote_host": "example"}]}, request=httpx.Request("GET", url))
     async def post(self, url, json):
         LocalOllama.calls += 1
-        return httpx.Response(200, json={"response": json["prompt"].replace("White plays", "Trắng đi"), "done_reason": "stop"}, request=httpx.Request("POST", url))
+        return httpx.Response(200, json={"response": json["prompt"].replace("White plays", "Trắng đi").replace(" plays ", " đi "), "done_reason": "stop"}, request=httpx.Request("POST", url))
 
 class TranslationTests(unittest.TestCase):
     def setUp(self):

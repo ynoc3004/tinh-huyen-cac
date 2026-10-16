@@ -13,6 +13,7 @@ async function run(offline=false){
  const sections=['original','reading','board'].map(section=>{const b=new Element();b.dataset.section=section;return b;});
  const document={body,documentElement:docRoot,getElementById:id=>{assert.ok(elements[id],`Missing HTML control: ${id}`);return elements[id]},createElement:()=>new Element(),createElementNS:()=>new Element(),querySelector:()=>new Element(),querySelectorAll:selector=>selector==='button[data-section]'?sections:selector==='.scan-card'?elements['scan-results'].children:selector==='[data-view]'?[body]:[]};
  const {Chess}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'vendor/chess.js')).toString('base64'));
+ let confirmAnswer=true;
  let scanResolve,translateResolve,batchResolve,batchJob={},batchSteps=0;const batchWait=new Promise(r=>batchResolve=r);const scanWait=new Promise(r=>scanResolve=r),translateWait=new Promise(r=>translateResolve=r),calls=[];
  const board={placement:'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',turn:'w',orientation:'white',image:'data:image/png;base64,example'};
  const fetch=async(url,options={})=>{
@@ -33,7 +34,7 @@ async function run(offline=false){
  else if(url.endsWith('/translate')){await translateWait;data={translation:'Trắng đi Nf3.'};}
  return {ok:true,status:200,json:async()=>data};
  };
- const store=new Map(),context={Chess,PIECE_DEFS:'',document,fetch,location:{search:'?id=1'},URLSearchParams,URL,Option:class extends Element{constructor(text,value){super();this.textContent=text;this.value=value;}},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},setInterval(){},setTimeout,Date,console};
+ const store=new Map(),context={Chess,PIECE_DEFS:'',document,fetch,location:{search:'?id=1'},URLSearchParams,URL,Option:class extends Element{constructor(text,value){super();this.textContent=text;this.value=value;}},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)},setInterval(){},setTimeout,Date,console,confirm:()=>confirmAnswer};
  context.window=context;context.addEventListener=()=>{};
  const code=fs.readFileSync(path.join(root,'study.js'),'utf8').replace(/^import .*;\n/gm,'');vm.runInNewContext(code,context,{filename:'study.js'});
  for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r));
@@ -55,7 +56,7 @@ async function run(offline=false){
  const translation=elements.translate.onclick();await new Promise(r=>setImmediate(r));
  assert.equal(elements['reading-pane'].getAttribute('aria-busy'),'true');scanResolve();await scan;
  assert.equal(elements.translate.textContent,'Đang dịch…');assert.equal(elements['scan-page'].disabled,false,'Completing scan must not reset translation state');
- translateResolve();await translation;assert.equal(elements.result.textContent,'Trắng đi Nf3.');assert.equal(elements.model.value,'deepl:en-vi');
+ translateResolve();await translation;assert.equal(JSON.parse(calls.find(c=>c.url.endsWith('/translate')).options.body).force,true,'Explicit translation replaces bad cached output');assert.equal(elements.translate.textContent,'Dịch lại');assert.equal(elements.result.textContent,'Trắng đi Nf3.');assert.equal(elements.model.value,'deepl:en-vi');
  elements['scan-results'].children[1].onclick();assert.equal(elements['board-stage'].hidden,false);assert.equal(elements['board-empty'].hidden,true);
  elements.board.children.find(x=>x.title==='e2').onclick();elements.board.children.find(x=>x.title==='e4').onclick();assert.ok(elements.moves.textContent.includes('e4'));elements['restore-position'].onclick();assert.equal(elements.moves.textContent,'','Restore returns to the selected book diagram');
  assert.equal(elements['scan-selected'].textContent,'Thế 2 · trang 1');assert.equal(elements['scan-editor'].open,false);
@@ -83,6 +84,7 @@ async function run(offline=false){
  elements.position.value='broken';elements['load-position'].onclick();assert.ok(elements['board-status'].textContent.includes('không hợp lệ'));
  assert.equal(elements.board.children.filter(x=>x.innerHTML?.includes('<use')).length,2,'Invalid imports preserve current board');
  await elements.next.onclick();assert.equal(elements.pdf.src,'/api/library/translation/1/study/page-image?page=2');assert.equal(elements['board-stage'].hidden,true,'Turning the page must hide the previous diagram');assert.equal(elements['restore-position'].disabled,true);
+ const imageBefore=elements.pdf.src;const requestsBefore=calls.length;confirmAnswer=false;await elements['source-refresh'].onclick();assert.equal(calls.length,requestsBefore,'Cancelling source reload preserves edits');confirmAnswer=true;await elements['source-refresh'].onclick();assert.ok(calls.some(c=>c.url.includes('fresh=true')));assert.equal(elements.pdf.src,imageBefore,'Reloading text must keep the selected PDF page');assert.ok(elements['source-status'].textContent.includes('Đã đọc lại'));
  const legacy=fs.readFileSync(path.join(root,'translate.html'),'utf8'),script=legacy.match(/<script>([\s\S]*?)<\/script>/)[1];let redirected='';
  vm.runInNewContext(script,{URL,location:{origin:'http://localhost:8000',search:'?id=1',replace:value=>redirected=value},document:{getElementById:()=>new Element()}});
  assert.equal(redirected,'http://localhost:8000/study.html?id=1');

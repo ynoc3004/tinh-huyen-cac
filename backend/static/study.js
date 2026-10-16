@@ -1,7 +1,7 @@
 import {Chess} from "/vendor/chess.js";
 import {PIECE_DEFS} from "/vendor/pieces.js?v=paint-2";
 const $=id=>document.getElementById(id),id=Number(new URLSearchParams(location.search).get("id"));
-let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual",translationAvailable=false;
+let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,translating=false,scanning=false,probing=false,loadingScanModels=false,batchRunning=false,batchStop=false,loaded=false,job={},savedSource="",view="bilingual",translationAvailable=false,hasTranslation=false;
 function status(t){$("status").textContent=t;}
 async function api(path,body,method="POST"){
  const r=await fetch("/api/library/translation/"+path,body===undefined?{}:{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
@@ -21,24 +21,26 @@ function controls(){
  for(const name of ["batch-start","batch-end","batch-size","batch-ocr","glossary","upload"])$(name).disabled=batchRunning||translating;
  $("batch-run").disabled=busy||translating||batchRunning||!loaded||!$("model").value||!translationAvailable;$("batch-pause").hidden=!batchRunning;
  $("translate").disabled=busy||translating||batchRunning||!loaded||!$("model").value||!translationAvailable;$("translate-selection").disabled=$("translate").disabled;
- $("translate").textContent=translating?"Đang dịch…":"Dịch trang";
+ $("translate").textContent=translating?"Đang dịch…":hasTranslation?"Dịch lại":"Dịch trang";$("source-refresh").disabled=busy||translating||batchRunning||!loaded;
  $("scan-page").textContent=scanning?"Đang quét…":"✦ Quét trang "+page;
  $("reading-pane").setAttribute("aria-busy",String(translating));
  $("scan-section").setAttribute("aria-busy",String(scanning));
 }
 function translationStatus(t){$("translation-status").textContent=t;}
+function displayTranslation(text){hasTranslation=true;$("result").textContent=text;controls();}
 async function save(){state={...state,page,note:$("note").value,model:$("model").value};await api(id+"/state",state,"PUT");}
 function body(text=$("source").value){return {text,page,model:$("model").value,glossary:$("glossary").value};}
 let cacheRevision=0;
 async function cached(){
  const revision=++cacheRevision,requestedPage=page,requestedModel=$("model").value,requestedText=$("source").value;
  const current=()=>revision===cacheRevision&&page===requestedPage&&$("model").value===requestedModel&&$("source").value===requestedText&&!translating;
- $("result").textContent="Trang này chưa có bản dịch. Kiểm tra chữ tiếng Anh rồi bấm Dịch trang.";
+ hasTranslation=false;controls();$("result").textContent="Trang này chưa có bản dịch. Kiểm tra chữ tiếng Anh rồi bấm Dịch trang.";
  if(!$("model").value)return;
  const batch=await api(id+"/batch/page?page="+page);if(!current())return;
- if(batch.translation&&batch.model===$("model").value&&batch.text===$("source").value&&(job.glossary||"")===$("glossary").value){$("result").textContent=batch.translation;return;}
+ if(batch.outdated)translationStatus("Bản dịch nhiều trang dùng bộ đọc chữ cũ. Bấm Dịch trang để tạo bản mới cho trang này.");
+ if(batch.translation&&batch.model===$("model").value&&batch.text===$("source").value&&(job.glossary||"")===$("glossary").value){displayTranslation(batch.translation);return;}
  if($("source").value.trim()&&$("source").value.length<=12000){
- const data=await api(id+"/cached",body());if(current()&&data.translation)$("result").textContent=data.translation;
+ const data=await api(id+"/cached",body());if(current()&&data.translation)displayTranslation(data.translation);
  }
 }
 async function openPage(n,initial=false){
@@ -49,7 +51,7 @@ async function openPage(n,initial=false){
  page=data.page;total=data.pages;loaded=true;$("page").value=page;$("page").max=total;$("total").textContent="/ "+total;
  document.title=data.title+" · Dịch Kinh Các";$("pdf").src="/api/library/translation/"+id+"/study/page-image?page="+page;$("pdf").alt="Trang "+page+" · "+data.title;
  $("page-image-link").href=$("pdf").src;$("scan-download").href=$("pdf").src;$("scan-download").download="sach-"+id+"-trang-"+page+".png";
- $("source").value=data.text;savedSource=data.text;translationStatus("");clearScan();await openScans();await cached();await save();
+ $("source").value=data.text;savedSource=data.text;$("source-status").textContent="";translationStatus("");clearScan();await openScans();await cached();await save();
  status(data.text?"Trang "+page+" · "+data.title:"Trang "+page+" chưa có chữ. Bật OCR trong Tùy chọn nếu đây là PDF scan.");
  }catch(e){status(e.message);}finally{busy=false;controls();}
 }
@@ -57,7 +59,17 @@ $("prev").onclick=()=>openPage(page-1);$("next").onclick=()=>openPage(page+1);
 $("page").onchange=()=>openPage(Math.max(1,Math.min(total,Number($("page").value)||1)));
 $("ocr").onchange=()=>openPage(page);
 $("model").onchange=async()=>{try{await cached();await save();}catch(e){translationStatus(e.message);}};
-$("source").oninput=()=>{$("result").textContent="Chữ gốc đã thay đổi. Lưu chữ đã sửa rồi dịch lại.";};
+$("source").oninput=()=>{hasTranslation=false;controls();$("result").textContent="Chữ gốc đã thay đổi. Lưu chữ đã sửa rồi dịch lại.";};
+$("source-refresh").onclick=async()=>{
+ if(busy||translating||batchRunning||!loaded)return;
+ if(!confirm("Đọc lại chữ từ PDF sẽ thay nội dung hiệu đính đang hiển thị. Tiếp tục?"))return;
+ busy=true;controls();$("source-status").textContent="Đang đọc lại chữ, tách ký tự hình bàn cờ…";
+ try{
+ const data=await api(id+"/page?page="+page+"&ocr="+$("ocr").checked+"&fresh=true");
+ $("source").value=data.text;cacheRevision++;await cached();
+ $("source-status").textContent="Đã đọc lại chữ gốc. Kiểm tra nước đi, bấm Lưu chữ đã sửa hoặc Dịch trang để lưu và dịch lại.";
+ }catch(e){$("source-status").textContent=e.message;}finally{busy=false;controls();}
+};
 $("save-source").onclick=async()=>{try{await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;status("Đã lưu chữ hiệu đính trong két.");}catch(e){status(e.message);}};
 async function translatePage(selection=false){
  if(busy||translating||batchRunning||!loaded||!$("model").value||!translationAvailable)return;
@@ -66,7 +78,7 @@ async function translatePage(selection=false){
  if(text.length>12000){translationStatus("Nội dung dài quá 12.000 ký tự. Bôi đen từng đoạn hoặc dùng Dịch nhiều trang.");return;}
  cacheRevision++;translating=true;controls();translationStatus($("model").value==="deepl:en-vi"?"Đang gửi đoạn chữ tới DeepL để dịch…":$("model").value.startsWith("gemini:")?"Đang gửi đoạn chữ tới Gemini để dịch…":"Đang dịch trên máy…");
  try{if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}
- const data=await api(id+"/translate",body(text));$("result").textContent=data.translation;translationStatus("Bản dịch đã lưu · đối chiếu nguyên bản khi học.");
+ const data=await api(id+"/translate",{...body(text),force:true});displayTranslation(data.translation);translationStatus("Bản dịch đã lưu · đối chiếu nguyên bản khi học.");
  }catch(e){translationStatus(e.message);}finally{translating=false;controls();}
 }
 $("translate").onclick=()=>translatePage();$("translate-selection").onclick=()=>translatePage(true);
@@ -208,7 +220,7 @@ function renderBatch(){
  $("batch-progress").value=100*((job.done||0)+(job.chunks?job.chunk/job.chunks:0))/count;
  $("batch-progress-label").textContent=(job.done||0)+" / "+count+" trang"+(job.chunks?" · đoạn "+job.chunk+"/"+job.chunks:"");
  $("batch-export").hidden=!job.done&&!job.chunk;
- $("batch-status").textContent=job.error||(job.phase==="completed"?"Đã hoàn thành và lưu bản dịch.":batchRunning?"Đang dịch; bạn vẫn có thể đọc và thử thế cờ.":"Tiến độ đã lưu. Bấm tiếp tục khi sẵn sàng.");
+ $("batch-status").textContent=job.outdated?"Lượt dịch dùng bộ đọc chữ cũ. Bạn có thể xuất bản cũ trước khi bấm Bắt đầu / tiếp tục để tạo bản mới.":job.error||(job.phase==="completed"?"Đã hoàn thành và lưu bản dịch.":batchRunning?"Đang dịch; bạn vẫn có thể đọc và thử thế cờ.":"Tiến độ đã lưu. Bấm tiếp tục khi sẵn sàng.");
 }
 $("batch-run").onclick=async()=>{
  if(!loaded||batchRunning||translating||busy)return;

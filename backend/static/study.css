@@ -30,3 +30,7 @@ body[data-view=original] .reading{display:none}body[data-view=original] .layout{
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 
 .pane-title>a{font:11px/1.5 var(--font-body);color:var(--muted);white-space:nowrap}.read-tools button{min-height:36px}
+
+/* Page controls belong to the PDF, within reach of the page being read. */
+.navigation{justify-content:flex-end;padding-top:8px}.original .page-navigation{padding:10px 12px;border-top:1px solid var(--line);background:var(--paper);gap:6px;justify-content:center}.original .page-navigation :is(button,input,label,span){font-size:12px}.original .page-navigation button{padding:7px 9px;min-height:36px}.original .page-preview{height:calc(100dvh - 360px)}#source-refresh{margin:0 0 10px}#source-status{margin:4px 0 10px}
+@media(max-width:900px){.original .page-navigation{gap:5px;padding:10px 8px}.original .page-navigation button{font-size:11px;padding:7px}.original .page-preview{height:calc(100dvh - 370px)}}
