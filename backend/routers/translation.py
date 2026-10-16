@@ -334,6 +334,8 @@ def clean_text(text):
 def extract_page(doc, index, ocr=False):
     try:
         return clean_text(book_text.page_text(doc[index], ocr))
+    except book_text.OCRSetupError as exc:
+        raise HTTPException(503, str(exc))
     except Exception:
         if ocr:
             raise HTTPException(503, "OCR cần Tesseract và dữ liệu tiếng Anh eng.traineddata. Cài Tesseract, đặt TESSDATA_PREFIX tới thư mục tessdata rồi khởi động lại backend.")

@@ -5,7 +5,7 @@ let page=1,total=1,state={page:1,note:"",bookmark:null,model:""},busy=false,tran
 function status(t){$("status").textContent=t;}
 async function api(path,body,method="POST"){
  const r=await fetch("/api/library/translation/"+path,body===undefined?{}:{method,headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
- const data=await r.json();if(!r.ok)throw Error(r.status===401?"Tàng Kinh Các đang khóa. Mở khóa ở trang thư viện rồi tải lại.":typeof data.detail==="string"?data.detail:"Không thực hiện được thao tác.");
+ const data=await r.json();if(!r.ok){const error=Error(r.status===401?"Tàng Kinh Các đang khóa. Mở khóa ở trang thư viện rồi tải lại.":typeof data.detail==="string"?data.detail:"Không thực hiện được thao tác.");error.status=r.status;throw error;}
  return data;
 }
 function controls(){
@@ -47,12 +47,15 @@ async function openPage(n,initial=false){
  if(busy||translating||scanning||!id)return;busy=true;controls();
  try{
  if(!initial){await save();if(savedSource!==$("source").value){await api(id+"/study/source",{page,text:$("source").value});savedSource=$("source").value;}}
- const data=await api(id+"/page?page="+n+"&ocr="+$("ocr").checked);
+ let data,ocrWarning="";
+ try{data=await api(id+"/page?page="+n+"&ocr="+$("ocr").checked);}
+ catch(e){if(!$("ocr").checked||e.status!==503)throw e;ocrWarning=e.message;data=await api(id+"/page?page="+n+"&ocr=false");}
  page=data.page;total=data.pages;loaded=true;$("page").value=page;$("page").max=total;$("total").textContent="/ "+total;
  document.title=data.title+" · Dịch Kinh Các";$("pdf").src="/api/library/translation/"+id+"/study/page-image?page="+page;$("pdf").alt="Trang "+page+" · "+data.title;
  $("page-image-link").href=$("pdf").src;$("scan-download").href=$("pdf").src;$("scan-download").download="sach-"+id+"-trang-"+page+".png";
  $("source").value=data.text;savedSource=data.text;$("source-status").textContent="";translationStatus("");clearScan();await openScans();await cached();await save();
- status(data.text?"Trang "+page+" · "+data.title:"Trang "+page+" chưa có chữ. Bật OCR trong Tùy chọn nếu đây là PDF scan.");
+ if(ocrWarning){translationStatus(ocrWarning);$("source-status").textContent=ocrWarning;}
+ status(ocrWarning?"Trang "+page+" · OCR chưa sẵn sàng; đang mở sách với lớp chữ PDF sẵn có.":data.text?"Trang "+page+" · "+data.title:"Trang "+page+" chưa có chữ. Bật OCR trong Tùy chọn nếu đây là PDF scan.");
  }catch(e){status(e.message);}finally{busy=false;controls();}
 }
 $("prev").onclick=()=>openPage(page-1);$("next").onclick=()=>openPage(page+1);

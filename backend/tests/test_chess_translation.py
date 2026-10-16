@@ -43,7 +43,9 @@ class ChessTextTests(unittest.TestCase):
         class Page:
             def get_textpage_ocr(self,**kwargs):self.ocr=kwargs;return 'OCR-PAGE'
             def get_text(self,*args,**kwargs):self.textpage=kwargs['textpage'];return {'blocks':[]}
-        page=Page();self.assertEqual(book_text.page_text(page,ocr=True),'')
+        page=Page()
+        with patch.object(book_text,'find_tessdata',return_value='/fake/tessdata'):
+            self.assertEqual(book_text.page_text(page,ocr=True),'')
         self.assertEqual(page.textpage,'OCR-PAGE');self.assertTrue(page.ocr['full'])
 
     def test_default_and_custom_terms_merge_and_moves_restore(self):

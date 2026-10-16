@@ -13,11 +13,12 @@ async function run(offline=false){
  const sections=['original','reading','board'].map(section=>{const b=new Element();b.dataset.section=section;return b;});
  const document={body,documentElement:docRoot,getElementById:id=>{assert.ok(elements[id],`Missing HTML control: ${id}`);return elements[id]},createElement:()=>new Element(),createElementNS:()=>new Element(),querySelector:()=>new Element(),querySelectorAll:selector=>selector==='button[data-section]'?sections:selector==='.scan-card'?elements['scan-results'].children:selector==='[data-view]'?[body]:[]};
  const {Chess}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'vendor/chess.js')).toString('base64'));
- let confirmAnswer=true;
+ let confirmAnswer=true,ocrMissing=false;
  let scanResolve,translateResolve,batchResolve,batchJob={},batchSteps=0;const batchWait=new Promise(r=>batchResolve=r);const scanWait=new Promise(r=>scanResolve=r),translateWait=new Promise(r=>translateResolve=r),calls=[];
  const board={placement:'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR',turn:'w',orientation:'white',image:'data:image/png;base64,example'};
  const fetch=async(url,options={})=>{
  calls.push({url,options});let data={};
+ if(ocrMissing&&url.includes('/page?page=')&&url.includes('ocr=true'))return {ok:false,status:503,json:async()=>({detail:'Không tìm thấy eng.traineddata. Tạm tắt OCR.'})};
  if(offline&&url.endsWith('/models'))return {ok:false,status:503,json:async()=>({detail:'Bộ dịch ngoại tuyến'})};
  if(offline&&url.endsWith('/cached'))return {ok:true,status:200,json:async()=>({translation:'Bản dịch tiếng Việt đã lưu.'})};
  if(url==='/api/library?kind=book')data=[{id:1,ext:'.pdf',title:'Book'}];
@@ -85,6 +86,7 @@ async function run(offline=false){
  assert.equal(elements.board.children.filter(x=>x.innerHTML?.includes('<use')).length,2,'Invalid imports preserve current board');
  await elements.next.onclick();assert.equal(elements.pdf.src,'/api/library/translation/1/study/page-image?page=2');assert.equal(elements['board-stage'].hidden,true,'Turning the page must hide the previous diagram');assert.equal(elements['restore-position'].disabled,true);
  const imageBefore=elements.pdf.src;const requestsBefore=calls.length;confirmAnswer=false;await elements['source-refresh'].onclick();assert.equal(calls.length,requestsBefore,'Cancelling source reload preserves edits');confirmAnswer=true;await elements['source-refresh'].onclick();assert.ok(calls.some(c=>c.url.includes('fresh=true')));assert.equal(elements.pdf.src,imageBefore,'Reloading text must keep the selected PDF page');assert.ok(elements['source-status'].textContent.includes('Đã đọc lại'));
+ ocrMissing=true;elements.ocr.checked=true;await elements.ocr.onchange();assert.ok(elements.pdf.src.endsWith('page=2'),'Missing OCR data must not block PDF reading');assert.ok(elements['translation-status'].textContent.includes('eng.traineddata'));assert.ok(calls.at(-1));elements.source.value='Manual edits stay.';await elements['source-refresh'].onclick();assert.equal(elements.source.value,'Manual edits stay.','Failed explicit OCR must preserve current edits');assert.ok(elements['source-status'].textContent.includes('eng.traineddata'));
  const legacy=fs.readFileSync(path.join(root,'translate.html'),'utf8'),script=legacy.match(/<script>([\s\S]*?)<\/script>/)[1];let redirected='';
  vm.runInNewContext(script,{URL,location:{origin:'http://localhost:8000',search:'?id=1',replace:value=>redirected=value},document:{getElementById:()=>new Element()}});
  assert.equal(redirected,'http://localhost:8000/study.html?id=1');
