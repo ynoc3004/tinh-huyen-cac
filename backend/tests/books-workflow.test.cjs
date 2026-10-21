@@ -5,10 +5,11 @@ function client({reader=false,id=seed.id,book=seed}={}){
  const nodes=new Map(),requests=[],rows=new Map([[book.id,structuredClone(book)]]);let fail=false,accept=true;
  const node=id=>{if(!nodes.has(id))nodes.set(id,{id,value:'',textContent:'',innerHTML:'',hidden:true,disabled:false,dataset:{},events:{},focus(){this.focused=true},showModal(){this.open=true},close(){this.open=false},querySelectorAll(){return[]},reportValidity:()=>true,addEventListener(k,f){this.events[k]=f}});return nodes.get(id)};
  const fetch=async(url,opt={})=>{
-  const body=opt.body&&JSON.parse(opt.body),method=opt.method||'GET';requests.push({url,method,body});
+  const body=typeof opt.body==='string'?JSON.parse(opt.body):opt.body,method=opt.method||'GET';requests.push({url,method,body});
   if(fail)return{ok:false,json:async()=>({detail:'Không kết nối được tủ sách'})};
   let data,status=200;const id=decodeURIComponent(url.split('/').at(-1)),collection=url==='/api/books';
-  if(method==='GET'){data=collection?[...rows.values()]:rows.get(id);if(!data){status=404;data={detail:'Không tìm thấy sách trong tủ.'}}}
+  if(url==='/api/books/import'){data={...seed,offline:1,stats:{chapters:12,pages:253,figures:131}};rows.set(seed.id,data)}
+  else if(method==='GET'){data=collection?[...rows.values()]:rows.get(id);if(!data){status=404;data={detail:'Không tìm thấy sách trong tủ.'}}}
   else if(method==='POST'){data={id:'new-book',...body};rows.set(data.id,data)}
   else if(method==='PUT'){data={id,...body};rows.set(id,data)}
   else if(method==='DELETE'){rows.delete(id);data={deleted_id:id}}
@@ -43,6 +44,10 @@ const submit=async c=>{await c.node('book-form').onsubmit({preventDefault(){}});
  const missing=client({reader:true,id:''});await flush();assert(missing.node('books-status').textContent.includes('Chưa chọn sách'));assert.equal(missing.node('reader-external').hidden,true);assert.equal(missing.node('book-frame').src,undefined);
  const bad=client({reader:true,book:{...seed,url:'javascript:alert(1)'}});await flush();assert(bad.node('books-status').textContent.includes('HTTPS'));assert.equal(bad.node('book-frame').src,undefined);
  const absent=client({reader:true,id:'deleted'});await flush();assert(absent.node('books-status').textContent.includes('Không tìm thấy sách'));
+ const offline=client({reader:true,book:{...seed,offline:1}});await flush();assert.equal(offline.node('book-frame').src,'/offline-reader.html?id='+seed.id);assert.equal(offline.node('reader-external').href,offline.node('book-frame').src);assert(offline.node('reader-help').textContent.includes('không có Internet'));
+ c.node('book-package').files=[{size:65*1024*1024}];await c.node('book-package').onchange();assert(c.node('books-status').textContent.includes('64 MB'));assert(!c.requests.some(r=>r.url==='/api/books/import'));
+ c.node('book-package').files=[{size:1000,name:'book.thcbook'}];c.fail(true);await c.node('book-package').onchange();assert.equal(c.node('books-status').textContent,'Không kết nối được tủ sách');assert.equal(c.node('book-import').disabled,false);
+ c.fail(false);await c.node('book-package').onchange();assert(c.node('books-status').textContent.includes('12 chương'));assert(c.node('books-grid').innerHTML.includes('ĐỌC NGOẠI TUYẾN')||c.node('books-grid').innerHTML.includes('Đọc ngoại tuyến'));assert.equal(c.node('book-package').value,'');
  const html=fs.readFileSync(path.join(root,'book.html'),'utf8');assert(html.includes('referrerpolicy="no-referrer"'));assert(html.includes('sandbox="allow-scripts allow-same-origin'));assert(html.includes('rel="noopener noreferrer"'));assert(!html.includes('allow-top-navigation'));
  assert(fs.readFileSync(path.join(root,'library.html'),'utf8').indexOf('href="/books.html"')<fs.readFileSync(path.join(root,'library.html'),'utf8').indexOf('id="gate"'),'Catalog must be reachable before vault unlock');
  console.log('PASS: online catalog search/filter/add/edit/remove/cancel/retry, escaped metadata, reader URL validation, missing book and external fallback');

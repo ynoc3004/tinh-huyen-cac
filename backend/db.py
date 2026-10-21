@@ -56,6 +56,10 @@ CREATE TABLE IF NOT EXISTS online_books(id TEXT PRIMARY KEY, title TEXT NOT NULL
   author TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
   url TEXT NOT NULL, url_key TEXT NOT NULL UNIQUE,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS online_book_packages(book_id TEXT PRIMARY KEY REFERENCES online_books(id) ON DELETE CASCADE,
+  manifest TEXT NOT NULL, content TEXT NOT NULL, imported_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS online_book_assets(book_id TEXT NOT NULL REFERENCES online_books(id) ON DELETE CASCADE,
+  path TEXT NOT NULL, mime TEXT NOT NULL, data BLOB NOT NULL, PRIMARY KEY(book_id,path));
 """
 
 # migrate columns if DB already exists without them

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#183f33">
+  <meta name="description" content="Đọc sách đã lưu trên máy theo từng chương. Hình thế cờ, đánh dấu trang, ghi chú và tiến độ học ngoại tuyến.">
+  <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><title>Đọc sách ngoại tuyến · Tĩnh Huyền Các</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='16' fill='%23183f33'/%3E%3Ctext x='40' y='60' text-anchor='middle' font-size='59' fill='%23f5e8cd'%3E♞%3C/text%3E%3C/svg%3E">
+
+  <link rel="stylesheet" href="/offline-reader.css?v=1">
+  <link rel="stylesheet" href="/offline-typography.css?v=1">
+  <script src="/offline-reader.js?v=1" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Đến nội dung</a>
+<aside class="sidebar" id="sidebar" aria-label="Mục lục sách">
+  <a class="brand" href="#home"><span class="brand-mark">♞</span><span>Tĩnh Huyền<br><b>Thư phòng</b></span></a>
+  <div class="side-book"><span class="eyebrow" id="offline-author"></span><strong id="offline-title">Sách ngoại tuyến</strong><span class="edition">Bản dịch tiếng Việt</span></div>
+  <button class="side-home" id="home-button"><span>⌂</span> Tổng quan cuốn sách</button>
+  <div class="side-label"><span>MỤC LỤC</span><span id="side-count">MỤC LỤC</span></div>
+  <nav id="chapter-nav"></nav>
+  <div class="side-bottom"><div class="progress-label"><span>Tiến độ của bạn</span><b id="progress-count">0 chương</b></div><div class="progress-track"><span id="progress-fill"></span></div><span class="local-hint">Lưu trên trình duyệt này</span></div>
+</aside>
+<button id="sidebar-shade" aria-label="Đóng mục lục"></button>
+<div class="shell">
+  <header class="topbar">
+    <button class="icon-button mobile-menu" id="menu-button" aria-label="Mở mục lục" aria-expanded="false">☰</button>
+    <div class="breadcrumb"><span>Tủ sách cờ vua</span><span class="crumb-separator">/</span><b id="breadcrumb-current">Đang mở sách…</b></div>
+    <div class="header-actions"><button class="search-trigger" id="search-button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.8 4.8"/></svg><span>Tìm trong sách</span><kbd>/</kbd></button><button id="theme-button" class="icon-button" aria-label="Đổi giao diện sáng tối" title="Đổi giao diện sáng tối">◐</button><button id="settings-button" class="icon-button" aria-label="Tùy chỉnh cách đọc" title="Tùy chỉnh cách đọc">Aa</button></div>
+  </header>
+  <main id="main" tabindex="-1"><div class="loading">Đang mở cuốn sách…</div></main>
+  <footer class="footer"><span id="offline-footer">Đọc trực tiếp từ dữ liệu đã lưu trên máy</span><button id="backup-button">Sao lưu tiến độ & ghi chú ↗</button></footer>
+</div>
+<dialog id="search-dialog" class="search-dialog"><div class="dialog-top"><h2>Tìm trong sách</h2><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><label class="search-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.8 4.8"/></svg><input id="search-input" placeholder="Ví dụ: cánh vua, tốt cô lập, Nf3…" autocomplete="off"></label><div id="search-results" aria-live="polite"><p class="empty">Tìm một ý tưởng, thuật ngữ hoặc nước đi.</p></div></dialog>
+<dialog id="settings-dialog" class="small-dialog"><div class="dialog-top"><h2>Cách đọc của bạn</h2><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><label class="setting-label" for="font-size">Cỡ chữ <strong id="font-size-label">19 px</strong></label><input id="font-size" type="range" min="16" max="28" step="1" value="19"><div class="setting-row"><label for="serif-toggle">Phông chữ có chân</label><input type="checkbox" id="serif-toggle"></div><div class="setting-row"><span>In chương đang đọc</span><button class="button small outline" id="print-button">In / lưu PDF</button></div><p class="muted small-text">Tiến độ, trang đã lưu và ghi chú được giữ trên trình duyệt này. Dùng bản sao lưu để chuyển sang thiết bị khác.</p><div class="setting-row"><button class="text-button" id="export-button">Xuất bản sao lưu ↓</button><button class="text-button" id="import-button">Nhập bản sao lưu ↑</button></div><input id="import-file" type="file" accept="application/json,.json" hidden></dialog>
+<dialog id="source-dialog" class="source-dialog"><div class="dialog-top"><h2 id="source-title">Trang sách gốc</h2><a class="text-button" id="source-link" target="_blank" rel="noopener">Mở riêng ↗</a><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><iframe title="Trang sách PDF gốc" id="source-frame"></iframe></dialog>
+<dialog id="figure-dialog" class="figure-dialog"><div class="dialog-top"><p id="figure-caption"></p><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><img id="large-figure" alt="Hình thế cờ gốc phóng lớn"></dialog>
+<div class="toast" id="toast" role="status"></div>
+</body></html>

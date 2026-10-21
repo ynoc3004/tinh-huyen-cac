@@ -2,15 +2,19 @@
 
 Ứng dụng cờ vua chạy local: đồng bộ ván cờ, quản lý thư viện, giải vòng tròn/Swiss/loại trực tiếp và đấu trường arena.
 
-## Tủ sách học trực tuyến
+## Tủ sách học và đọc ngoại tuyến
 
-Vào **Tàng kinh → Mở tủ sách** (`/books.html`), hoặc theo liên kết trong Dịch Kinh Các. Tủ sách có sẵn **Winning Chess Strategies – Yasser Seirawan**, mở tại chương 1 của bản tiếng Việt được cung cấp. Mục này dùng được ngay mà không cần mở khóa két file trên máy.
+Vào **Tàng kinh → Mở tủ sách** (`/books.html`), hoặc theo liên kết trong Dịch Kinh Các. Mục này dùng được mà không cần mở khóa két file trên máy. Liên kết có sẵn của **Winning Chess Strategies – Yasser Seirawan** chỉ là nguồn trực tuyến; để đọc khi mất mạng, bấm **Nhập sách ngoại tuyến** và chọn gói `.thcbook` đã tải về. Nhập một lần; nội dung, hình, phông chữ và PDF được lưu trong SQLite trên máy. Khi đọc không cần ChatGPT hay Internet, nhưng backend Tĩnh Huyền Các trên máy vẫn phải chạy.
+
+Sách đã nhập có nhãn **Đã lưu trên máy · Ngoại tuyến**. **Đọc ngoại tuyến** dùng bộ đọc nội bộ (`offline-reader.html`), có mục lục theo chương, tìm trong toàn bộ sách, xem hình/phóng lớn, PDF đối chiếu, đánh dấu đã học, dấu trang, ghi chú, cỡ chữ và giao diện sáng/tối. Tiến độ và ghi chú được lưu trong trình duyệt riêng cho từng sách; dùng xuất/nhập sao lưu để chuyển thiết bị. Gói Winning Chess Strategies cũng nhận bản sao lưu tiến độ xuất từ trang sách cũ. Bộ đọc và tài nguyên đều dùng địa chỉ của ứng dụng trên máy, không gọi trang Sites/ChatGPT.
+
+Gói sách gồm `manifest.json`, `content/catalog.json`, `content/figures.json`, `content/page-labels.json`, một JSON cho mỗi mục trong mục lục, hình/phông chữ dưới `assets/` và PDF tùy chọn `book.pdf`. Manifest dùng `format: "tinh-huyen-book"`, `version: 1`, mã `id`, tên/tác giả/chủ đề/giới thiệu, `source_url`, `start`, ảnh `cover` tùy chọn và `solution_chapter` nếu có. Gói mới có thể nhập cho nhiều quyển khác. Giới hạn 64 MB nén, 128 MB giải nén, 16 MB mỗi tệp, 3.000 tệp; từ chối đường dẫn vượt thư mục, tệp trùng/liên kết và HTML/JavaScript thực thi. Các dẫn chiếu chương/hình phải đủ trước khi ghi. Nhập lại cùng nguồn cập nhật nội dung nguyên tử, không nhân đôi sách hoặc xóa tên đã tự sửa; lỗi nhập giữ nguyên bản tốt trước đó.
 
 **Thêm sách** nhận tên, tác giả, chủ đề, đường dẫn HTTPS (có thể kèm `#chapter-01`) và giới thiệu ngắn. Có tìm kiếm không dấu theo tên/tác giả/chủ đề, lọc chủ đề, sửa thông tin và gỡ sách. Thông tin được lưu trong SQLite cùng ứng dụng, không chỉ trong trình duyệt. Hai đường dẫn chỉ khác vị trí `#chương` được xem là cùng một sách; muốn đổi chương bắt đầu, sửa sách đã có. Quyển mặc định chỉ thêm một lần, không tự xuất hiện lại sau khi gỡ.
 
-**Đọc sách** mở trang `/book.html?id=...` trong Tĩnh Huyền Các, nhúng trang sách gốc và giữ một nút **Mở tab riêng**. Sách riêng tư vẫn tuân theo quyền truy cập của trang gốc. Một số trang yêu cầu đăng nhập hoặc chặn khung nhúng; khi đó dùng nút mở tab riêng. Mục lục, nội dung, hình thế cờ và tiến độ học tiếp tục do trang sách gốc quản lý. Ứng dụng chỉ lưu liên kết/thông tin sách, không sao chép bản dịch vào repository và không thay đổi chế độ chia sẻ của nguồn.
+Sách **chỉ thêm liên kết** tiếp tục mở trang gốc và vẫn cần mạng/quyền đăng nhập của nguồn. Khi nhập gói có cùng nguồn, bộ đọc tự chuyển sang bản trên máy. Nút **Mở tab riêng** của bản ngoại tuyến cũng mở bộ đọc trên máy. Nội dung sách riêng tư được giao bằng gói tải riêng, không đưa bản dịch/PDF vào repository công khai và không thay đổi chế độ chia sẻ của nguồn. Gỡ sách xóa cả nội dung đã nhập; có thể nhập lại từ gói. Giới hạn hoặc trang thiếu trong tài liệu gốc vẫn được giữ, không tự tái tạo nội dung thiếu.
 
-API `/api/books` hỗ trợ GET/POST; `/api/books/{id}` hỗ trợ GET/PUT/DELETE. Đường dẫn được kiểm tra HTTPS, không nhận liên kết thực thi hoặc thông tin đăng nhập trong URL; máy chủ không tải nội dung từ URL này. Việc nâng cấp database diễn ra tự động khi khởi động backend. Két tài liệu và luồng đọc/dịch PDF hiện có được giữ nguyên.
+API `/api/books` hỗ trợ GET/POST; `/api/books/{id}` hỗ trợ GET/PUT/DELETE. `POST /api/books/import` nhận body ZIP thô; `/{id}/offline`, `/{id}/content/{name}` và `/{id}/asset/{path}` phục vụ dữ liệu đã nhập. Đường dẫn nguồn được kiểm tra HTTPS, không nhận liên kết thực thi hoặc thông tin đăng nhập trong URL; máy chủ không tải nội dung từ URL này. Việc nâng cấp database diễn ra tự động khi khởi động backend. Két tài liệu và luồng đọc/dịch PDF hiện có được giữ nguyên.
 
 ## Soạn bài tập và bài kiểm tra
 
