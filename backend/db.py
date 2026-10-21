@@ -51,6 +51,11 @@ CREATE TABLE IF NOT EXISTS worksheet_versions(id INTEGER PRIMARY KEY AUTOINCREME
   payload TEXT NOT NULL, fingerprint TEXT NOT NULL, action TEXT NOT NULL,
   request_id TEXT UNIQUE, request_hash TEXT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%d %H:%M:%f','now')));
+CREATE TABLE IF NOT EXISTS app_migrations(name TEXT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS online_books(id TEXT PRIMARY KEY, title TEXT NOT NULL,
+  author TEXT NOT NULL DEFAULT '', subject TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '',
+  url TEXT NOT NULL, url_key TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 """
 
 # migrate columns if DB already exists without them
@@ -88,6 +93,8 @@ def init():
     with conn() as c:
         c.executescript(SCHEMA)
         c.execute("BEGIN IMMEDIATE")
+        from services.online_books import seed
+        seed(c)
         c.execute("CREATE INDEX IF NOT EXISTS idx_pairings_group ON pairings(group_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_tournament_events_tour ON tournament_events(tournament_id,id)")
         for sql in MIGRATE:

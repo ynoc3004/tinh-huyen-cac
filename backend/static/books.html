@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tủ sách học · Tĩnh Huyền Quán</title>
+<link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
+<link rel="stylesheet" href="/tien-canh.css?v=bagua-menu-2"><script src="/tien-canh.js?v=bagua-menu-2"></script>
+<link rel="stylesheet" href="/books.css?v=1"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=1">
+</head><body data-books-view="catalog"><main class="books-shell">
+<a class="back-link" href="/library.html">← Tàng Kinh Các</a>
+<header class="books-hero"><div><p class="eyebrow">TÀNG KINH CÁC / SÁCH HỌC</p><h1>Mỗi quyển sách,<br>một bước tiến.</h1><p>Cất những quyển đang học vào cùng một nơi. Mở sách, đọc từng chương và trở lại khi cần.</p></div><button id="book-add" class="primary" type="button">＋ Thêm sách</button></header>
+<div class="catalog-tools"><label class="search-field">Tìm trong tủ sách<input id="book-search" type="search" maxlength="160" placeholder="Tên sách, tác giả, chủ đề…"></label><label>Chủ đề<select id="book-subject"><option value="">Mọi chủ đề</option></select></label><span id="books-count" aria-live="polite"></span></div>
+<p id="books-status" class="books-status" role="status"></p><button id="books-retry" type="button" hidden>Thử tải lại</button>
+<div id="books-grid" class="books-grid" aria-label="Các sách học"></div>
+<p class="catalog-note">Sách học trực tuyến được mở từ đường dẫn đã lưu. PDF và tài liệu trên máy tiếp tục nằm trong <a href="/library.html">Tàng Kinh Các</a> / <a href="/study.html">Dịch Kinh Các</a>.</p>
+</main>
+<dialog id="book-dialog" aria-labelledby="book-dialog-title"><form id="book-form"><div class="dialog-heading"><h2 id="book-dialog-title">Thêm sách học</h2><button id="book-cancel" type="button" class="quiet">Đóng</button></div>
+<label>Tên sách<input id="book-title" name="title" maxlength="160" required placeholder="Ví dụ: Winning Chess Strategies"></label>
+<div class="form-columns"><label>Tác giả<input id="book-author" name="author" maxlength="120" placeholder="Yasser Seirawan"></label><label>Chủ đề<input id="book-topic" name="subject" maxlength="80" placeholder="Chiến lược, Tàn cuộc…"></label></div>
+<label>Đường dẫn sách<input id="book-url" name="url" type="url" maxlength="2048" required placeholder="https://…" aria-describedby="book-url-help"></label><p id="book-url-help" class="form-hint">Dán đường dẫn HTTPS của trang sách; có thể kèm vị trí chương, ví dụ #chapter-01.</p>
+<label>Giới thiệu ngắn<textarea id="book-description" name="description" rows="3" maxlength="600" placeholder="Bạn muốn học gì từ quyển này?"></textarea></label>
+<p id="book-form-status" class="books-status" role="status"></p><div class="form-actions"><button id="book-save" class="primary" type="submit">Thêm vào tủ</button><button id="book-dismiss" type="button" class="quiet">Hủy</button></div></form></dialog>
+<script type="module" src="/books.js?v=1"></script></body></html>

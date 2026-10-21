@@ -2,6 +2,16 @@
 
 Ứng dụng cờ vua chạy local: đồng bộ ván cờ, quản lý thư viện, giải vòng tròn/Swiss/loại trực tiếp và đấu trường arena.
 
+## Tủ sách học trực tuyến
+
+Vào **Tàng kinh → Mở tủ sách** (`/books.html`), hoặc theo liên kết trong Dịch Kinh Các. Tủ sách có sẵn **Winning Chess Strategies – Yasser Seirawan**, mở tại chương 1 của bản tiếng Việt được cung cấp. Mục này dùng được ngay mà không cần mở khóa két file trên máy.
+
+**Thêm sách** nhận tên, tác giả, chủ đề, đường dẫn HTTPS (có thể kèm `#chapter-01`) và giới thiệu ngắn. Có tìm kiếm không dấu theo tên/tác giả/chủ đề, lọc chủ đề, sửa thông tin và gỡ sách. Thông tin được lưu trong SQLite cùng ứng dụng, không chỉ trong trình duyệt. Hai đường dẫn chỉ khác vị trí `#chương` được xem là cùng một sách; muốn đổi chương bắt đầu, sửa sách đã có. Quyển mặc định chỉ thêm một lần, không tự xuất hiện lại sau khi gỡ.
+
+**Đọc sách** mở trang `/book.html?id=...` trong Tĩnh Huyền Các, nhúng trang sách gốc và giữ một nút **Mở tab riêng**. Sách riêng tư vẫn tuân theo quyền truy cập của trang gốc. Một số trang yêu cầu đăng nhập hoặc chặn khung nhúng; khi đó dùng nút mở tab riêng. Mục lục, nội dung, hình thế cờ và tiến độ học tiếp tục do trang sách gốc quản lý. Ứng dụng chỉ lưu liên kết/thông tin sách, không sao chép bản dịch vào repository và không thay đổi chế độ chia sẻ của nguồn.
+
+API `/api/books` hỗ trợ GET/POST; `/api/books/{id}` hỗ trợ GET/PUT/DELETE. Đường dẫn được kiểm tra HTTPS, không nhận liên kết thực thi hoặc thông tin đăng nhập trong URL; máy chủ không tải nội dung từ URL này. Việc nâng cấp database diễn ra tự động khi khởi động backend. Két tài liệu và luồng đọc/dịch PDF hiện có được giữ nguyên.
+
 ## Soạn bài tập và bài kiểm tra
 
 Mở **Soạn bài tập** trên thanh điều hướng (`/worksheets.html`). Chọn Bài tập/Bài kiểm tra, sửa tiêu đề bằng ô nhập hoặc bấm thẳng vào tiêu đề trên bản xem trước, nhập lớp/level và lời dặn; thời gian làm bài là tùy chọn. Trang đầu có dòng **Họ tên** và **Level** để tự điền, cùng tiêu đề, thời gian/điểm và lời dặn. Từ trang 2 trở đi, phần đầu chỉ giữ header/tên đơn vị; phần bài tập được đưa lên trên, vẫn đủ 12 bài mỗi trang.
