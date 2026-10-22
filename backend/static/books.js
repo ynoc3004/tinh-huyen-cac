@@ -38,12 +38,19 @@ async function load(){
   if(reader){
    $('reader-content').hidden=true;$('reader-external').hidden=true;
    const id=new URLSearchParams(location.search).get('id');if(!id)throw Error('Chưa chọn sách. Trở lại Tủ sách học để chọn một quyển.');
-   const book=await api('/'+encodeURIComponent(id)),url=book.offline?'/offline-reader.html?id='+encodeURIComponent(book.id):safeURL(book.url);
+   const book=await api('/'+encodeURIComponent(id));
+   let exerciseCount=0,language='';
+   if(book.offline){const meta=await api('/'+encodeURIComponent(book.id)+'/offline');exerciseCount=Number(meta.exercises)||0;language=meta.language||'';}
+   const readURL='/offline-reader.html?id='+encodeURIComponent(book.id),practiceURL='/book-practice.html?id='+encodeURIComponent(book.id);
+   const reading=new URLSearchParams(location.search).get('view')==='read';
+   const url=book.offline?(exerciseCount&&!reading?practiceURL:readURL):safeURL(book.url);
+   $('reader-read').textContent=language==='vi'?'Đọc sách tiếng Việt':'Đọc sách';$('reader-modes').hidden=!exerciseCount;$('reader-read').href='/book.html?id='+encodeURIComponent(book.id)+'&view=read';$('reader-practice').href='/book.html?id='+encodeURIComponent(book.id)+'&view=practice';
+   $('reader-read').setAttribute('aria-current',reading?'page':'false');$('reader-practice').setAttribute('aria-current',reading?'false':'page');
    document.title=book.title+' · Tĩnh Huyền Quán';$('reader-title').textContent=book.title;
    $('reader-meta').textContent=[book.author,book.subject].filter(Boolean).join(' · ');
    $('reader-external').href=url;$('reader-external').hidden=false;
    $('book-frame').title='Đọc '+book.title;$('book-frame').src=url;$('reader-content').hidden=false;
-   $('reader-help').textContent=book.offline?'Sách đã lưu trên máy. Bạn có thể đọc, xem hình và PDF khi không có Internet; chỉ cần giữ ứng dụng Tĩnh Huyền Các đang chạy.':'Sách này mới có liên kết. Nhập gói .thcbook để đọc ngoại tuyến. Nếu trang gốc yêu cầu đăng nhập hoặc không hiển thị, chọn Mở tab riêng.';
+   $('reader-help').textContent=exerciseCount?'Sách có '+exerciseCount+' bài tương tác. Bấm hoặc kéo quân trên bàn cờ để giải; dùng Đọc sách để xem phần văn bản và đối chiếu bản gốc. Tiến độ được lưu trên trình duyệt này.':book.offline?'Sách đã lưu trên máy. Bạn có thể đọc, xem hình và PDF khi không có Internet; chỉ cần giữ ứng dụng Tĩnh Huyền Các đang chạy.':'Sách này mới có liên kết. Nhập gói .thcbook để đọc ngoại tuyến. Nếu trang gốc yêu cầu đăng nhập hoặc không hiển thị, chọn Mở tab riêng.';
   }else{books=await api();renderSubjects();render();controls();}
   status('');
  }catch(error){status(error.message);$('books-retry').hidden=false;if(reader)$('reader-title').textContent='Chưa mở được sách';}

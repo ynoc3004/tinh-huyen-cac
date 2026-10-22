@@ -20,7 +20,7 @@ API `/api/books` hỗ trợ GET/POST; `/api/books/{id}` hỗ trợ GET/PUT/DELET
 
 Gói sách có trường tùy chọn `exercise_file: "exercises.json"` trong manifest và dữ liệu tại `content/exercises.json`. Gói cũ tiếp tục đọc như trước. Bộ nhập kiểm tra FEN, mã bài/trang nguồn, mọi nước UCI trong cây lời giải, độ sâu và dung lượng trước khi lưu nguyên tử. Bài mang trạng thái `verified` phải có thế cờ hợp lệ và ít nhất một nước giải; trạng thái này chỉ xác nhận tính hợp lệ của các biến đã cung cấp, không chứng minh đó là nước tối ưu hoặc mọi biến đều đầy đủ. Các bài `review` giữ nguồn để đối chiếu và chỉ thực hành tự do.
 
-Sau khi nhập, mở sách → **Vào luyện tập**. Có chọn phần, nhảy theo số bài, bài ngẫu nhiên, lọc chưa giải/đã giải/cần ôn/đánh dấu/nguồn cần đối chiếu. Trang đọc cũng có thể dẫn thẳng tới từng bài bằng khối `test` có `exerciseId`. Mặc định giấu đáp án. Bấm hoặc kéo quân; phong cấp theo lựa chọn Hậu/Xe/Tượng/Mã. Máy đáp theo một nhánh đã lưu. Bài chiếu hết trong một nước chấp nhận mọi nước chiếu hết hợp lệ; bài theo biến nhận các nhánh được cung cấp, không kết luận nước ngoài cây là nước xấu. Có hai mức gợi ý, thử tự do, xem/lùi biến chính và đối chiếu PDF đề/đáp án.
+Sau khi nhập, sách có bài tập mở thẳng vào **Luyện tập trên bàn cờ**. Hai nút **Luyện tập trên bàn cờ** / **Đọc sách tiếng Việt** ở trang sách chuyển giữa hai chế độ. Có chọn phần, nhảy theo số bài, bài ngẫu nhiên, lọc chưa giải/đã giải/cần ôn/đánh dấu/nguồn cần đối chiếu. Trang đọc cũng có thể dẫn thẳng tới từng bài bằng khối `test` có `exerciseId`. Mặc định giấu đáp án. Bấm hoặc kéo quân; phong cấp theo lựa chọn Hậu/Xe/Tượng/Mã. Máy đáp theo một nhánh đã lưu. Bài chiếu hết trong một nước chấp nhận mọi nước chiếu hết hợp lệ; bài theo biến nhận các nhánh được cung cấp, không kết luận nước ngoài cây là nước xấu. Có hai mức gợi ý, thử tự do, xem/lùi biến chính và đối chiếu PDF đề/đáp án.
 
 Tiến độ phân biệt tự giải và có gợi ý; xem đáp án đưa bài vào mục cần ôn. Ghi chú, dấu sao và tiến độ lưu theo từng sách trong trình duyệt. **Sao lưu tiến độ** / **Nhập tiến độ** chuyển dữ liệu giữa các trình duyệt; nhập hợp nhất ghi chú để giữ cả hai bản. Không cần engine, dịch vụ AI hoặc mạng Internet để theo lời giải đã đóng gói; backend trên máy vẫn phải chạy. Cập nhật giao diện/backend trước khi nhập gói bài tập mới; không cần tạo lại database.
 
@@ -292,3 +292,5 @@ Smoke test với Stockfish thực được đóng gói (Bash):
 ```bash
 REVIEW_REAL_ENGINE=1 node tests/pgn-review.test.cjs
 ```
+
+Nếu bản cũ chỉ hiện ảnh và các ô “Bài 1, Bài 2…” không có nút giải: cập nhật toàn bộ backend/static, khởi động lại backend, tải trang bằng Ctrl+F5 rồi nhập lại gói `.thcbook` mới. Nhập lại cùng nguồn cập nhật quyển hiện có, giữ ID để các ghi chú/tiến độ trong trình duyệt tiếp tục dùng được. Khối hình có `original: true` chỉ hiện trong mục đối chiếu thu gọn; `answer_vi` cung cấp chú thích đáp án tiếng Việt và `language` ghi ngôn ngữ của gói.

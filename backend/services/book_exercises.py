@@ -14,7 +14,7 @@ def validate_exercises(data):
         if not isinstance(eid, str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,79}', eid) or eid in ids | {'constructor', 'prototype'}:
             raise ValueError('Mã bài tập không hợp lệ hoặc trùng.')
         ids.add(eid)
-        for key, limit in [('title', 200), ('group', 160), ('prompt', 2000), ('answer', 30000), ('rights_note', 500)]:
+        for key, limit in [('title', 200), ('group', 160), ('prompt', 2000), ('answer', 30000), ('answer_vi', 30000), ('rights_note', 500)]:
             if not isinstance(item.get(key, ''), str) or len(item.get(key, '')) > limit:
                 raise ValueError('Lời dẫn hoặc đáp án bài tập không hợp lệ.')
         if item.get('status') not in ('verified', 'review') or item.get('kind') not in ('mate1', 'line'):

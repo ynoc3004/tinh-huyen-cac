@@ -1,14 +1,15 @@
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),assert=require('node:assert/strict');
 const root=path.join(__dirname,'../static'),script=fs.readFileSync(path.join(root,'books.js'),'utf8');
 const seed={id:'winning-chess-strategies',title:'Winning Chess Strategies',author:'Yasser Seirawan',subject:'Chiến lược',description:'Bản dịch theo chương',url:'https://winning-chess-strategies-viet.exactpony8.chatgpt.site/#chapter-01'};
-function client({reader=false,id=seed.id,book=seed}={}){
+function client({reader=false,id=seed.id,book=seed,view=''}={}){
  const nodes=new Map(),requests=[],rows=new Map([[book.id,structuredClone(book)]]);let fail=false,accept=true;
- const node=id=>{if(!nodes.has(id))nodes.set(id,{id,value:'',textContent:'',innerHTML:'',hidden:true,disabled:false,dataset:{},events:{},focus(){this.focused=true},showModal(){this.open=true},close(){this.open=false},querySelectorAll(){return[]},reportValidity:()=>true,addEventListener(k,f){this.events[k]=f}});return nodes.get(id)};
+ const node=id=>{if(!nodes.has(id))nodes.set(id,{id,value:'',textContent:'',innerHTML:'',hidden:true,disabled:false,dataset:{},events:{},focus(){this.focused=true},showModal(){this.open=true},close(){this.open=false},querySelectorAll(){return[]},reportValidity:()=>true,addEventListener(k,f){this.events[k]=f},setAttribute(k,v){(this.attributes??={})[k]=v}});return nodes.get(id)};
  const fetch=async(url,opt={})=>{
   const body=typeof opt.body==='string'?JSON.parse(opt.body):opt.body,method=opt.method||'GET';requests.push({url,method,body});
   if(fail)return{ok:false,json:async()=>({detail:'Không kết nối được tủ sách'})};
   let data,status=200;const id=decodeURIComponent(url.split('/').at(-1)),collection=url==='/api/books';
   if(url==='/api/books/import'){data={...seed,offline:1,stats:{chapters:12,pages:253,figures:131}};rows.set(seed.id,data)}
+  else if(method==='GET'&&url.endsWith('/offline')){const book=rows.get(decodeURIComponent(url.split('/').at(-2)));data={...book,exercises:book?.exercises||0}}
   else if(method==='GET'){data=collection?[...rows.values()]:rows.get(id);if(!data){status=404;data={detail:'Không tìm thấy sách trong tủ.'}}}
   else if(method==='POST'){data={id:'new-book',...body};rows.set(data.id,data)}
   else if(method==='PUT'){data={id,...body};rows.set(id,data)}
@@ -16,7 +17,7 @@ function client({reader=false,id=seed.id,book=seed}={}){
   return{ok:status<400,json:async()=>structuredClone(data)};
  };
  const document={body:{dataset:{booksView:reader?'reader':'catalog'}},getElementById:node,title:''};
- const ctx={document,fetch,URL,URLSearchParams,location:{search:id?'?id='+encodeURIComponent(id):''},confirm:()=>accept};
+ const ctx={document,fetch,URL,URLSearchParams,location:{search:id?'?id='+encodeURIComponent(id)+(view?'&view='+view:''):''},confirm:()=>accept};
  vm.runInNewContext(script,ctx);
  return{node,document,requests,rows,fail:v=>fail=v,confirm:v=>accept=v};
 }
@@ -45,6 +46,8 @@ const submit=async c=>{await c.node('book-form').onsubmit({preventDefault(){}});
  const bad=client({reader:true,book:{...seed,url:'javascript:alert(1)'}});await flush();assert(bad.node('books-status').textContent.includes('HTTPS'));assert.equal(bad.node('book-frame').src,undefined);
  const absent=client({reader:true,id:'deleted'});await flush();assert(absent.node('books-status').textContent.includes('Không tìm thấy sách'));
  const offline=client({reader:true,book:{...seed,offline:1}});await flush();assert.equal(offline.node('book-frame').src,'/offline-reader.html?id='+seed.id);assert.equal(offline.node('reader-external').href,offline.node('book-frame').src);assert(offline.node('reader-help').textContent.includes('không có Internet'));
+ const exercise=client({reader:true,book:{...seed,offline:1,exercises:5334,language:'vi'}});await flush();assert.equal(exercise.node('book-frame').src,'/book-practice.html?id='+seed.id);assert.equal(exercise.node('reader-modes').hidden,false);assert.equal(exercise.node('reader-read').textContent,'Đọc sách tiếng Việt');assert(exercise.node('reader-read').href.endsWith('&view=read'));assert(exercise.node('reader-help').textContent.includes('kéo quân'));
+ const reading=client({reader:true,view:'read',book:{...seed,offline:1,exercises:5334,language:'vi'}});await flush();assert.equal(reading.node('book-frame').src,'/offline-reader.html?id='+seed.id);assert.equal(reading.node('reader-read').attributes['aria-current'],'page');
  c.node('book-package').files=[{size:65*1024*1024}];await c.node('book-package').onchange();assert(c.node('books-status').textContent.includes('64 MB'));assert(!c.requests.some(r=>r.url==='/api/books/import'));
  c.node('book-package').files=[{size:1000,name:'book.thcbook'}];c.fail(true);await c.node('book-package').onchange();assert.equal(c.node('books-status').textContent,'Không kết nối được tủ sách');assert.equal(c.node('book-import').disabled,false);
  c.fail(false);await c.node('book-package').onchange();assert(c.node('books-status').textContent.includes('12 chương'));assert(c.node('books-grid').innerHTML.includes('ĐỌC NGOẠI TUYẾN')||c.node('books-grid').innerHTML.includes('Đọc ngoại tuyến'));assert.equal(c.node('book-package').value,'');

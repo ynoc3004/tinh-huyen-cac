@@ -3,7 +3,7 @@
 <title>Thư phòng · Tĩnh Huyền Quán</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <link rel="stylesheet" href="/tien-canh.css?v=bagua-menu-4"><script src="/tien-canh.js?v=bagua-menu-4"></script>
-<link rel="stylesheet" href="/books.css?v=3"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=1">
+<link rel="stylesheet" href="/books.css?v=4"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=1">
 <script>if(/^\d+$/.test(new URLSearchParams(location.search).get("id")||"")){const target=new URL("/scan.html",location.origin);target.search=location.search;location.replace(target.href);}</script></head><body data-books-view="catalog"><main class="books-shell">
 <a class="back-link" href="/">← Cổng môn</a>
 <header class="books-hero"><div><p class="eyebrow">THƯ PHÒNG / TỦ SÁCH</p><h1>Thư phòng</h1><p>Nhập gói sách để đọc và học từng chương ngay cả khi máy không có mạng.</p></div><div class="catalog-add"><a class="scan-entry" href="/scan.html">♞ Quét thế cờ từ PDF →</a><button id="book-import" class="primary" type="button">↓ Nhập sách ngoại tuyến</button><button id="book-add" type="button">＋ Thêm liên kết</button><input id="book-package" type="file" accept=".thcbook,.zip,application/zip" hidden></div></header>
@@ -18,4 +18,4 @@
 <label>Đường dẫn sách<input id="book-url" name="url" type="url" maxlength="2048" required placeholder="https://…" aria-describedby="book-url-help"></label><p id="book-url-help" class="form-hint">Dán đường dẫn HTTPS của trang sách; có thể kèm vị trí chương, ví dụ #chapter-01.</p>
 <label>Giới thiệu ngắn<textarea id="book-description" name="description" rows="3" maxlength="600" placeholder="Bạn muốn học gì từ quyển này?"></textarea></label>
 <p id="book-form-status" class="books-status" role="status"></p><div class="form-actions"><button id="book-save" class="primary" type="submit">Thêm vào tủ</button><button id="book-dismiss" type="button" class="quiet">Hủy</button></div></form></dialog>
-<script type="module" src="/books.js?v=2"></script></body></html>
+<script type="module" src="/books.js?v=3"></script></body></html>

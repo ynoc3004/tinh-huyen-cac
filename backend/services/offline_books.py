@@ -164,5 +164,6 @@ def read_package(raw):
                 'figures':sum(len(v) for v in figures.values()), 'pdf':'book.pdf' in files,
                 'assets':[a[0] for a in assets], 'exercises':exercise_count,
                 'exercise_file':'exercises.json' if exercise_count else None,
-                'edition':str(manifest.get('edition','Bản dịch tiếng Việt'))[:100]}
+                'edition':str(manifest.get('edition','Bản dịch tiếng Việt'))[:100],
+                'language':str(manifest.get('language',''))[:20]}
     return book, manifest, docs, assets

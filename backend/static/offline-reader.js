@@ -91,7 +91,7 @@ function figureBlock(b,page){
   const asset=(figures[page]||[]).find(f=>f.id===b.figureId);if(!asset){return el('p','',b.text||'');}
   const fig=el('figure',asset.group?'group':'');const image=el('img');image.src=asset.src;image.loading='lazy';image.decoding='async';image.alt=b.text||'Hình thế cờ trong sách';
   const zoom=button('','',()=>{$('#large-figure').src=asset.src;$('#large-figure').alt=b.text||'Hình thế cờ gốc';$('#figure-caption').textContent=b.text||pageLabel(page);$('#figure-dialog').showModal();});zoom.setAttribute('aria-label','Phóng lớn: '+(b.text||'hình thế cờ'));zoom.append(image);
-  const cap=el('figcaption','',b.text||'');cap.append(el('span','zoom-label','Bấm vào hình để phóng lớn'));fig.append(zoom,cap);return fig;
+  const cap=el('figcaption','',b.text||'');cap.append(el('span','zoom-label','Bấm vào hình để phóng lớn'));fig.append(zoom,cap);if(b.original){const details=el('details','original-page');details.append(el('summary','','Đối chiếu trang gốc (nguyên ngữ)'),fig);return details;}return fig;
 }
 function block(b,page){
   if(b.type==='figure')return figureBlock(b,page);
@@ -99,7 +99,7 @@ function block(b,page){
   if(b.type==='quote')return el('blockquote','',b.text);
   if(b.type==='h2'||b.type==='h3')return el(b.type,'',b.text);
   if(b.type==='test'){
-    const t=el('div','test',b.text);if(bookInfo.exercises&&b.exerciseId){t.append(button('Giải trên bàn cờ →','text-button',()=>{location.href='/book-practice.html?id='+encodeURIComponent(BOOK_ID)+'&exercise='+encodeURIComponent(b.exerciseId);}));}if(bookInfo.solution_chapter&&current!==bookInfo.solution_chapter){
+    const t=el('div','test',b.text);if(b.exerciseId){t.append(button('Giải trên bàn cờ →','text-button',()=>{location.href='/book-practice.html?id='+encodeURIComponent(BOOK_ID)+'&exercise='+encodeURIComponent(b.exerciseId);}));}if(bookInfo.solution_chapter&&current!==bookInfo.solution_chapter){
       const n=b.text.match(/(?:KIỂM TRA|kiểm tra|TEST|BÀI TẬP|Bài tập|Bài)\s*(\d+)/i)?.[1];
       if(n){const a=el('div','inline-solutions');a.append(button('Xem lời giải bài '+n+' →','text-button',()=>openSolution(Number(n))));t.append(a);}
     }return t;
@@ -114,7 +114,8 @@ async function renderReader(id,targetPage,token){
   current=id;$('#breadcrumb-current').textContent=c.title;document.title=c.title+' · '+bookInfo.title;renderNav();
   $('#main').replaceChildren(el('div','loading','Đang mở '+c.title.toLowerCase()+'…'));
   const data=await load(id);if(token!==routeRun)return;
-  const reader=el('article','reader');const controls=el('div','reading-controls');const left=el('div','left-controls');
+  const legacyExercises=!bookInfo.exercises&&data.pages.some(p=>p.blocks.some(b=>b.exerciseId));
+  const reader=el('article','reader');if(legacyExercises){reader.append(el('p','package-warning','Bản đã nhập chưa có dữ liệu bàn cờ tương tác. Hãy cập nhật ứng dụng rồi nhập lại gói .thcbook để bổ sung; quyển sách trong tủ sẽ được cập nhật.'));}const controls=el('div','reading-controls');const left=el('div','left-controls');
   left.append(button('← Mục lục','text-button',()=>go('home')));
   const select=el('select');select.setAttribute('aria-label','Đến trang trong chương');
   for(const p of data.pages){const o=el('option','',pageLabel(p.page));o.value=p.page;select.append(o);}select.addEventListener('change',()=>scrollPage(Number(select.value)));select.id='page-select';left.append(select);

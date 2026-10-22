@@ -41,5 +41,7 @@ function client(storage=new Map()){
  const home=c.document.querySelector('#main');const begin=home.querySelectorAll('button').find(b=>b.textContent.includes('Bắt đầu đọc sách'));assert(begin);begin.fire('click');assert.equal(c.ctx.location.hash,'#chapter-01','Home-based books must start at the first readable part');
  const practice=home.querySelectorAll('button').find(b=>b.textContent.includes('Vào luyện tập'));assert(practice);practice.fire('click');assert.equal(c.ctx.location.href,'/book-practice.html?id=sample');
  c.run("block({type:'test',text:'Bài 2',exerciseId:'2'},1).children[0].fire('click')");assert.equal(c.ctx.location.href,'/book-practice.html?id=sample&exercise=2');
+ c.run("bookInfo.exercises=0");c.run("block({type:'test',text:'Bài 7',exerciseId:'7'},1).children[0].fire('click')");assert.equal(c.ctx.location.href,'/book-practice.html?id=sample&exercise=7','Legacy metadata cannot hide the exercise action');
+ const original=c.run("figureBlock({type:'figure',figureId:'f1',text:'Trang gốc',original:true},1)");assert.equal(original.tagName,'DETAILS');assert(original.textContent.includes('nguyên ngữ'));
  console.log('PASS: native offline reader renders chapters/images as text, searches all chapters, saves notes/bookmarks/position per book and opens the local PDF without remote requests');
 })().catch(error=>{console.error(error);process.exitCode=1});
