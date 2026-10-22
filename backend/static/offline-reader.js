@@ -213,6 +213,8 @@ async function bootOffline(){
   if(!BOOK_ID)throw Error('Chưa chọn sách ngoại tuyến.');
   const response=await fetch(BASE+'/offline');if(!response.ok)throw Error('Chưa có nội dung ngoại tuyến. Hãy nhập gói sách từ Tủ sách học.');
   bookInfo=await response.json();
+  $('#reader-practice-link').href='/book-practice.html?id='+encodeURIComponent(BOOK_ID);
+  $('#reader-practice-link').hidden=!bookInfo.exercises;
   $('#offline-edition').textContent=bookInfo.edition||'Bản dịch tiếng Việt';
   $('#offline-title').textContent=bookInfo.title;$('#offline-author').textContent=bookInfo.author||'';$('#offline-footer').textContent=bookInfo.title+' · Đã lưu trên máy';$('#side-count').textContent=bookInfo.chapters+(bookInfo.exercises?' PHẦN':' CHƯƠNG');
   const fontFiles=[['Be Vietnam Pro','400','normal','be-vietnam-pro-400-normal.woff'],['Be Vietnam Pro','500','normal','be-vietnam-pro-500-normal.woff'],['Be Vietnam Pro','600','normal','be-vietnam-pro-600-normal.woff'],['Be Vietnam Pro','700','normal','be-vietnam-pro-700-normal.woff'],['Be Vietnam Pro','400','italic','be-vietnam-pro-400-italic.woff'],['Noto Serif VI','400','normal','noto-serif-regular.woff'],['Noto Serif VI','700','normal','noto-serif-bold.woff'],['Noto Serif VI','400','italic','noto-serif-italic.woff'],['Noto Serif VI','700','italic','noto-serif-bolditalic.woff']];

@@ -1,7 +1,7 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const directory=path.join(__dirname,'../static'),source=fs.readFileSync(path.join(directory,'offline-reader.js'),'utf8'),html=fs.readFileSync(path.join(directory,'offline-reader.html'),'utf8');
 const core=source.slice(0,source.indexOf("$('#home-button').addEventListener"))+source.slice(source.indexOf('async function bootOffline(){'),source.lastIndexOf('bootOffline().catch'));
-function client(storage=new Map()){
+function client(storage=new Map(),exercises=0){
  class E{
   constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.events={};this.attrs={};this.style={setProperty(){}};this.className='';this.value='';this.complete=true;this._text='';this.classList={add:n=>this.className+=' '+n,remove:n=>this.className=this.className.split(' ').filter(x=>x!==n).join(' '),toggle:(n,on)=>{const has=this.className.split(' ').includes(n);on=on??!has;if(on&&!has)this.className+=' '+n;else if(!on)this.className=this.className.split(' ').filter(x=>x!==n).join(' ');return on}}}
   set textContent(value){this._text=String(value);this.children=[]}get textContent(){return this._text+this.children.map(c=>c.textContent).join('')}
@@ -15,7 +15,7 @@ function client(storage=new Map()){
  const body=new E('body'),head=new E('head'),root=new E('html');root.append(head,body);
  for(const match of html.matchAll(/id="([^"]+)"/g)){const node=new E();node.id=match[1];body.append(node)}
  const document={body,head,documentElement:root,title:'',querySelector:s=>root.querySelector(s),querySelectorAll:s=>root.querySelectorAll(s),createElement:tag=>new E(tag),createTextNode:text=>{const n=new E('text');n.textContent=text;return n}};
- const meta={id:'sample',title:'Sách của tôi',author:'Tác giả',start:'chapter-01',chapters:2,pages:2,assets:[],pdf:true,cover:'assets/cover.png'};
+ const meta={exercises,id:'sample',title:'Sách của tôi',author:'Tác giả',start:'chapter-01',chapters:2,pages:2,assets:[],pdf:true,cover:'assets/cover.png'};
  const catalog=[{id:'chapter-01',title:'Kế hoạch',start:1,end:1,number:1},{id:'chapter-02',title:'Tàn cuộc',start:2,end:2,number:2}];
  const chapters={'chapter-01':{pages:[{page:1,blocks:[{type:'p',text:'Kế hoạch <script>alert(1)</script>'},{type:'figure',figureId:'f1',text:'Thế cờ'},{type:'moves',text:'1. e4 e5'}]}]},'chapter-02':{pages:[{page:2,blocks:[{type:'p',text:'Ôn tàn cuộc'}]}]}};
  const requests=[];let hash='';const location={search:'?id=sample',get hash(){return hash},set hash(v){hash=v.startsWith('#')?v:'#'+v}};
@@ -27,7 +27,8 @@ function client(storage=new Map()){
  vm.createContext(ctx);vm.runInContext(core,ctx);return{ctx,document,storage,requests,run:code=>vm.runInContext(code,ctx)};
 }
 (async()=>{
- const c=client();await c.run('bootOffline()');const main=c.document.querySelector('#main');assert(main.textContent.includes('Kế hoạch <script>alert(1)</script>'));assert.equal(main.querySelectorAll('script').length,0,'Book text must never become executable HTML');
+ const c=client();await c.run('bootOffline()');assert.equal(c.document.querySelector('#reader-practice-link').hidden,true);
+ const exerciseBook=client(new Map(),5334);await exerciseBook.run('bootOffline()');assert.equal(exerciseBook.document.querySelector('#reader-practice-link').hidden,false);assert.equal(exerciseBook.document.querySelector('#reader-practice-link').href,'/book-practice.html?id=sample');const main=c.document.querySelector('#main');assert(main.textContent.includes('Kế hoạch <script>alert(1)</script>'));assert.equal(main.querySelectorAll('script').length,0,'Book text must never become executable HTML');
  assert.equal(main.querySelector('img').src,'/api/books/sample/asset/assets/f1.png');assert.equal(c.document.title,'Kế hoạch · Sách của tôi');
  c.run("toggleBookmark('chapter-01',1)");assert(JSON.parse(c.storage.get('thc-offline-book-sample')).bookmarks.some(b=>b.id==='chapter-01'));
  const note=main.querySelector('#note-input');note.value='Ý tưởng cần ôn';note.fire('input');c.run('persist(true)');assert.equal(JSON.parse(c.storage.get('thc-offline-book-sample')).notes['chapter-01'],'Ý tưởng cần ôn');
