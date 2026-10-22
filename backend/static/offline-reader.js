@@ -58,9 +58,10 @@ function renderHome(){
   const h=el('h1');h.append(document.createTextNode('Hiểu thế cờ.'),el('br'),el('em','','Tìm đúng kế hoạch.'));copy.append(h);
   const sub=el('p','hero-subtitle');sub.append(el('b','',bookInfo.title),document.createTextNode(' — '+(bookInfo.author||'')+'. '+(bookInfo.description||'Đọc và học từng chương từ bản đã lưu trên máy.')));copy.append(sub);
   const actions=el('div','hero-actions');const last=state.last&&meta(state.last.id)?state.last:null;
-  const start=button('', 'button',()=>go(last?.id||bookInfo.start||catalog[0]?.id||'home',last?.page));start.append(document.createTextNode(last?'Tiếp tục đọc':'Bắt đầu đọc sách'),el('span','arrow','→'));actions.append(start);if(bookInfo.pdf)actions.append(button('Mở sách PDF gốc ↗','text-button',()=>window.open(assetURL('book.pdf'),'_blank','noopener')));copy.append(actions);
-  const facts=el('div','hero-facts');for(const [a,b]of [[String(bookInfo.chapters||0),'chương'],[String(bookInfo.pages||0),'trang đã lưu'],['✓','Đọc ngoại tuyến']]){const x=el('span');x.append(el('b','',a),document.createTextNode(b));facts.append(x);}copy.append(facts);
+  const start=button('', 'button',()=>go(last?.id||(bookInfo.start!=='home'&&bookInfo.start)||catalog[0]?.id||'home',last?.page));start.append(document.createTextNode(last?'Tiếp tục đọc':'Bắt đầu đọc sách'),el('span','arrow','→'));actions.append(start);if(bookInfo.pdf)actions.append(button('Mở sách PDF gốc ↗','text-button',()=>window.open(assetURL('book.pdf'),'_blank','noopener')));copy.append(actions);
+  const facts=el('div','hero-facts');for(const [a,b]of [[String(bookInfo.chapters||0),bookInfo.exercises?'phần sách':'chương'],[String(bookInfo.pages||0),'trang đã lưu'],['✓','Đọc ngoại tuyến']]){const x=el('span');x.append(el('b','',a),document.createTextNode(b));facts.append(x);}copy.append(facts);
   const art=el('div','hero-art');const cover=el('img');if(bookInfo.cover)cover.src=assetURL(bookInfo.cover);else cover.hidden=true;cover.alt='Bìa sách '+bookInfo.title;cover.width=140;cover.height=204;const al=el('div','art-label');al.append(el('span','','THƯ PHÒNG'),el('span','','♞'));art.append(cover,al);hero.append(copy,art);home.append(hero);
+  if(bookInfo.exercises){const practice=el('section','intro-card');const content=el('div','intro-name');content.append(el('strong','',bookInfo.exercises+' bài tập trên bàn cờ'),el('span','','Giấu đáp án, thử nước đi và lưu bài cần ôn.'));practice.append(content,button('Vào luyện tập →','button',()=>{location.href='/book-practice.html?id='+encodeURIComponent(BOOK_ID);}));home.append(practice);}
   const head=el('div','section-header');head.append(el('h2','','Mục lục cuốn sách'));const tabs=el('div','view-tabs');tabs.setAttribute('aria-label','Chọn nội dung');for(const [f,t]of [['all','Tất cả chương'],['saved','Trang đã lưu']]){const b=button(t,activeFilter===f?'active':'',()=>{activeFilter=f;renderHome();});b.setAttribute('aria-pressed',String(activeFilter===f));tabs.append(b);}head.append(tabs);home.append(head);
   if(activeFilter==='saved')renderBookmarks(home);else{
     if(meta('intro')){const intro=button('','intro-card',()=>go('intro',state.positions.intro?.page));intro.append(el('span','intro-icon','¶'));const name=el('div','intro-name');name.append(el('strong','','Trước khi bắt đầu'),el('span','','Lời giới thiệu của tác giả'));intro.append(name,el('span','',String(meta('intro').end-meta('intro').start+1)+' trang'),el('span','intro-arrow','→'));home.append(intro);}
@@ -98,7 +99,7 @@ function block(b,page){
   if(b.type==='quote')return el('blockquote','',b.text);
   if(b.type==='h2'||b.type==='h3')return el(b.type,'',b.text);
   if(b.type==='test'){
-    const t=el('div','test',b.text);if(bookInfo.solution_chapter&&current!==bookInfo.solution_chapter){
+    const t=el('div','test',b.text);if(bookInfo.exercises&&b.exerciseId){t.append(button('Giải trên bàn cờ →','text-button',()=>{location.href='/book-practice.html?id='+encodeURIComponent(BOOK_ID)+'&exercise='+encodeURIComponent(b.exerciseId);}));}if(bookInfo.solution_chapter&&current!==bookInfo.solution_chapter){
       const n=b.text.match(/(?:KIỂM TRA|kiểm tra|TEST|BÀI TẬP|Bài tập|Bài)\s*(\d+)/i)?.[1];
       if(n){const a=el('div','inline-solutions');a.append(button('Xem lời giải bài '+n+' →','text-button',()=>openSolution(Number(n))));t.append(a);}
     }return t;
@@ -211,7 +212,8 @@ async function bootOffline(){
   if(!BOOK_ID)throw Error('Chưa chọn sách ngoại tuyến.');
   const response=await fetch(BASE+'/offline');if(!response.ok)throw Error('Chưa có nội dung ngoại tuyến. Hãy nhập gói sách từ Tủ sách học.');
   bookInfo=await response.json();
-  $('#offline-title').textContent=bookInfo.title;$('#offline-author').textContent=bookInfo.author||'';$('#offline-footer').textContent=bookInfo.title+' · Đã lưu trên máy';$('#side-count').textContent=bookInfo.chapters+' CHƯƠNG';
+  $('#offline-edition').textContent=bookInfo.edition||'Bản dịch tiếng Việt';
+  $('#offline-title').textContent=bookInfo.title;$('#offline-author').textContent=bookInfo.author||'';$('#offline-footer').textContent=bookInfo.title+' · Đã lưu trên máy';$('#side-count').textContent=bookInfo.chapters+(bookInfo.exercises?' PHẦN':' CHƯƠNG');
   const fontFiles=[['Be Vietnam Pro','400','normal','be-vietnam-pro-400-normal.woff'],['Be Vietnam Pro','500','normal','be-vietnam-pro-500-normal.woff'],['Be Vietnam Pro','600','normal','be-vietnam-pro-600-normal.woff'],['Be Vietnam Pro','700','normal','be-vietnam-pro-700-normal.woff'],['Be Vietnam Pro','400','italic','be-vietnam-pro-400-italic.woff'],['Noto Serif VI','400','normal','noto-serif-regular.woff'],['Noto Serif VI','700','normal','noto-serif-bold.woff'],['Noto Serif VI','400','italic','noto-serif-italic.woff'],['Noto Serif VI','700','italic','noto-serif-bolditalic.woff']];
   const fonts=el('style');fonts.textContent=fontFiles.filter(f=>bookInfo.assets.includes('assets/fonts/'+f[3])).map(f=>`@font-face{font-family:'${f[0]}';font-weight:${f[1]};font-style:${f[2]};font-display:swap;src:url('${assetURL('assets/fonts/'+f[3])}') format('woff')}`).join('');document.head.append(fonts);
   const responses=await Promise.all(['catalog','figures','page-labels'].map(name=>fetch(BASE+'/content/'+name+'.json').then(r=>{if(!r.ok)throw Error('Thiếu dữ liệu đã nhập.');return r.json();})));

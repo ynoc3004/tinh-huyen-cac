@@ -16,6 +16,14 @@ Sách **chỉ thêm liên kết** tiếp tục mở trang gốc và vẫn cần 
 
 API `/api/books` hỗ trợ GET/POST; `/api/books/{id}` hỗ trợ GET/PUT/DELETE. `POST /api/books/import` nhận body ZIP thô; `/{id}/offline`, `/{id}/content/{name}` và `/{id}/asset/{path}` phục vụ dữ liệu đã nhập. Đường dẫn nguồn được kiểm tra HTTPS, không nhận liên kết thực thi hoặc thông tin đăng nhập trong URL; máy chủ không tải nội dung từ URL này. Việc nâng cấp database diễn ra tự động khi khởi động backend. Két tài liệu và luồng đọc/dịch PDF hiện có được giữ nguyên.
 
+## Sách bài tập tương tác trong `.thcbook`
+
+Gói sách có trường tùy chọn `exercise_file: "exercises.json"` trong manifest và dữ liệu tại `content/exercises.json`. Gói cũ tiếp tục đọc như trước. Bộ nhập kiểm tra FEN, mã bài/trang nguồn, mọi nước UCI trong cây lời giải, độ sâu và dung lượng trước khi lưu nguyên tử. Bài mang trạng thái `verified` phải có thế cờ hợp lệ và ít nhất một nước giải; trạng thái này chỉ xác nhận tính hợp lệ của các biến đã cung cấp, không chứng minh đó là nước tối ưu hoặc mọi biến đều đầy đủ. Các bài `review` giữ nguồn để đối chiếu và chỉ thực hành tự do.
+
+Sau khi nhập, mở sách → **Vào luyện tập**. Có chọn phần, nhảy theo số bài, bài ngẫu nhiên, lọc chưa giải/đã giải/cần ôn/đánh dấu/nguồn cần đối chiếu. Trang đọc cũng có thể dẫn thẳng tới từng bài bằng khối `test` có `exerciseId`. Mặc định giấu đáp án. Bấm hoặc kéo quân; phong cấp theo lựa chọn Hậu/Xe/Tượng/Mã. Máy đáp theo một nhánh đã lưu. Bài chiếu hết trong một nước chấp nhận mọi nước chiếu hết hợp lệ; bài theo biến nhận các nhánh được cung cấp, không kết luận nước ngoài cây là nước xấu. Có hai mức gợi ý, thử tự do, xem/lùi biến chính và đối chiếu PDF đề/đáp án.
+
+Tiến độ phân biệt tự giải và có gợi ý; xem đáp án đưa bài vào mục cần ôn. Ghi chú, dấu sao và tiến độ lưu theo từng sách trong trình duyệt. **Sao lưu tiến độ** / **Nhập tiến độ** chuyển dữ liệu giữa các trình duyệt; nhập hợp nhất ghi chú để giữ cả hai bản. Không cần engine, dịch vụ AI hoặc mạng Internet để theo lời giải đã đóng gói; backend trên máy vẫn phải chạy. Cập nhật giao diện/backend trước khi nhập gói bài tập mới; không cần tạo lại database.
+
 ## Soạn bài tập và bài kiểm tra
 
 Mở **Soạn bài tập** trên thanh điều hướng (`/worksheets.html`). Chọn Bài tập/Bài kiểm tra, sửa tiêu đề bằng ô nhập hoặc bấm thẳng vào tiêu đề trên bản xem trước, nhập lớp/level và lời dặn; thời gian làm bài là tùy chọn. Trang đầu có dòng **Họ tên** và **Level** để tự điền, cùng tiêu đề, thời gian/điểm và lời dặn. Từ trang 2 trở đi, phần đầu chỉ giữ header/tên đơn vị; phần bài tập được đưa lên trên, vẫn đủ 12 bài mỗi trang.

@@ -104,3 +104,36 @@ class OfflineBooksTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+class ExerciseBookTests(OfflineBooksTests):
+    def exercise_package(self, changes=None):
+        import chess
+        item={'id':'1','number':1,'title':'Bài 1','group':'Khai cuộc','prompt':'Tìm nước đi.',
+              'kind':'line','status':'verified','fen':chess.STARTING_FEN,'page':1,'answer_page':1,
+              'answer':'1. e4 e5 2. Nf3','tree':[{'move':'e2e4','next':[{'move':'e7e5','next':[{'move':'g1f3','next':[]}]}]}]}
+        return self.package({'manifest.json':{**self.manifest,'exercise_file':'exercises.json','edition':'Bài tập tương tác'},
+                             'content/exercises.json':[item],**(changes or {})})
+
+    def test_exercise_import_persists_valid_lines_and_metadata(self):
+        response=self.upload(self.exercise_package());self.assertEqual(response.status_code,200,response.text)
+        book_id=response.json()['id'];db.init()
+        meta=self.client.get('/api/books/'+book_id+'/offline').json()
+        self.assertEqual(meta['exercises'],1);self.assertEqual(meta['edition'],'Bài tập tương tác')
+        self.assertEqual(self.client.get('/api/books/'+book_id+'/content/exercises.json').json()[0]['tree'][0]['move'],'e2e4')
+        self.assertEqual(self.client.get('/api/books/'+book_id+'/asset/book.pdf').content,b'%PDF-1.7\nfixture')
+
+    def test_bad_exercise_lines_cannot_replace_good_import(self):
+        self.upload(self.exercise_package())
+        good=self.client.get('/api/books/winning-chess-strategies/content/exercises.json').json()
+        from copy import deepcopy
+        cases=[]
+        bad=deepcopy(good);bad[0]['tree'][0]['move']='e2e5';cases.append(bad)
+        bad=deepcopy(good);bad[0]['tree'][0]['next'][0]['move']='e2e4';cases.append(bad)
+        bad=deepcopy(good);bad[0]['tree'].append(deepcopy(bad[0]['tree'][0]));cases.append(bad)
+        bad=deepcopy(good);bad[0]['page']=100;cases.append(bad)
+        bad=deepcopy(good);bad[0]['fen']='not FEN';cases.append(bad)
+        bad=deepcopy(good);bad[0]['tree']=[];cases.append(bad)
+        bad=deepcopy(good);bad[0]['tree'][0]['script']='alert(1)';cases.append(bad)
+        for case in cases:
+            r=self.upload(self.exercise_package({'content/exercises.json':case}));self.assertEqual(r.status_code,400,r.text)
+        self.assertEqual(self.client.get('/api/books/winning-chess-strategies/content/exercises.json').json(),good)

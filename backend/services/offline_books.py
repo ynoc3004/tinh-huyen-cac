@@ -144,6 +144,17 @@ def read_package(raw):
     cover = manifest.get('cover')
     if cover and (path_name(cover) not in files or PurePosixPath(cover).suffix.lower() not in ('.png','.jpg','.jpeg','.webp')):
         raise ValueError('Không tìm thấy ảnh bìa trong gói sách.')
+    exercise_count = 0
+    if manifest.get('exercise_file') is not None:
+        if manifest['exercise_file'] != 'exercises.json':
+            raise ValueError('Tên dữ liệu bài tập không hợp lệ.')
+        from services.book_exercises import validate_exercises
+        exercises = json_file(files, 'content/exercises.json')
+        exercise_count = validate_exercises(exercises)
+        present_pages = {p['page'] for chapter in docs.values() for p in chapter['pages']}
+        if any(e['page'] not in present_pages or e['answer_page'] not in present_pages for e in exercises):
+            raise ValueError('Bài tập dẫn tới trang không có trong gói sách.')
+        docs['exercises.json'] = exercises
     docs.update({'catalog.json':catalog,'figures.json':figures,'page-labels.json':labels})
     manifest = {**book.model_dump(), 'source_url':book.url, 'id':manifest['id'],
                 'start':manifest.get('start','home'), 'solution_chapter':manifest.get('solution_chapter'),
@@ -151,5 +162,7 @@ def read_package(raw):
                 'legacy_backup_app':str(manifest.get('legacy_backup_app',''))[:80],
                 'chapters':sum(bool(c.get('number')) for c in catalog), 'pages':page_count,
                 'figures':sum(len(v) for v in figures.values()), 'pdf':'book.pdf' in files,
-                'assets':[a[0] for a in assets]}
+                'assets':[a[0] for a in assets], 'exercises':exercise_count,
+                'exercise_file':'exercises.json' if exercise_count else None,
+                'edition':str(manifest.get('edition','Bản dịch tiếng Việt'))[:100]}
     return book, manifest, docs, assets

@@ -1,0 +1,29 @@
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const root=path.join(__dirname,'../static');
+class E{constructor(){this.value='';this.textContent='';this.children=[];this.dataset={};this.style={};this.attributes={};}setAttribute(k,v){this.attributes[k]=v}removeAttribute(k){delete this.attributes[k];delete this[k]}replaceChildren(...x){this.children=x}append(...x){this.children.push(...x)}click(){return this.onclick?.()}getAttribute(k){return this.attributes[k]}}
+const flush=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
+async function client(storage=new Map(),exercise=''){
+ const html=fs.readFileSync(path.join(root,'book-practice.html'),'utf8'),els={};for(const [,id] of html.matchAll(/id="([^"]+)"/g))els[id]=new E();els.group.value='';els.filter.value='all';els.promotion.value='q';
+ const document={title:'',body:new E(),getElementById:id=>{assert(els[id],'Missing HTML '+id);return els[id]},createElement:()=>new E(),createElementNS:()=>new E()};
+ const {Chess}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'vendor/chess.js')).toString('base64'));
+ const leaf=move=>({move,next:[]}),one={id:'1',number:1,title:'Bài 1',group:'Khai cuộc',prompt:'Tìm nước',kind:'line',status:'verified',fen:new Chess().fen(),page:1,answer_page:2,answer:'1. e4 <script>literal</script>',tree:[leaf('e2e4')]};
+ const items=[one,{...one,id:'2',number:2,title:'Bài 2'},{...one,id:'3',number:3,title:'Bài 3',status:'review',tree:[]}],requests=[],location={search:'?id=sample'+exercise};
+ let blob;const ctx={Chess,PIECE_DEFS:'',document,location,URLSearchParams,URL:{createObjectURL:b=>{blob=b;return 'blob:backup'},revokeObjectURL(){}},Blob,Date,Math,Set,console,setTimeout:()=>1,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},fetch:async url=>{assert(url.startsWith('/api/books/sample/'));requests.push(url);return {ok:true,json:async()=>structuredClone(url.endsWith('/offline')?{id:'package',title:'Sách bài tập',author:'Tác giả',exercises:3}:items)}}};
+ vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-exercise-session.js'),'utf8').replace(/^import .*;\n/gm,'').replace('export class','class'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-practice.js'),'utf8').replace(/^import .*;\n/gm,''),ctx);await flush();return {els,ctx,storage,requests,backup:()=>blob,run:s=>vm.runInContext(s,ctx)};
+}
+(async()=>{
+ const c=await client(),e=c.els;assert.equal(e['exercise-title'].textContent,'Bài 1 · #1');assert(e['answer-panel'].hidden);assert(!e.answer.textContent);assert.equal(e['answer-source'].href,undefined);assert.equal(e.board.children.length,64);
+ const square=s=>e.board.children.find(x=>x.title===s);square('a2').click();square('a3').click();assert(e.feedback.textContent.includes('Chưa kết luận'));assert(c.run('record().review'));
+ e.hint.click();assert(e.feedback.textContent.includes('e2'));square('e2').click();square('e4').click();assert(c.run('record().solved'));assert.equal(c.run('record().result'),'assisted');assert(e['answer-panel'].hidden);
+ e.reset.click();square('e2').click();square('e4').click();assert.equal(c.run('record().result'),'assisted','Reset cannot erase assistance from the same attempt');
+ e.note.value='Kế hoạch của mình';e.note.oninput();e.star.click();e.next.click();assert.equal(e['exercise-title'].textContent,'Bài 2 · #2');square('e2').click();square('e4').click();assert.equal(c.run('record().result'),'independent');
+ e.reveal.click();assert.equal(e.answer.textContent,'1. e4 <script>literal</script>');assert(e['answer-source'].href.endsWith('#page=2'));assert.equal(c.run('session.free'),true);e['solution-next'].click();assert.equal(c.run('session.chess.get("e4").type'),'p');e['solution-prev'].click();assert.equal(c.run('session.chess.get("e2").type'),'p');
+ e.next.click();assert.equal(e.mode.value,'free');assert(e.mode.disabled);assert(e.hint.disabled);square('e2').click();square('e4').click();assert.equal(c.run('record().solved'),false);assert(e.feedback.textContent.includes('không được chấm'));
+ e.filter.value='star';e.filter.onchange();assert.equal(e['exercise-title'].textContent,'Bài 1 · #1');assert.equal(e.note.value,'Kế hoạch của mình');e.filter.value='source-review';e.filter.onchange();assert.equal(e['exercise-title'].textContent,'Bài 3 · #3');e.filter.value='all';e.filter.onchange();
+ e.jump.value='2';e['jump-go'].click();assert.equal(e['exercise-title'].textContent,'Bài 2 · #2');e.jump.value='999';e['jump-go'].click();assert(e['load-status'].textContent.includes('Không tìm thấy'));
+ e.export.click();const backup=JSON.parse(await c.backup().text());assert.equal(backup.packageId,'package');assert.equal(backup.progress.records['1'].note,'Kế hoạch của mình');
+ const reload=await client(c.storage);assert.equal(reload.els['exercise-title'].textContent,'Bài 2 · #2');assert(reload.requests.every(x=>x.startsWith('/api/books/sample/')));
+ const linked=await client(new Map(),'&exercise=3');assert.equal(linked.els['exercise-title'].textContent,'Bài 3 · #3');
+ backup.progress.records['1'].note='Ghi chú nhập thêm';e['import-file'].files=[{size:100,text:async()=>JSON.stringify(backup)}];await e['import-file'].onchange();assert(c.run('progress.records["1"].note').includes('Kế hoạch của mình'));assert(c.run('progress.records["1"].note').includes('Ghi chú nhập thêm'));
+ console.log('PASS: answer hiding, assisted vs independent progress, review-only sources, reset, filters/jump, persisted notes/stars, solution navigation, deep links and backup merge');
+})().catch(e=>{console.error(e);process.exitCode=1});

@@ -84,3 +84,5 @@ Mở **Thư phòng** để đọc tủ sách mới, nhập sách ngoại tuyến
 Bấm **Quét thế cờ từ PDF** để chọn/tải PDF và luyện tập với các hình bàn cờ. Công cụ giữ kết quả quét, ghi chú và dấu sách cũ; mở lại không cần nhận diện lại. Quét không phụ thuộc bộ dịch hoặc OCR. Hướng dẫn cài bộ quét local nằm trong `backend/README.md`.
 
 Giao diện Thư phòng/dịch cũ đã được thay; API và dữ liệu dịch đã lưu vẫn được giữ. Các đường dẫn PDF cũ tự chuyển tới công cụ quét. Sau khi cập nhật toàn bộ mã nguồn, khởi động lại backend và tải lại trang với Ctrl+F5.
+
+Gói `.thcbook` cũng hỗ trợ bài tập tương tác: mở sách → **Vào luyện tập**, giải trên bàn cờ với đáp án ẩn, gợi ý, đáp trả theo lời giải, ghi chú và ôn bài. Nước ngoài lời giải không tự bị chấm là nước xấu. Nguồn chưa xác minh có nhãn riêng và không tự chấm; xem `backend/README.md`.

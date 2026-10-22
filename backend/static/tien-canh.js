@@ -67,7 +67,7 @@
   const bagua='<svg class="site-bagua" viewBox="0 0 100 100" aria-hidden="true"><path d="M31 4h38l27 27v38L69 96H31L4 69V31z" fill="none" stroke="currentColor" stroke-width="1" opacity=".6"/>'+paths.map((path,index)=>'<g fill="currentColor" transform="rotate('+(index*45)+' 50 50)">'+trigram(path[4],42,10,16,4.5)+'</g>').join('')+'<circle cx="50" cy="50" r="23" fill="none" stroke="currentColor" opacity=".2"/><circle cx="50" cy="50" r="17" fill="var(--paper)" stroke="currentColor"/><path d="M50 33a17 17 0 0 1 0 34a8.5 8.5 0 0 1 0-17a8.5 8.5 0 0 0 0-17" fill="currentColor"/><circle cx="50" cy="41.5" r="2.5" fill="currentColor"/><circle cx="50" cy="58.5" r="2.5" fill="var(--paper)"/></svg>';
   function mount() {
     const page=location.pathname.replace(/^\//,'').replace(/\.html$/,'')||'home';document.body.dataset.page=page==='index'?'home':page;
-    const active=['tournament','arena-live'].includes(page)?'arena':page==='reader'?'library':['books','book','scan'].includes(page)?'study':page==='learn'?'bi-canh':page==='translate'?'study':page==='index'?'home':page;
+    const active=['tournament','arena-live'].includes(page)?'arena':page==='reader'?'library':['books','book','scan','book-practice'].includes(page)?'study':page==='learn'?'bi-canh':page==='translate'?'study':page==='index'?'home':page;
     const current=paths.find(path=>path[2]===active)?.[1]||(page==='review'?'Phân tích PGN':page==='fonts-preview'?'Diện mạo':'Điều hướng');
     let header=document.querySelector('.site-header');
     if(!header){

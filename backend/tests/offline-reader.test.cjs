@@ -37,5 +37,9 @@ function client(storage=new Map()){
  const next=client(c.storage);await next.run('bootOffline()');assert.equal(next.document.title,'Tàn cuộc · Sách của tôi','Reading position should survive reopening');
  assert(c.requests.every(url=>!url.includes('chatgpt.site')));assert.equal(c.run("assetURL('assets/fonts/a b.woff')"),'/api/books/sample/asset/assets/fonts/a%20b.woff');
  assert(!/https?:\/\//.test(source),'Reader code must not depend on a remote host');
+ c.run("bookInfo.exercises=2;bookInfo.start='home';state.last=null;renderHome()");
+ const home=c.document.querySelector('#main');const begin=home.querySelectorAll('button').find(b=>b.textContent.includes('Bắt đầu đọc sách'));assert(begin);begin.fire('click');assert.equal(c.ctx.location.hash,'#chapter-01','Home-based books must start at the first readable part');
+ const practice=home.querySelectorAll('button').find(b=>b.textContent.includes('Vào luyện tập'));assert(practice);practice.fire('click');assert.equal(c.ctx.location.href,'/book-practice.html?id=sample');
+ c.run("block({type:'test',text:'Bài 2',exerciseId:'2'},1).children[0].fire('click')");assert.equal(c.ctx.location.href,'/book-practice.html?id=sample&exercise=2');
  console.log('PASS: native offline reader renders chapters/images as text, searches all chapters, saves notes/bookmarks/position per book and opens the local PDF without remote requests');
 })().catch(error=>{console.error(error);process.exitCode=1});
