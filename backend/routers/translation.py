@@ -190,6 +190,12 @@ async def models(key: bytes = Depends(library.guard)):
     except (httpx.HTTPError, ValueError, KeyError):
         return {"models": deepl_models() + gemini_models() + [local_translation.ENGINE], "local_models": [], "recommended_local": ""}
 
+@router.get("/{item_id}/study/info")
+def scan_document_info(item_id: int, key: bytes = Depends(library.guard)):
+    row = book(item_id)
+    with document(row, key) as doc:
+        return {"pages": len(doc), "title": row["title"]}
+
 @router.get("/{item_id}/page")
 def page(item_id: int, page: int = 1, ocr: bool = False, fresh: bool = False, key: bytes = Depends(library.guard)):
     row = book(item_id)

@@ -4,7 +4,7 @@
 
 ## Tủ sách học và đọc ngoại tuyến
 
-Vào **Tàng kinh → Mở tủ sách** (`/books.html`), hoặc theo liên kết trong Dịch Kinh Các. Mục này dùng được mà không cần mở khóa két file trên máy. Liên kết có sẵn của **Winning Chess Strategies – Yasser Seirawan** chỉ là nguồn trực tuyến; để đọc khi mất mạng, bấm **Nhập sách ngoại tuyến** và chọn gói `.thcbook` đã tải về. Nhập một lần; nội dung, hình, phông chữ và PDF được lưu trong SQLite trên máy. Khi đọc không cần ChatGPT hay Internet, nhưng backend Tĩnh Huyền Các trên máy vẫn phải chạy.
+Vào **Thư phòng** (`/study.html`). Đường dẫn `/books.html` cũ tự chuyển về đây. Mục này dùng được mà không cần mở khóa két file trên máy. Liên kết có sẵn của **Winning Chess Strategies – Yasser Seirawan** chỉ là nguồn trực tuyến; để đọc khi mất mạng, bấm **Nhập sách ngoại tuyến** và chọn gói `.thcbook` đã tải về. Nhập một lần; nội dung, hình, phông chữ và PDF được lưu trong SQLite trên máy. Khi đọc không cần ChatGPT hay Internet, nhưng backend Tĩnh Huyền Các trên máy vẫn phải chạy.
 
 Sách đã nhập có nhãn **Đã lưu trên máy · Ngoại tuyến**. **Đọc ngoại tuyến** dùng bộ đọc nội bộ (`offline-reader.html`), có mục lục theo chương, tìm trong toàn bộ sách, xem hình/phóng lớn, PDF đối chiếu, đánh dấu đã học, dấu trang, ghi chú, cỡ chữ và giao diện sáng/tối. Tiến độ và ghi chú được lưu trong trình duyệt riêng cho từng sách; dùng xuất/nhập sao lưu để chuyển thiết bị. Gói Winning Chess Strategies cũng nhận bản sao lưu tiến độ xuất từ trang sách cũ. Bộ đọc và tài nguyên đều dùng địa chỉ của ứng dụng trên máy, không gọi trang Sites/ChatGPT.
 
@@ -145,25 +145,15 @@ Mọi bản in mặc định khổ A4 ngang.
 - **Giới hạn:** tên file, ghi chú và nhãn lưu ở `data/app.db` dạng chưa mã hóa. Cần sao lưu cả thư mục két lẫn `data/app.db`. Cần `pip install -r requirements.txt` lại để có thư viện `cryptography`.
 
 
-## Dịch Kinh Các: sách, bản dịch và bàn cờ
+## Thư phòng và quét thế cờ
 
-Dịch Kinh Các (`study.html?id=...`) đặt **sách gốc**, **bản dịch tiếng Việt** và **bàn cờ theo sách** trong cùng không gian đọc. `translate.html?id=...` chuyển đến trang đọc, không tự mở thiết lập dịch hàng loạt. Trên màn hình lớn có ba cột; màn hình vừa giữ hai cột đọc và đưa bàn cờ xuống dưới; điện thoại có ba nút chuyển Sách gốc / Tiếng Việt / Bàn cờ. Chọn sách hoặc tải PDF ngay ở đầu trang, chuyển trang và đánh dấu ngay dưới ảnh PDF. Thanh này nằm ngoài vùng cuộn ảnh, luôn ở cạnh trang sách đang đọc. Bấm **Phóng lớn** để mở ảnh trang sách ở kích thước lớn.
+**Thư phòng** (`/study.html`) là tủ sách học: tìm kiếm, lọc chủ đề, nhập gói sách ngoại tuyến và thêm/sửa/xóa liên kết sách. Trang đọc sách quay lại Thư phòng. Tàng Kinh Các tiếp tục quản lý file trong két; tủ sách mới không còn nằm ở đó.
 
-**Đọc chữ và dịch sách cờ:** bộ đọc bỏ các dòng mã font bàn cờ, hàng/cột tọa độ và chuỗi ký tự lặp, giữ lời bình và ký hiệu SAN. Các quân cờ Unicode trong nước đi được đổi sang SAN. Bật OCR sẽ đọc lại toàn bộ ảnh thay vì tin vào lớp chữ hỏng trong PDF; vẫn cần Tesseract cùng `eng.traineddata` như trước. Không cần thêm thư viện cho bản sửa này.
+Bấm **Quét thế cờ từ PDF** trong Thư phòng để mở `/scan.html`. Chọn sách PDF đã lưu trong két hoặc tải PDF lên ngay trên trang. Nếu két đang khóa, bấm **Mở khóa kho PDF**, mở khóa rồi quay lại/tải lại trang quét. Trên máy tính, PDF và công cụ bàn cờ nằm cạnh nhau; điện thoại xếp hai khung theo chiều dọc. Chuyển trang, phóng lớn ảnh PDF, đánh dấu trang và ghi chú tiếp tục dùng dữ liệu cũ.
 
-**Tesseract trên Windows:** `TESSDATA_PREFIX` phải là thư mục chứa `eng.traineddata`, thường là `C:\Program Files\Tesseract-OCR\tessdata` hoặc thư mục tương ứng trong `Program Files (x86)`. Backend kiểm tra đường dẫn cấu hình; nếu trỏ nhầm thư mục cài đặt thì thử thư mục con `tessdata`, nếu không tồn tại thì thử các vị trí cài đặt 32/64 bit và Tesseract trong PATH. Không tự tải hay sửa biến môi trường. Nếu không có tệp tiếng Anh đọc được, API OCR báo 503 kèm cách sửa; giao diện vẫn mở PDF với lớp chữ sẵn có và báo OCR chưa sẵn sàng. Nút đọc lại chữ gốc giữ nguyên nội dung đang sửa khi OCR thất bại. Sau khi sửa `.env`/biến môi trường cần khởi động lại backend. Có thể tắt OCR trong Tùy chọn khi PDF đã có chữ.
+Quét độc lập với OCR và bộ dịch: mở PDF không gọi bộ dịch hoặc trích chữ. Kết quả quét đã lưu được mở lại theo sách/trang/bộ quét; **Quét lại** yêu cầu nhận diện mới. Chọn hình để thực hành, sửa quân/lượt đi, trở về thế sách hoặc nhập/xuất PGN/FEN. Đối chiếu quân với ảnh gốc trước khi dùng.
 
-Nếu một trang đã lưu chữ đọc sai, mở **Hiệu đính chữ gốc → Đọc lại chữ gốc từ PDF**. Thao tác này cần xác nhận và chỉ thay bản chữ đang hiển thị; bản hiệu đính đã lưu được giữ cho tới khi bấm Lưu, Dịch hoặc chuyển trang. Sau đó bấm **Dịch trang / Dịch lại**; thao tác dịch chủ động luôn tạo lại kết quả, không trả lại bản lỗi từ cache. Bản dịch mới có phiên bản bộ đọc riêng; các bản dịch cũ không bị xóa nhưng không tự được mở trong khung mới. Lượt dịch nhiều trang cũ có nhãn cảnh báo, vẫn xuất được trước khi bắt đầu lượt mới.
-
-**Dịch câu văn tự nhiên:** bản mới gửi trọn câu/đoạn cho bộ dịch, không cắt tại từng từ cờ vua rồi ghép theo trật tự tiếng Anh. Các biến dài (từ ba nước đi liên tiếp) được sao chép nguyên dạng; lời bình vẫn được dịch cả câu. Không tách dấu `!?` của nước như `8.Bb5!?` khỏi lời bình ngay sau đó. Gemini/Ollama nhận đầy đủ chữ gốc cùng hướng dẫn thuật ngữ, chỉ ẩn ký hiệu nước đi; DeepL cũng nhận câu tiếng Anh đầy đủ với ngữ cảnh cờ vua. Những nghĩa dịch sai đã biết như “giám mục” được hiệu đính thành “tượng” khi có từ tương ứng trong nguồn. Chuỗi lỗi như `Coptic month`/`LongName` không có trong nguyên bản bị chặn trước khi lưu.
-
-Nút **Dịch bằng Ollama** dùng model local đã cài, ưu tiên lựa chọn Ollama đang dùng hoặc model được backend gợi ý trong danh sách. Nút này không tự tải model và không chuyển sang dịch vụ trả phí khi Ollama chưa chạy. Mở Ollama rồi bấm **Kết nối lại** trong Tùy chọn nếu chưa thấy model. Bộ dịch đang dùng được ghi ngay dưới hàng nút dịch. Chọn model khác trong Tùy chọn nếu cần. OPUS-MT vẫn dùng được, nhưng câu văn có thể còn gượng; tăng bảng thuật ngữ không thay thế được khả năng hiểu ngữ cảnh của model. Chưa có môi trường chạy các model thật trong phiên kiểm thử này; các test kiểm tra việc giữ ngữ cảnh, ký hiệu, lựa chọn provider và xử lý lỗi, không chứng minh chất lượng tiếng Việt thực tế.
-
-Thuật ngữ tự nhập (`bishop = quân tượng`, mỗi dòng hoặc ngăn bằng dấu chấm phẩy) bổ sung và ưu tiên hơn bảng mặc định cho model có hiểu chỉ dẫn; OPUS chỉ hiệu đính được những cách dịch tương ứng đã biết, không đảm bảo áp dụng mọi thuật ngữ tự tạo. Bản dịch dùng phiên bản cache mới nên cần bấm Dịch lại cho trang cũ. Câu văn vẫn cần đối chiếu với sách, nhất là tên riêng và ý nghĩa chiến thuật.
-
-**Tùy chọn** gom bộ dịch, OCR, bố cục và chế độ đọc; **Dịch nhiều trang** giữ khoảng trang, thuật ngữ, dừng/tiếp tục và xuất bản dịch. Bản gốc luôn hiển thị đúng trang đang chọn. Khi bộ dịch chưa kết nối, vẫn mở sách, đọc bản dịch đã lưu và quét thế cờ.
-
-Bàn cờ chỉ xuất hiện sau khi chọn hình đã quét hoặc nhập FEN/PGN. **Về thế sách** khôi phục vị trí đã chọn (hoặc đã hiệu đính) sau khi thử biến. Chuyển trang hoặc đổi bộ quét sẽ gỡ thế cờ cũ khỏi khung để tránh nhầm trang. Cấu hình bộ quét, công cụ ngoài và nhập/xuất PGN nằm trong **Công cụ bàn cờ**. Ghi chú, hiệu đính chữ/quân và tiến độ dịch tiếp tục lưu như trước.
+`/study.html?id=<mã PDF>` và `/translate.html?id=...` cũ chuyển đến `/scan.html?id=...`. Giao diện dịch cũ đã được gỡ; API dịch và các bản dịch đã lưu vẫn được giữ để tương thích, không xóa hoặc chuyển đổi dữ liệu. Backend phải chạy khi đọc sách ngoại tuyến hoặc dùng kho PDF.
 
 ### Quét local miễn phí
 
@@ -189,34 +179,18 @@ Mục **Dùng thêm Chessvision.ai** có liên kết [eBook Reader](https://eboo
 Đây là luồng chuyển kết quả thủ công, không phải API gọi tự động. Chưa tìm thấy API công khai được nhà cung cấp tài liệu hóa để tích hợp nhận diện trực tiếp. App không tự gửi sách, đăng ký hoặc mua thuê bao. [Reader miễn phí chỉ tương tác với hình trên vài trang đầu mỗi sách](https://chessvision.ai/docs/ebook-reader/subscription/); đầy đủ cần thuê bao riêng. Gói này không đi kèm bộ quét local.
 
 
-## Dịch bằng Claude / Gemini bản chat miễn phí
-
-Trong Dịch Kinh Các, chọn **Chat miễn phí**:
-
-1. Kiểm tra chữ gốc rồi bấm **Sao chép yêu cầu dịch trang này**. Yêu cầu có hướng dẫn văn phong, thuật ngữ cờ vua và giữ nguyên SAN. Nếu trình duyệt chặn clipboard, mở phần yêu cầu và dùng Ctrl+C.
-2. Mở **Claude** hoặc **Gemini** bằng liên kết trên trang, đăng nhập bằng tài khoản của bạn, dán yêu cầu và tự gửi trong chat. Model và hạn mức theo gói tài khoản; ứng dụng không chọn hay bảo đảm một model cụ thể. Không cần API key cho cách này.
-3. Sao chép phần bản dịch từ chat, dán về ứng dụng, chọn nơi đã dịch và bấm **Lưu bản dịch**. Ứng dụng kiểm tra thứ tự/ký hiệu nước đi trước khi lưu; lỗi giữ nguyên nội dung đang dán để sửa.
-
-Yêu cầu giữ lại trang, chữ gốc và thuật ngữ lúc sao chép: nếu chuyển sang trang khác trước khi dán, bản dịch vẫn được lưu cho trang ban đầu. Muốn dịch trang khác, bấm **Đổi trang dịch**; ứng dụng hỏi trước khi bỏ bản đang dán chưa lưu. Bản nháp trong ô nhập chưa được lưu sẽ mất khi tải lại hoặc đóng trang.
-
-Bản dịch đã lưu được mã hóa trong két, mở lại theo đúng sách/trang và không phụ thuộc Ollama hay phiên bản bộ dịch tự động. Nếu chữ gốc hoặc thuật ngữ đổi, bản cũ được giữ nhưng không hiển thị như bản dịch của nội dung mới. Khi đã lưu, phần nhập thu gọn để đọc sách, tiếng Việt và bàn cờ. **Dịch tự động** vẫn có các bộ dịch cũ và tiến trình dịch nhiều trang riêng.
-
-Ứng dụng không tự gửi chữ/sách, đăng nhập, đọc phản hồi hoặc điều khiển Claude/Gemini. Liên kết mở trang chat trống; bạn tự chọn nội dung gửi. Dùng gói chat miễn phí khác với gọi API dịch tự động.
-
-### Gemini tùy chọn và dịch chữ
+### Gemini tùy chọn
 
 Có thể chọn Gemini trong **Bộ quét** nếu backend có `GEMINI_API_KEY`. Danh sách model lấy từ Google; khóa không gửi ra trình duyệt. `GEMINI_SCAN_MODEL` là model dự phòng cho API cũ gửi tên model trống. Gemini gửi ảnh trang tới Google, có hạn mức/phí tùy tài khoản. Không tự chuyển từ local sang Gemini. Nút kiểm tra ảnh nhỏ với Gemini gọi một yêu cầu để kiểm tra dịch vụ lúc đó; lỗi 503 từ Google vẫn có thể xảy ra.
-
-AI dịch chữ được chọn riêng trong khung Bản dịch. Quét và dịch có trạng thái riêng, chạy đồng thời được. Đổi sách/trang/OCR tạm khóa trong lúc quét/dịch trang để tránh gắn kết quả nhầm trang. Dịch nhiều trang vẫn cho đọc trang và thử thế cờ.
 
 ### Kiểm tra bổ sung
 
 ```powershell
 python -m unittest discover -s tests -v
-node tests/study-workflow.test.cjs
+node tests/scan-workflow.test.cjs
 ```
 
-API tests dùng PDF/database tạm và phản hồi giả, kiểm tra chọn local không gọi cloud, cache riêng, lỗi quét lại giữ kết quả cũ, ảnh đúng trang và khóa két. Node mô phỏng DOM/API, kiểm tra hai tác vụ độc lập, quét local mặc định, tải ảnh trang và nhập PGN. Model/detector không được tải tự động bởi tests.
+API tests dùng PDF/database tạm và phản hồi giả, kiểm tra chọn local không gọi cloud, cache riêng, lỗi quét lại giữ kết quả cũ, ảnh đúng trang và khóa két. Node mô phỏng DOM/API, kiểm tra quét độc lập với dịch/OCR, cache, ghi chú/dấu sách cũ, chuyển trang, nhập PGN và đường dẫn cũ. Model/detector không được tải tự động bởi tests.
 
 Thử thực tế trên PDF London System: nhận diện 20 hình ở các trang PDF 22, 24, 26, 27, 29–44; đã đối chiếu vị trí quân với ảnh. Đây là mẫu một kiểu sách, không đại diện cho mọi PDF. Kiểu quân trong Winning Chess Strategies có trường hợp nhận nhầm; cần hiệu đính hoặc dùng nguồn nhận diện khác.
 
@@ -266,7 +240,7 @@ Kiểm tra bộ điều khiển diện mạo và các luồng frontend hiện c�
 ```powershell
 node tests/appearance.test.cjs
 node tests/site-menu.test.cjs
-node tests/study-workflow.test.cjs
+node tests/scan-workflow.test.cjs
 node tests/arena-workflow.test.cjs
 node tests/arena-clock.test.cjs
 node tests/tournament-page.test.cjs

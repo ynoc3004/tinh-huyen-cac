@@ -49,6 +49,8 @@ const submit=async c=>{await c.node('book-form').onsubmit({preventDefault(){}});
  c.node('book-package').files=[{size:1000,name:'book.thcbook'}];c.fail(true);await c.node('book-package').onchange();assert.equal(c.node('books-status').textContent,'Không kết nối được tủ sách');assert.equal(c.node('book-import').disabled,false);
  c.fail(false);await c.node('book-package').onchange();assert(c.node('books-status').textContent.includes('12 chương'));assert(c.node('books-grid').innerHTML.includes('ĐỌC NGOẠI TUYẾN')||c.node('books-grid').innerHTML.includes('Đọc ngoại tuyến'));assert.equal(c.node('book-package').value,'');
  const html=fs.readFileSync(path.join(root,'book.html'),'utf8');assert(html.includes('referrerpolicy="no-referrer"'));assert(html.includes('sandbox="allow-scripts allow-same-origin'));assert(html.includes('rel="noopener noreferrer"'));assert(!html.includes('allow-top-navigation'));
- assert(fs.readFileSync(path.join(root,'library.html'),'utf8').indexOf('href="/books.html"')<fs.readFileSync(path.join(root,'library.html'),'utf8').indexOf('id="gate"'),'Catalog must be reachable before vault unlock');
+ const shelf=fs.readFileSync(path.join(root,'study.html'),'utf8'),vault=fs.readFileSync(path.join(root,'library.html'),'utf8');
+ assert(shelf.includes('data-books-view="catalog"'));assert(shelf.includes('href="/scan.html"'));assert(!vault.includes('online-study-entry'));assert(!vault.includes('href="/books.html"'));assert(!shelf.includes('id="reading-pane"'));assert(html.includes('href="/study.html"'));
+
  console.log('PASS: online catalog search/filter/add/edit/remove/cancel/retry, escaped metadata, reader URL validation, missing book and external fallback');
 })().catch(error=>{console.error(error);process.exitCode=1});

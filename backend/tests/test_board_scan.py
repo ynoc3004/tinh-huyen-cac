@@ -7,6 +7,17 @@ from services import board_scan
 
 PLACEMENT='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
 class ScanTests(test_translation.TranslationTests):
+    def test_scan_info_needs_no_text_extraction_and_preserves_reader_state(self):
+        with patch("routers.translation.extract_page", side_effect=AssertionError("Scanner must not extract/OCR text")):
+            response = self.client.get(self.base + "/study/info")
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json(), {"pages": 2, "title": "book"})
+        saved = {"page": 2, "bookmark": 1, "note": "Ghi chú cũ", "model": "qwen3:4b", "translation_mode": "automatic"}
+        self.assertEqual(self.client.put(self.base + "/state", json=saved).status_code, 200)
+        self.assertEqual(self.client.get(self.base + "/state").json(), saved)
+        self.client.post("/api/library/vault/lock")
+        self.assertEqual(self.client.get(self.base + "/study/info").status_code, 401)
+
     def test_scan_all_cache_bounds_and_lock(self):
         sample=[{'bbox':[10,10,490,490],'placement':PLACEMENT,'turn':'unknown','orientation':'white','label':'One','warning':''},
                 {'bbox':[510,510,990,990],'placement':PLACEMENT,'turn':'b','orientation':'black','label':'Two','warning':''}]

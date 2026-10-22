@@ -2,3 +2,5 @@
 @media(max-width:600px){body{padding:16px}.back-link{margin-top:15px}.books-hero{align-items:start;flex-direction:column;gap:20px;padding:24px 0}.books-hero h1{font-size:36px}.catalog-tools{gap:12px}.search-field{min-width:100%}.catalog-tools>label:not(.search-field){flex:1}.catalog-tools select{min-width:0}.books-grid{grid-template-columns:1fr;gap:16px}.book-cover{min-height:170px}.form-columns{grid-template-columns:1fr;gap:0}.reader-heading{align-items:start;flex-direction:column;gap:12px}#book-frame{min-height:500px;border-radius:4px}.reader-help{line-height:1.65}.book-reader .books-status:empty{min-height:0;margin:0}}
 
 .catalog-add{display:flex;flex-wrap:wrap;gap:8px;max-width:380px;justify-content:flex-end}@media(max-width:600px){.catalog-add{justify-content:flex-start}}
+
+.scan-entry{display:block;padding:10px 14px;text-align:center;border:1px solid var(--line);border-radius:8px;color:var(--jade);text-decoration:none}.scan-entry:hover{border-color:var(--jade)}

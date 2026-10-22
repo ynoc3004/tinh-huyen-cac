@@ -77,22 +77,10 @@ Mở **Đấu Trường → Các giải đấu** rồi chọn giải. Mỗi gi�
 
 Khi cập nhật giao diện, sao chép đủ `backend/static/arena.html`, `arena.js`, `arena.css` và `tournament.html`, rồi tải lại trang với Ctrl+F5. Giữ nguyên cơ sở dữ liệu hiện có.
 
-## Dịch Kinh Các: dịch bằng Ollama
+## Thư phòng: tủ sách và quét thế cờ
 
-Mở sách trong Dịch Kinh Các, kiểm tra chữ gốc rồi chọn **Dịch bằng Ollama**. Mỗi trang được chia thành các đoạn khoảng 600 ký tự; kết quả hiện dần và từng đoạn được lưu trong két. **Tạm dừng** chờ đoạn đang chạy hoàn tất. Nếu quá thời gian chờ, bấm dịch để tiếp tục với các đoạn đã lưu. Tiến trình này độc lập với Dịch nhiều trang.
+Mở **Thư phòng** để đọc tủ sách mới, nhập sách ngoại tuyến `.thcbook`, tìm kiếm theo tên/chủ đề và thêm sách về sau. Tủ sách không còn đặt trong Tàng Kinh Các. Nội dung đã nhập vẫn dùng cơ sở dữ liệu hiện có.
 
-Nút **Đổi model** cạnh tên bộ dịch mở danh sách model đã cài. Nếu `qwen3:4b` quá chậm và máy đã có `qwen3:1.7b`, có thể chọn bản 1.7b rồi thử lại. Tốc độ và chất lượng còn phụ thuộc model, RAM và phần cứng; kiểm thử tự động không chạy model thật. Chỉ đoạn chữ được gửi tới Ollama trên máy; ký hiệu nước đi được giữ nguyên và bản dịch được kiểm tra trước khi lưu.
+Bấm **Quét thế cờ từ PDF** để chọn/tải PDF và luyện tập với các hình bàn cờ. Công cụ giữ kết quả quét, ghi chú và dấu sách cũ; mở lại không cần nhận diện lại. Quét không phụ thuộc bộ dịch hoặc OCR. Hướng dẫn cài bộ quét local nằm trong `backend/README.md`.
 
-## Dịch bằng Claude / Gemini bản chat miễn phí
-
-Trong Dịch Kinh Các, chọn **Chat miễn phí**:
-
-1. Kiểm tra chữ gốc rồi bấm **Sao chép yêu cầu dịch trang này**. Yêu cầu có hướng dẫn văn phong, thuật ngữ cờ vua và giữ nguyên SAN. Nếu trình duyệt chặn clipboard, mở phần yêu cầu và dùng Ctrl+C.
-2. Mở **Claude** hoặc **Gemini** bằng liên kết trên trang, đăng nhập bằng tài khoản của bạn, dán yêu cầu và tự gửi trong chat. Model và hạn mức theo gói tài khoản; ứng dụng không chọn hay bảo đảm một model cụ thể. Không cần API key cho cách này.
-3. Sao chép phần bản dịch từ chat, dán về ứng dụng, chọn nơi đã dịch và bấm **Lưu bản dịch**. Ứng dụng kiểm tra thứ tự/ký hiệu nước đi trước khi lưu; lỗi giữ nguyên nội dung đang dán để sửa.
-
-Yêu cầu giữ lại trang, chữ gốc và thuật ngữ lúc sao chép: nếu chuyển sang trang khác trước khi dán, bản dịch vẫn được lưu cho trang ban đầu. Muốn dịch trang khác, bấm **Đổi trang dịch**; ứng dụng hỏi trước khi bỏ bản đang dán chưa lưu. Bản nháp trong ô nhập chưa được lưu sẽ mất khi tải lại hoặc đóng trang.
-
-Bản dịch đã lưu được mã hóa trong két, mở lại theo đúng sách/trang và không phụ thuộc Ollama hay phiên bản bộ dịch tự động. Nếu chữ gốc hoặc thuật ngữ đổi, bản cũ được giữ nhưng không hiển thị như bản dịch của nội dung mới. Khi đã lưu, phần nhập thu gọn để đọc sách, tiếng Việt và bàn cờ. **Dịch tự động** vẫn có các bộ dịch cũ và tiến trình dịch nhiều trang riêng.
-
-Ứng dụng không tự gửi chữ/sách, đăng nhập, đọc phản hồi hoặc điều khiển Claude/Gemini. Liên kết mở trang chat trống; bạn tự chọn nội dung gửi. Dùng gói chat miễn phí khác với gọi API dịch tự động.
+Giao diện Thư phòng/dịch cũ đã được thay; API và dữ liệu dịch đã lưu vẫn được giữ. Các đường dẫn PDF cũ tự chuyển tới công cụ quét. Sau khi cập nhật toàn bộ mã nguồn, khởi động lại backend và tải lại trang với Ctrl+F5.
