@@ -37,7 +37,7 @@ async function run(status,remain){
 (async()=>{
   await run('finished',0);await run('running',1);
   new vm.Script(fs.readFileSync(path.join(__dirname,'../static/arena.js'),'utf8'));
-  for(const file of ['tournament.html','arena.html','index.html','library.html','arena-live.html']){
+  for(const file of ['tournament.html','arena.html','huong-dan.html','arena-live.html']){
     const text=fs.readFileSync(path.join(__dirname,'../static/',file),'utf8');
     for(const match of text.matchAll(/<script>([\s\S]*?)<\/script>/g))new vm.Script(match[1]);
   }

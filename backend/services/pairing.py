@@ -16,26 +16,21 @@ def split_groups(players, n_groups, mode="random", seed=None):
 
 
 def round_robin(ids):
-    """Lịch Berger; bye luôn có dạng (người chơi, None)."""
+    """FIDE Berger table order; the highest number is a rest for odd fields."""
     ids = list(ids)
     if not ids:
         return []
     if len(ids) % 2:
         ids.append(None)
-    n = len(ids)
-    m = n - 1
-    out = []
+    n, out = len(ids), []
+    m, half = n - 1, n // 2
     for r in range(m):
-        a, b = ids[r], ids[n - 1]
+        pivot = (r * half) % m
+        a, b = ids[pivot], ids[-1]
         if r % 2:
             a, b = b, a
-        rnd = [(a, b)]
-        for k in range(1, n // 2):
-            a, b = ids[(r + k) % m], ids[(r - k) % m]
-            if k % 2:
-                a, b = b, a
-            rnd.append((a, b))
-        out.append([(y, x) if x is None else (x, y) for x, y in rnd])
+        rnd = [(a, b)] + [(ids[(pivot + k) % m], ids[(pivot - k) % m]) for k in range(1, half)]
+        out.append([(b, a) if a is None else (a, b) for a, b in rnd])
     return out
 
 
