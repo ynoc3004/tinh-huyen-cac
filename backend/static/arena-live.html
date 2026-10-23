@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Đấu trường · Tĩnh Huyền Quán</title>
+<title>Đấu trường · Tĩnh Huyền Các</title>
 <link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1">
 <link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
 <style>
@@ -67,12 +67,12 @@ small{opacity:.75}
 }
 </style>
 
-<link rel="stylesheet" href="/tien-canh.css?v=bagua-menu-4"><script src="/thien-co.js"></script><script src="/tien-canh.js?v=bagua-menu-4"></script>
+
 <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico?v=1">
 <link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg?v=1">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1">
-</head>
-<body>
+<link rel="stylesheet" href="/arena-studio.css?v=arena-integrated-1"><script defer src="/arena-shell.js?v=arena-integrated-1"></script><link rel="stylesheet" href="/tien-canh.css?v=bagua-menu-4"><script src="/thien-co.js"></script><script src="/tien-canh.js?v=bagua-menu-4"></script></head>
+<body data-page="arena-live">
 <div class="topbar">
   <div>
     <a href="/arena.html" class="noprint">← Đấu Trường</a>
@@ -184,7 +184,7 @@ function doPrintResults(){
     'table{border-collapse:collapse;width:100%;margin-top:.5rem}'+
     'th,td{border:1px solid #333;padding:.35rem .5rem;text-align:left}th{background:#eee}'+
     '.meta{margin:0 0 1rem;opacity:.85}'+
-    '</style></head><body>'+
+    '</style></head><body data-page="arena-live">'+
     '<h1>'+safe(title)+'</h1>'+
     '<p class="meta">'+safe(status)+' · Đồng hồ: '+safe(clock)+'</p>'+
     '<h2>Bảng xếp hạng</h2>'+
@@ -369,7 +369,7 @@ async function load(){
         if(!ids.length)return say('Tên đã tồn tại. Hãy chọn người trong danh sách có sẵn, hoặc thêm người trùng tên ở trang Đấu Trường.');
         const j=await api('/arenas/'+TID+'/players','POST',{student_ids:ids});
         $('#newPlayers').value='';
-        say('Đã tạo '+(created.added||0)+' học viên mới, thêm '+j.added+' vào đấu trường'+(created.skipped?(' (bỏ qua trùng '+created.skipped+')'):''));
+        say('Đã tạo '+(created.added||0)+' kỳ thủ mới, thêm '+j.added+' vào đấu trường'+(created.skipped?(' (bỏ qua trùng '+created.skipped+')'):''));
         load();
       }catch(e){say(e.message)}
     };

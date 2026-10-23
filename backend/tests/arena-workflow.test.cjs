@@ -1,12 +1,12 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
 const html=fs.readFileSync(path.join(__dirname,'../static/arena.html'),'utf8');const script=fs.readFileSync(path.join(__dirname,'../static/arena.js'),'utf8');
 const nodes=new Map(),requests=[];
-function node(id){if(!nodes.has(id))nodes.set(id,{id,value:'',checked:false,hidden:false,innerHTML:'',textContent:'',dataset:{},events:{},classList:{toggle(){},remove(){}},setAttribute(){},removeAttribute(){},scrollIntoView(){},addEventListener(k,f){(this.events[k]??=[]).push(f)},closest(){return null}});return nodes.get(id)}
+function node(id){if(!nodes.has(id))nodes.set(id,{id,value:'',checked:false,hidden:false,innerHTML:'',textContent:'',dataset:{},events:{},append(){},classList:{toggle(){},remove(){}},setAttribute(){},removeAttribute(){},scrollIntoView(){},addEventListener(k,f){(this.events[k]??=[]).push(f)},closest(){return null}});return nodes.get(id)}
 for(const m of html.matchAll(/id="([^"]+)"/g))node(m[1]);
 node('grouping').value='draw';node('statusFilter').value='all';node('mode').value='pots';node('size').value='8';node('adur').value='60';node('avoid').checked=true;
 const nav=['list','create','students'].map(tab=>({...node('nav-'+tab),dataset:{tab}})),panels=['list','create','students'].map(tab=>node('panel-'+tab)),radios=['classic','arena'].map(value=>({...node('radio-'+value),value}));
 const students=Array.from({length:16},(_,i)=>({id:i+1,name:'Học viên '+(i+1),rating:null,club:i%3===0?'CLB A':null}));
-const ctx={console,URLSearchParams,location:{href:'',pathname:'/arena.html',search:''},setTimeout,clearTimeout,setInterval:()=>1,clearInterval(){},matchMedia:()=>({matches:true}),confirm:()=>true,prompt:()=>null,print(){},addEventListener(){},document:{body:{dataset:{}},querySelector:s=>node(s.replace(/^#/,'')),querySelectorAll:s=>s==='.workspace-panel'?panels:s==='[data-tab]'?nav:s==='[name=eventType]'?radios:[]},fetch:async(url,opt)=>{const body=opt?.body?JSON.parse(opt.body):undefined;requests.push({url,body});let data=[];
+const ctx={console,URLSearchParams,location:{href:'',pathname:'/arena.html',search:''},setTimeout,clearTimeout,setInterval:()=>1,clearInterval(){},matchMedia:()=>({matches:true}),confirm:()=>true,prompt:()=>null,print(){},addEventListener(){},document:{createElement:()=>node('created'),body:{dataset:{}},querySelector:s=>node(s.replace(/^#/,'')),querySelectorAll:s=>s==='.workspace-panel'?panels:s==='[data-tab]'?nav:s==='[name=eventType]'?radios:[]},fetch:async(url,opt)=>{const body=opt?.body?JSON.parse(opt.body):undefined;requests.push({url,body});let data=[];
 if(url==='/api/students')data=students;
 if(url==='/api/tournaments')data=[{id:1,name:'Giải tháng 10',status:'prepare'},{id:2,name:'Giải tháng 9',status:'finished'},{id:3,name:'Arena luyện tập',status:'running'}];
 if(url==='/api/arenas')data=[{id:3,name:'Arena luyện tập',status:'running',duration_min:60}];

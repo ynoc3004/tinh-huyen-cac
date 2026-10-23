@@ -86,3 +86,14 @@ Bấm **Quét thế cờ từ PDF** để chọn/tải PDF và luyện tập v�
 Giao diện Thư phòng/dịch cũ đã được thay; API và dữ liệu dịch đã lưu vẫn được giữ. Các đường dẫn PDF cũ tự chuyển tới công cụ quét. Sau khi cập nhật toàn bộ mã nguồn, khởi động lại backend và tải lại trang với Ctrl+F5.
 
 Gói `.thcbook` cũng hỗ trợ bài tập tương tác: mở sách → **Vào luyện tập**, giải trên bàn cờ với đáp án ẩn, gợi ý, đáp trả theo lời giải, ghi chú và ôn bài. Nước ngoài lời giải không tự bị chấm là nước xấu. Nguồn chưa xác minh có nhãn riêng và không tự chấm; xem `backend/README.md`.
+
+
+## Đấu trường mới — thay trực tiếp trang cũ
+
+Trang `/arena.html`, `/tournament.html` và `/arena-live.html` trong `backend/static` đã sử dụng giao diện điều hành mới, giữ header gốc và cùng cơ sở dữ liệu. Danh sách kỳ thủ, mã giải, bảng, lịch đấu, kết quả và chỉ số đã có được giữ nguyên; các cột thông tin giải được bổ sung bằng migration idempotent khi backend khởi động. Không cần chuyển dữ liệu sang website riêng.
+
+Sau khi cập nhật repo bằng `git pull`, khởi động lại backend đang chạy, rồi mở lại `/arena.html`. Nếu tab cũ còn giữ giao diện trước đó, dùng Ctrl+F5. Menu bát quái vẫn mở đúng đường dẫn Đấu trường như trước.
+
+Tính năng bổ sung: thêm từng kỳ thủ, thông tin địa điểm/ban tổ chức/trọng tài/thời gian mỗi bên, chọn nguồn lịch Swiss, kiểm tra lịch, xuất/khôi phục toàn giải và bảo vệ kết quả khi mở nhiều cửa sổ. Mật khẩu quản trị để xóa giải của bản Python được giữ nguyên.
+
+Bản Sites của web chính sử dụng cùng Site ID và D1 đã có; cập nhật mã không cấp lại kho dữ liệu hoặc tài khoản. Mã nguồn mô-đun độc lập vẫn có ở `sites/arena` để tham khảo; phần chạy trong web chính là `backend/static` + `backend/routers/arena.py`.

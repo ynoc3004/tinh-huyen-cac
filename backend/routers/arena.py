@@ -6,6 +6,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from db import conn
 from services import pairing
+from services.tournament_integrity import inspect_group, export_snapshot, restore_snapshot
 from config import ADMIN_PASSWORD
 
 router = APIRouter(prefix="/api")
@@ -52,7 +53,8 @@ def _audit(c, tid, action, details):
 def _audit_pairs(c, g, action):
     _audit(c, g["tournament_id"], action, {
         "group_id": g["id"], "format": g["format"], "seed": g["seed"],
-        "algorithm": "berger-v2" if g["format"] == "round_robin" else "seeded-bracket-v2" if g["format"] == "knockout" else "club-matching-v2",
+        "draw_order": json.loads(g["draw_order"]) if g["draw_order"] else None,
+        "algorithm": "berger-fide-v3" if g["format"] == "round_robin" else "seeded-bracket-v2" if g["format"] == "knockout" else "club-matching-v2",
         "swiss_rounds": _round_limit(g, len(_ids(c, g["id"]))) if g["format"] == "swiss" else None,
         "players": [dict(r) for r in c.execute("SELECT id,name,rating,club FROM students WHERE id IN ("
                     "SELECT student_id FROM tournament_players WHERE group_id=? UNION "
@@ -72,6 +74,9 @@ def _complete_group(c, g):
     rows = c.execute("SELECT * FROM pairings WHERE group_id=? ORDER BY round,board", (g["id"],)).fetchall()
     if not rows or any(p["black_id"] is not None and p["result"] not in pairing.SCORE for p in rows):
         raise HTTPException(409, f"Bảng {g['name']} chưa ghép cặp hoặc chưa nhập đủ kết quả")
+    issues = inspect_group({**dict(g), "ids": _ids(c, g["id"]), "pairings": [dict(p) for p in rows]})
+    if issues:
+        raise HTTPException(409, "Lịch chưa hợp lệ: " + "; ".join(issues))
     last = rows[-1]["round"]
     ids = _ids(c, g["id"])
     if g["format"] == "swiss" and last < _round_limit(g, len(ids)):
@@ -232,7 +237,7 @@ def get_tour(tid: int):
         if not t:
             raise HTTPException(404)
         gs = c.execute(
-            "SELECT g.id,g.name,g.swiss_rounds,s.ord,s.format FROM groups g JOIN stages s ON s.id=g.stage_id "
+            "SELECT g.id,g.name,g.swiss_rounds,g.pairing_method,g.draw_order,s.ord,s.format FROM groups g JOIN stages s ON s.id=g.stage_id "
             "WHERE s.tournament_id=? ORDER BY g.id",
             (tid,),
         ).fetchall()
@@ -241,10 +246,11 @@ def get_tour(tid: int):
             "groups": [
                 {
                     **dict(g),
+                    "draw_order": json.loads(g["draw_order"]) if g["draw_order"] else None,
                     "players": [
                         dict(r)
                         for r in c.execute(
-                            "SELECT s.id,s.name,s.rating FROM students s WHERE s.id IN "
+                            "SELECT s.id,s.name,s.rating,s.club FROM students s WHERE s.id IN "
                             "(SELECT student_id FROM tournament_players WHERE group_id=? "
                             "UNION SELECT student_id FROM stage_players WHERE group_id=?)",
                             (g["id"], g["id"]),
@@ -272,6 +278,8 @@ def pair(gid: int, force: bool = False):
         if existing and not force:
             raise HTTPException(409, "Đã có lịch đấu; chỉ ghép lại khi xác nhận force=true")
         if fmt == "swiss":
+            if g["pairing_method"] == "arbiter":
+                raise HTTPException(409, "Bảng dùng lịch trọng tài. Hãy nhập lịch thay vì ghép tự động.")
             limit = _round_limit(g, len(ids))
             if limit > len(ids) - 1 + len(ids) % 2:
                 raise HTTPException(400, "Số vòng Swiss vượt số đối thủ/ván nghỉ có thể ghép không tái đấu")
@@ -282,6 +290,7 @@ def pair(gid: int, force: bool = False):
             # Draw pairing numbers once, reproducibly, before applying the Berger schedule.
             random.Random((g["seed"] or 0) + gid).shuffle(ids)
             rounds = pairing.round_robin(ids)
+            c.execute("UPDATE groups SET draw_order=? WHERE id=?", (json.dumps(ids), gid))
             limit = len(rounds)
         if existing:
             _audit_pairs(c, g, "schedule_before_reset")
@@ -290,6 +299,7 @@ def pair(gid: int, force: bool = False):
             for board, (w, b) in enumerate(rnd, 1):
                 c.execute("INSERT INTO pairings(group_id,round,board,white_id,black_id,result) VALUES(?,?,?,?,?,?)",
                           (gid, r, board, w, b, "bye" if b is None else None))
+        c.execute("UPDATE tournaments SET status='running' WHERE id=?", (g["tournament_id"],))
         _audit_pairs(c, _group(c, gid), "pair_round_1" if fmt == "swiss" else "pair_round_robin")
         return {"format": fmt, "round": 1, "rounds": limit}
 
@@ -302,6 +312,8 @@ def swiss_next(gid: int):
         g = _group(c, gid, active=True)
         if g["format"] != "swiss":
             raise HTTPException(400, "Bảng này không dùng hệ Thụy Sĩ")
+        if g["pairing_method"] == "arbiter":
+            raise HTTPException(409, "Bảng dùng lịch trọng tài. Hãy nhập lịch vòng kế tiếp.")
         ids = _ids(c, gid)
         last = c.execute("SELECT MAX(round) FROM pairings WHERE group_id=?", (gid,)).fetchone()[0]
         if not last:
@@ -328,6 +340,8 @@ def pairings(gid: int):
 
 
 class Result(BaseModel):
+    expected_result: str | None = None
+    expected_signature: str | None = None
     result: str  # 1-0 | 0-1 | 1/2
     white_technical_errors: int | None = None
     black_technical_errors: int | None = None
@@ -351,6 +365,12 @@ def _update_pairing_result(c, pid: int, b: Result, arena_only=False):
         raise HTTPException(404, "Không tìm thấy ván đấu")
     if p["black_id"] is None:
         raise HTTPException(400, "Không nhập kết quả cho ván nghỉ")
+    if "expected_result" in b.model_fields_set and b.expected_result != p["result"]:
+        raise HTTPException(409, "Kết quả đã thay đổi ở cửa sổ khác. Tải lại giải trước khi lưu.")
+    signature = "|".join(str(x) for x in [p["result"] or "", p["white_technical_errors"] or 0,
+                          p["white_tactics_created"] or 0, p["black_technical_errors"] or 0, p["black_tactics_created"] or 0])
+    if "expected_signature" in b.model_fields_set and b.expected_signature != signature:
+        raise HTTPException(409, "Ván đấu đã thay đổi ở cửa sổ khác. Tải lại giải trước khi lưu.")
     g = _group(c, p["group_id"], active=False)
     if (g["kind"] == "arena") != arena_only:
         raise HTTPException(400, "Hãy dùng API kết quả đúng loại giải")
@@ -598,7 +618,14 @@ def draw(b: DrawReq):
     }
 
 
-class FromDraw(BaseModel):
+class TournamentMeta(BaseModel):
+    venue: str = Field(default="", max_length=300)
+    organizer: str = Field(default="", max_length=300)
+    chief_arbiter: str = Field(default="", max_length=300)
+    time_control: str = Field(default="", max_length=300)
+
+
+class FromDraw(TournamentMeta):
     name: str
     date: str | None = None
     seed: int | None = None
@@ -630,8 +657,8 @@ def from_draw(b: FromDraw):
         if not set(ids) <= {r["id"] for r in c.execute("SELECT id FROM students")}:
             raise HTTPException(400, "Có học viên không tồn tại")
         t = c.execute(
-            "INSERT INTO tournaments(name,date,seed,split_mode,notes) VALUES(?,?,?,?,?)",
-            (b.name, b.date, b.seed or 0, b.mode, b.notes),
+            "INSERT INTO tournaments(name,date,seed,split_mode,notes,venue,organizer,chief_arbiter,time_control) VALUES(?,?,?,?,?,?,?,?,?)",
+            (b.name, b.date, b.seed or 0, b.mode, b.notes, b.venue, b.organizer, b.chief_arbiter, b.time_control),
         ).lastrowid
         st = c.execute(
             "INSERT INTO stages(tournament_id,ord,name,format) VALUES(?,1,'Vòng bảng',?)",
@@ -656,6 +683,10 @@ def from_draw(b: FromDraw):
 
 
 class TournamentInfo(BaseModel):
+    venue: str | None = Field(default=None, max_length=300)
+    organizer: str | None = Field(default=None, max_length=300)
+    chief_arbiter: str | None = Field(default=None, max_length=300)
+    time_control: str | None = Field(default=None, max_length=300)
     name: str | None = None
     date: str | None = None
     notes: str | None = None
@@ -702,6 +733,7 @@ def add_group(tid: int, b: GroupInfo):
 
 
 class GroupUpdate(BaseModel):
+    pairing_method: str | None = None
     name: str | None = None
     format: str | None = None
     swiss_rounds: int | None = Field(default=None, ge=1)
@@ -716,6 +748,13 @@ def rename_group(gid: int, b: GroupUpdate):
     with conn() as c:
         c.execute("BEGIN IMMEDIATE")
         info = _group(c, gid, active=True)
+        if "pairing_method" in b.model_fields_set:
+            if (b.format or info["format"]) != "swiss" or c.execute("SELECT 1 FROM pairings WHERE group_id=?", (gid,)).fetchone():
+                raise HTTPException(409, "Chỉ đổi nguồn ghép cặp trước vòng 1 của bảng Swiss")
+            if b.pairing_method not in ("app", "arbiter"):
+                raise HTTPException(400, "Nguồn ghép cặp không hợp lệ")
+            c.execute("UPDATE groups SET pairing_method=? WHERE id=?", (b.pairing_method, gid))
+            _audit(c, info["tournament_id"], "pairing_method", {"group_id": gid, "pairing_method": b.pairing_method})
         if "swiss_rounds" in b.model_fields_set:
             if (b.format or info["format"]) != "swiss" or c.execute("SELECT 1 FROM pairings WHERE group_id=?", (gid,)).fetchone():
                 raise HTTPException(409, "Chỉ chốt số vòng Swiss trước khi ghép vòng 1")
@@ -729,7 +768,11 @@ def rename_group(gid: int, b: GroupUpdate):
                 raise HTTPException(409, "Chỉ đổi thể thức bảng trước khi ghép cặp và khi giải chưa kết thúc")
             st = c.execute("SELECT id FROM stages WHERE tournament_id=? AND ord=1 AND format=?", (g["tournament_id"], b.format)).fetchone()
             sid = st["id"] if st else c.execute("INSERT INTO stages(tournament_id,ord,name,format) VALUES(?,1,'Vòng bảng',?)", (g["tournament_id"], b.format)).lastrowid
-            c.execute("UPDATE groups SET stage_id=? WHERE id=?", (sid, gid))
+            c.execute("UPDATE groups SET stage_id=?,draw_order=NULL WHERE id=?", (sid, gid))
+            if "swiss_rounds" not in b.model_fields_set:
+                c.execute("UPDATE groups SET swiss_rounds=NULL WHERE id=?", (gid,))
+            if "pairing_method" not in b.model_fields_set:
+                c.execute("UPDATE groups SET pairing_method='app' WHERE id=?", (gid,))
         if b.name is not None:
             c.execute("UPDATE groups SET name=? WHERE id=?", (b.name.strip(), gid))
     return {"ok": True}
@@ -1257,3 +1300,85 @@ def delete_arena(tid: int, b: DeleteReq):
             raise HTTPException(404, "Không tìm thấy đấu trường")
         _purge_tournament(c, tid)
     return {"ok": True, "deleted": tid, "name": t["name"]}
+
+
+# The replacement UI uses the existing database and existing URLs throughout.
+@router.get("/tournaments/{tid}/validate")
+def validate_tournament(tid: int):
+    with conn() as c:
+        snapshot = export_snapshot(c, tid)
+        report = []
+        for g in snapshot["tournament"]["groups"]:
+            issues = inspect_group(g)
+            report.append({"group_id": g["id"], "name": g["name"], "valid": not issues,
+                           "issues": issues, "message": "; ".join(issues) if issues else
+                           "Lịch đủ người; đúng cấu trúc và các ràng buộc của thể thức." if g["pairings"] else
+                           f"Chưa ghép cặp · {len(g['ids'])} kỳ thủ"})
+    valid = all(g["valid"] for g in report)
+    return {"valid": valid, "groups": report, "summary": "Phát hiện lịch cần kiểm tra." if not valid else
+            "Lịch hiện tại qua kiểm tra cấu trúc và ràng buộc của ứng dụng. Swiss chưa được chứng nhận FIDE Dutch."}
+
+
+@router.get("/tournaments/{tid}/export")
+def export_tournament(tid: int):
+    with conn() as c:
+        snapshot = export_snapshot(c, tid)
+    return Response(json.dumps(snapshot, ensure_ascii=False, indent=2), media_type="application/json",
+                    headers={"Content-Disposition": f'attachment; filename="tournament-{tid}-backup.json"', "Cache-Control": "no-store"})
+
+
+@router.post("/tournaments/import")
+def restore_tournament(backup: dict):
+    with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
+        return restore_snapshot(c, backup)
+
+
+class ImportedPairing(BaseModel):
+    white_id: int = Field(ge=1, strict=True)
+    black_id: int | None = Field(default=None, ge=1, strict=True)
+
+
+class ArbiterPairings(BaseModel):
+    source: str = Field(max_length=300)
+    pairs: list[ImportedPairing]
+
+
+@router.post("/groups/{gid}/import-pairings")
+def import_arbiter_pairings(gid: int, b: ArbiterPairings):
+    if not b.source.strip() or not b.pairs:
+        raise HTTPException(400, "Nhập các bàn đấu và ghi nguồn lịch / phần mềm trọng tài")
+    with conn() as c:
+        c.execute("BEGIN IMMEDIATE")
+        g = _group(c, gid, active=True)
+        if g["format"] != "swiss":
+            raise HTTPException(400, "Chỉ nhập lịch trọng tài cho bảng Swiss")
+        ids = _ids(c, gid)
+        if len(ids) < 2:
+            raise HTTPException(400, "Cần ít nhất 2 kỳ thủ")
+        history = [dict(r) for r in c.execute("SELECT * FROM pairings WHERE group_id=? ORDER BY round,board", (gid,))]
+        if any(p["black_id"] is not None and p["result"] not in pairing.SCORE for p in history):
+            raise HTTPException(409, "Nhập đủ kết quả vòng hiện tại trước")
+        rnd, limit = max((p["round"] for p in history), default=0) + 1, _round_limit(g, len(ids))
+        if rnd > limit:
+            raise HTTPException(409, "Đã đủ số vòng đã chốt")
+        if limit > len(ids) - 1 + len(ids) % 2:
+            raise HTTPException(400, "Số vòng Swiss vượt số đối thủ/ván nghỉ có thể ghép")
+        present = [sid for p in b.pairs for sid in (p.white_id, p.black_id) if sid is not None]
+        if len(present) != len(ids) or set(present) != set(ids) or len(set(present)) != len(present):
+            raise HTTPException(400, "Lịch phải chứa mỗi kỳ thủ đúng một lần")
+        if sum(p.black_id is None for p in b.pairs) != len(ids) % 2:
+            raise HTTPException(400, "Số kỳ thủ nghỉ không hợp lệ")
+        seen = {frozenset((p["white_id"], p["black_id"])) for p in history if p["black_id"] is not None}
+        byes = {p["white_id"] for p in history if p["black_id"] is None}
+        for p in b.pairs:
+            if p.black_id is None and p.white_id in byes or p.black_id is not None and frozenset((p.white_id, p.black_id)) in seen:
+                raise HTTPException(409, "Lịch chứa đối thủ đã gặp hoặc lượt nghỉ lặp")
+        for board, p in enumerate(b.pairs, 1):
+            c.execute("INSERT INTO pairings(group_id,round,board,white_id,black_id,result,pairing_source) VALUES(?,?,?,?,?,?,'arbiter')",
+                      (gid, rnd, board, p.white_id, p.black_id, "bye" if p.black_id is None else None))
+        c.execute("UPDATE groups SET swiss_rounds=?,pairing_method='arbiter' WHERE id=?", (limit, gid))
+        c.execute("UPDATE tournaments SET status='running' WHERE id=?", (g["tournament_id"],))
+        _audit(c, g["tournament_id"], "arbiter_pairings", {"group_id": gid, "round": rnd, "source": b.source.strip(),
+               "pairings": [dict(p) for p in c.execute("SELECT * FROM pairings WHERE group_id=? AND round=? ORDER BY board", (gid, rnd))]})
+    return {"round": rnd, "boards": len(b.pairs), "source": b.source.strip()}

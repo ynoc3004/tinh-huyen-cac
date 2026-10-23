@@ -64,6 +64,13 @@ CREATE TABLE IF NOT EXISTS online_book_assets(book_id TEXT NOT NULL REFERENCES o
 
 # migrate columns if DB already exists without them
 MIGRATE = [
+    "ALTER TABLE tournaments ADD COLUMN venue TEXT DEFAULT ''",
+    "ALTER TABLE tournaments ADD COLUMN organizer TEXT DEFAULT ''",
+    "ALTER TABLE tournaments ADD COLUMN chief_arbiter TEXT DEFAULT ''",
+    "ALTER TABLE tournaments ADD COLUMN time_control TEXT DEFAULT ''",
+    "ALTER TABLE groups ADD COLUMN pairing_method TEXT DEFAULT 'app'",
+    "ALTER TABLE groups ADD COLUMN draw_order TEXT",
+    "ALTER TABLE pairings ADD COLUMN pairing_source TEXT",
     "ALTER TABLE worksheet_versions ADD COLUMN display_name TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE groups ADD COLUMN swiss_rounds INT",
     "ALTER TABLE tournaments ADD COLUMN notes TEXT DEFAULT ''",
