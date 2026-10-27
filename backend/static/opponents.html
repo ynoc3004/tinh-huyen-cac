@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="vi" data-theme="light">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chuẩn bị đối thủ · Tĩnh Huyền Quán</title>
+<link rel="stylesheet" href="/fonts/fonts.css?v=appearance-1"><link rel="stylesheet" href="/fonts/titles.css?v=appearance-1">
+<link rel="stylesheet" href="/opponents.css?v=1"><link rel="stylesheet" href="/tien-canh.css?v=bagua-menu-4">
+<script src="/thien-co.js"></script><script src="/tien-canh.js?v=bagua-menu-5"></script>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=1">
+</head>
+<body><main class="wrap opponents-shell">
+<div class="op-heading"><div><p class="op-eyebrow">TRI KỶ · TRI BỈ</p><h1>Chuẩn bị đối thủ</h1><p>Hiểu những gì họ đã chơi. Chuẩn bị những gì bạn chơi tốt.</p></div><a href="/history.html">← Kỳ phổ</a></div>
+<div class="op-layout">
+<aside class="op-sidebar noprint">
+<section class="op-card"><h2>Tạo hồ sơ</h2><form id="op-form">
+<label for="op-platform">Nền tảng</label><select id="op-platform"><option value="chesscom">Chess.com</option><option value="lichess">Lichess</option></select>
+<label for="op-user">Nick hoặc đường dẫn hồ sơ</label><input id="op-user" required maxlength="200" placeholder="Ví dụ: nick hoặc lichess.org/@/nick" autocomplete="off" spellcheck="false">
+<div class="op-form-grid"><div><label for="op-days">Khoảng thời gian</label><select id="op-days"><option value="30">30 ngày</option><option value="90">90 ngày</option><option value="180" selected>180 ngày</option><option value="365">1 năm</option><option value="730">2 năm</option></select></div><div><label for="op-limit">Số ván tối đa</label><select id="op-limit"><option value="100">100</option><option value="300" selected>300</option><option value="500">500</option></select></div></div>
+<label for="op-speed">Tốc độ cờ</label><select id="op-speed"><option value="all">Tất cả · xem riêng từng tốc độ</option><option value="rapid">Cờ nhanh · rapid</option><option value="blitz">Cờ chớp · blitz</option><option value="bullet">Cờ siêu chớp · bullet</option><option value="classical">Cờ tiêu chuẩn · classical</option><option value="correspondence">Cờ qua thư / daily</option></select>
+<label class="op-check"><input id="op-rated" type="checkbox" checked> Chỉ ván có tính rating</label>
+<button id="op-collect" class="op-primary" type="submit">Thu thập & lập hồ sơ</button>
+<p class="op-help">Hồ sơ đã lưu mở ngay, không tải hoặc tính lại. Muốn lấy ván mới, dùng nút Cập nhật trong hồ sơ.</p>
+<details><summary>Nhập bộ PGN</summary><label for="op-file">Tệp nhiều ván · tối đa 8 MB</label><input id="op-file" type="file" accept=".pgn,.txt,application/x-chess-pgn,text/plain"><p class="op-help">Điền nick đúng như tên trong PGN. Vẫn áp dụng bộ lọc ngày và tốc độ; không lọc rated vì PGN thường thiếu thông tin này.</p><button id="op-import" type="button">Lập hồ sơ từ PGN</button></details>
+</form><p id="op-status" class="op-status" role="status" aria-live="polite"></p></section>
+<section class="op-card"><div class="op-section-title"><h2>Hồ sơ đã lưu</h2><button id="op-reload" type="button" aria-label="Làm mới danh sách hồ sơ">↻</button></div><label class="sr-only" for="op-search">Tìm hồ sơ</label><input id="op-search" type="search" placeholder="Tìm tên hồ sơ hoặc nick"><div id="op-saved" class="op-saved"><p>Đang tải…</p></div></section>
+</aside>
+<section id="op-empty" class="op-card op-empty"><span aria-hidden="true">♞</span><h2>Bắt đầu từ một đối thủ</h2><p>Nhập nick công khai hoặc bộ PGN để xem cách vào khai cuộc, thói quen chơi và các vị trí cần kiểm tra.</p><p>Chưa rõ thời gian giải 20/11? Hãy giữ các tốc độ tách biệt và chốt lại bộ lọc khi có thể lệ.</p><a href="/review.html">Mở bàn phân tích ván cờ →</a></section>
+<article id="op-report" hidden>
+<section class="op-card op-report-head"><div><p class="op-eyebrow" id="op-source"></p><h2 id="op-title"></h2><p id="op-meta"></p></div><div class="op-actions noprint"><button id="op-refresh" type="button">Cập nhật ván mới</button><a id="op-pgn" class="op-button" download>Tải PGN</a><button id="op-print" type="button">In / PDF</button><button id="op-delete" type="button" class="op-danger">Xóa hồ sơ</button></div></section>
+<div id="op-stats" class="op-stats"></div>
+<section class="op-card"><h2>Phạm vi & độ tin cậy</h2><ul id="op-warnings"></ul><p id="op-skipped" class="op-help"></p></section>
+<section class="op-card"><h2>Kết quả theo màu quân và tốc độ</h2><div id="op-breakdown" class="op-table-scroll"></div></section>
+<section class="op-card"><h2>Khai cuộc thường gặp</h2><p class="op-help">Tần suất tính trong các ván cùng màu quân. Tỷ lệ thấp chưa chứng minh một nhánh yếu; xem cỡ mẫu, đối thủ và ván cụ thể.</p><div id="op-openings" class="op-table-scroll"></div></section>
+<section class="op-card"><div class="op-section-title"><h2>Các nhánh họ đã chơi</h2><div class="op-inline noprint"><label for="op-branch-color">Đối thủ cầm</label><select id="op-branch-color"><option value="white">Trắng</option><option value="black">Đen</option></select><label for="op-branch-ply">Đến nước</label><select id="op-branch-ply"><option value="2">1</option><option value="4">2</option><option value="6">3</option><option value="8" selected>4</option><option value="10">5</option><option value="12">6</option></select></div></div><p class="op-help">Chọn một nhánh để mở bàn cờ và ván dẫn chứng. Các thứ tự nước đi khác nhau được giữ riêng.</p><div id="op-branches" class="op-branches"></div></section>
+<section class="op-card"><h2>Thói quen quan sát được</h2><div id="op-observations" class="op-observations"></div></section>
+<section class="op-card"><h2>Vị trí cần kiểm tra với engine</h2><p id="op-eval-coverage"></p><button id="op-recalculate" type="button" class="noprint">Cập nhật từ phân tích đã lưu</button><div id="op-errors"></div><details><summary>Cách tính & giới hạn</summary><p id="op-eval-method" class="op-help"></p></details></section>
+<section class="op-card"><h2>Kế hoạch chuẩn bị</h2><div id="op-plan"></div></section>
+<section class="op-card op-viewer" id="op-viewer" hidden><div class="op-section-title"><h2 id="op-game-title">Ván dẫn chứng</h2><button id="op-flip" type="button" class="noprint">⇅ Đảo bàn</button></div><p id="op-game-meta"></p><div class="op-replay"><div><div id="op-board" class="op-board" aria-label="Bàn cờ đối chiếu"></div><div class="op-controls noprint"><button id="op-first" type="button" aria-label="Về đầu">|←</button><button id="op-prev" type="button" aria-label="Nước trước">←</button><span id="op-ply" aria-live="polite"></span><button id="op-next" type="button" aria-label="Nước sau">→</button><button id="op-last" type="button" aria-label="Về cuối">→|</button></div></div><div><p id="op-game-status" role="status"></p><div id="op-game-moves" class="op-moves"></div><div class="op-actions noprint"><a id="op-game-review" class="op-button">Phân tích Stockfish →</a><a id="op-game-source" target="_blank" rel="noopener noreferrer">Ván công khai ↗</a></div><p class="op-help">Stockfish chạy trên máy bạn khi mở bàn phân tích và bấm phân tích. Phân tích xong, trở về hồ sơ và bấm Cập nhật từ phân tích đã lưu. Không cần tải lại ván; dữ liệu trong két mã hóa không được đưa vào hồ sơ.</p></div></div></section>
+<details class="op-card op-all-games noprint"><summary>Toàn bộ ván trong mẫu · <span id="op-games-count"></span></summary><div class="op-table-scroll" id="op-games"></div></details>
+<section class="op-card"><h2>Ghi chú chuẩn bị của bạn</h2><label for="op-edit-title">Tên hồ sơ</label><input id="op-edit-title" maxlength="120"><label for="op-notes">Sở trường của bạn · giả thuyết · nhánh đã kiểm tra</label><textarea id="op-notes" rows="7" maxlength="10000" placeholder="Tôi cầm Trắng: …&#10;Tôi cầm Đen: …&#10;Vị trí cần luyện: …&#10;Điều chưa chắc: …"></textarea><div class="op-actions noprint"><button id="op-save" type="button" class="op-primary">Lưu tên & ghi chú</button><span id="op-save-status" role="status"></span></div></section>
+</article>
+</div><footer class="op-footer">Chuẩn bị trước giải từ các ván đã kết thúc · Tĩnh Huyền Quán là ứng dụng độc lập, không liên kết với Chess.com hoặc Lichess.</footer>
+</main><script type="module" src="/opponents.js?v=1"></script></body></html>

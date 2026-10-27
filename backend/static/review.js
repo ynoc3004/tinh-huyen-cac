@@ -239,6 +239,12 @@ async function load(){
    libraryItem=item;
    r=await fetch("/api/library/file/"+item,{cache:"no-store"});
   }
+  else if(q.has("opponent")&&q.has("game")){
+   const report=q.get("opponent"),game=q.get("game");
+   if(!/^[a-f0-9]{24}$/.test(report)||!/^[a-f0-9]{20}$/.test(game))throw Error("Mã hồ sơ hoặc ván không hợp lệ.");
+   $("review-back").href="/opponents.html?report="+report;$("review-back").textContent="← Về hồ sơ đối thủ";
+   r=await fetch("/api/opponents/"+report+"/games/"+game,{cache:"no-store"});
+  }
   else if(q.has("source")&&q.has("game"))r=await fetch("/api/game-archive/"+encodeURIComponent(q.get("source"))+"/"+encodeURIComponent(q.get("game")));
   else {$("loading").textContent="Mở ván đã phân tích hoặc nhập PGN mới.";await refreshSaved();$(savedRows.length?"saved-dialog":"import-dialog").showModal();return;}
   if(r.status===401)$("library-unlock").hidden=false;

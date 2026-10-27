@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS library_folders(id INTEGER PRIMARY KEY, parent_id INT
 CREATE TABLE IF NOT EXISTS saved_reviews(id TEXT PRIMARY KEY, game_key TEXT NOT NULL,
   item_id INT REFERENCES library_items(id) ON DELETE CASCADE,
   metadata BLOB NOT NULL, payload BLOB NOT NULL, updated_at INT NOT NULL);
+CREATE TABLE IF NOT EXISTS opponent_reports(id TEXT PRIMARY KEY, platform TEXT NOT NULL,
+  username TEXT NOT NULL, title TEXT NOT NULL, filters TEXT NOT NULL, report TEXT NOT NULL,
+  games BLOB NOT NULL, notes TEXT NOT NULL DEFAULT '', created_at INT NOT NULL, updated_at INT NOT NULL);
 CREATE TABLE IF NOT EXISTS students(id INTEGER PRIMARY KEY, name TEXT NOT NULL, rating INT, club TEXT, note TEXT DEFAULT '');
 CREATE TABLE IF NOT EXISTS tournaments(id INTEGER PRIMARY KEY, name TEXT, date TEXT, seed INT, split_mode TEXT,
   status TEXT DEFAULT 'prepare', kind TEXT DEFAULT 'classic', duration_min INT, starts_at TEXT, ends_at TEXT);
