@@ -2,6 +2,22 @@
 
 Ứng dụng cờ vua chạy local: đồng bộ ván cờ, quản lý thư viện, giải vòng tròn/Swiss/loại trực tiếp và đấu trường arena.
 
+## Chuẩn bị đối thủ
+
+Mở **menu bát quái → Chuẩn bị đối thủ** (`/opponents.html`). Nhập nick hoặc đường dẫn hồ sơ Chess.com/Lichess, chọn khoảng 30 ngày đến 2 năm, tốc độ cờ và tối đa 500 ván gần nhất. Ứng dụng tải tuần tự bằng API công khai, chỉ giữ ván cờ tiêu chuẩn đã kết thúc và có kỳ phổ hợp lệ; không cần mật khẩu tài khoản hoặc dịch vụ AI trả phí. Có thể nhập bộ PGN tối đa 8 MB thay cho tải qua mạng.
+
+Hồ sơ gồm khai cuộc và nhánh nước đi theo màu quân, kết quả theo tốc độ, rating trong mẫu, thói quen có số ván làm căn cứ, bàn cờ phát lại và kế hoạch chuẩn bị. Mỗi nhận xét có ván dẫn chứng khi có dữ liệu. Tỷ lệ thắng và điểm số được tách riêng; thiếu đồng hồ hoặc đánh giá engine hiện là thiếu dữ liệu, không được coi là không có lỗi. Chọn đúng tốc độ của giải trước khi kết luận; vài ván thua không chứng minh một điểm yếu cố định hoặc dự báo thứ hạng ở giải trực tiếp.
+
+Mở ván dẫn chứng → **Phân tích Stockfish** để tính bằng engine local hiện có. Sau đó về hồ sơ → **Cập nhật từ phân tích đã lưu** để ghép các đánh giá vào cùng mẫu ván, không tải hoặc phân tích lại. Chỉ dùng các kết quả phân tích thường; không đọc các ván trong két mã hóa. Hồ sơ cũng sử dụng đánh giá đã có trong PGN nếu nguồn cung cấp, ghi rõ độ phủ và độ sâu; kết quả chưa đạt độ sâu có nhãn ước tính.
+
+Hồ sơ, tên riêng, ghi chú và kỳ phổ được lưu trong SQLite ở bảng riêng, không trộn với kho ván cá nhân. Mở lại không chạy thu thập. **Cập nhật ván mới** chủ động tải lại cùng bộ lọc; nếu tải lỗi, hồ sơ cũ được giữ. Có tải PGN, in/lưu PDF bằng trình duyệt, đổi tên và xóa riêng từng hồ sơ. Với PGN không rõ rated/casual, bộ nhập không áp dụng bộ lọc rated. Ván thiếu ngày vẫn được ghi rõ là chưa xác minh khoảng thời gian.
+
+Sau khi cập nhật mã, khởi động lại backend để thêm bảng dữ liệu tự động và Ctrl+F5 để nạp menu mới. Chức năng này nằm trong ứng dụng Python chính, chưa có bản triển khai riêng cho Worker trong `sites/arena`.
+
+Đối chiếu API: [Chess.com PubAPI](https://www.chess.com/news/view/published-data-api), [Lichess API](https://lichess.org/api#tag/Games/operation/apiGamesUser). Chess.com có thể lưu đệm dữ liệu đến 12 giờ; lỗi giới hạn lượt tải được hiển thị để thử sau. Tĩnh Huyền Quán là ứng dụng độc lập, không liên kết với hai nền tảng.
+
+Kiểm tra riêng tính năng: trong `backend`, chạy `python -m unittest discover -s tests -p test_opponents.py -v` và `node tests/opponents-workflow.test.cjs`. Kiểm thử dùng tài khoản/kỳ phổ giả và HTTP mock, không thu thập dữ liệu đối thủ thật.
+
 ## Chạy trên Windows PowerShell
 
 Tại thư mục chứa `backend` và `data`:
