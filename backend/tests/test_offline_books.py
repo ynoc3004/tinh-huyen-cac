@@ -55,6 +55,55 @@ class OfflineBooksTests(unittest.TestCase):
             self.assertEqual(image.headers['x-content-type-options'],'nosniff')
             self.assertTrue(self.client.get('/api/books/'+result['id']+'/asset/book.pdf').content.startswith(b'%PDF-'))
 
+    def correction(self, text, previous='Đọc được khi ngắt mạng.', **extra):
+        return {'page':1,'block_index':0,'block_type':'p','previous_text':previous,'text':text,**extra}
+
+    def test_text_corrections_survive_restart_and_preserve_assets_and_other_blocks(self):
+        book_id=self.upload().json()['id'];base='/api/books/'+book_id
+        before=self.client.get(base+'/content/chapter-01.json').json()
+        r=self.client.patch(base+'/content/chapter-01.json',json=self.correction('Đọc được khi không có mạng.'))
+        self.assertEqual(r.status_code,200,r.text);self.assertTrue(r.json()['saved']);db.init()
+        saved=self.client.get(base+'/content/chapter-01.json')
+        self.assertEqual(saved.headers['cache-control'],'no-store')
+        self.assertEqual(saved.json()['pages'][0]['blocks'][0]['text'],'Đọc được khi không có mạng.')
+        self.assertEqual(saved.json()['pages'][0]['blocks'][1],before['pages'][0]['blocks'][1])
+        self.assertEqual(self.client.get(base+'/asset/assets/board.png').content,self.png)
+        self.assertEqual(self.client.get(base+'/asset/book.pdf').content,self.files['book.pdf'])
+        caption=self.correction('',previous='Thế cờ thứ nhất',block_index=1,block_type='figure')
+        self.assertEqual(self.client.patch(base+'/content/chapter-01.json',json=caption).status_code,200)
+        self.assertEqual(self.client.get(base+'/content/chapter-01.json').json()['pages'][0]['blocks'][1],{'type':'figure','figureId':'p1','text':''})
+
+    def test_stale_corrections_never_overwrite_a_new_save_and_wrong_targets_are_rejected(self):
+        base='/api/books/'+self.upload().json()['id']
+        self.assertEqual(self.client.patch(base+'/content/chapter-01.json',json=self.correction('Bản sửa mới')).status_code,200)
+        self.assertEqual(self.client.patch(base+'/content/chapter-01.json',json=self.correction('Bản sửa cũ')).status_code,409)
+        self.assertEqual(self.client.patch(base+'/content/chapter-01.json',json=self.correction('Sai loại',previous='Bản sửa mới',block_type='moves')).status_code,409)
+        for name in ['exercises.json','figures.json','catalog.json','missing.json']:
+            self.assertEqual(self.client.patch(base+'/content/'+name,json=self.correction('Không được sửa')).status_code,404)
+        self.assertEqual(self.client.patch(base+'/content/chapter-01.json',json=self.correction('x',page=2)).status_code,404)
+        self.assertEqual(self.client.patch(base+'/content/chapter-01.json',json=self.correction('x',block_index=99)).status_code,404)
+        self.assertEqual(self.client.get(base+'/content/chapter-01.json').json()['pages'][0]['blocks'][0]['text'],'Bản sửa mới')
+
+    def test_simultaneous_edits_to_different_blocks_are_both_saved(self):
+        from concurrent.futures import ThreadPoolExecutor
+        path='/api/books/'+self.upload().json()['id']+'/content/chapter-01.json'
+        edits=[self.correction('Đoạn đã sửa'),self.correction('Chú thích đã sửa',previous='Thế cờ thứ nhất',block_index=1,block_type='figure')]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses=list(pool.map(lambda body:self.client.patch(path,json=body),edits))
+        self.assertEqual([r.status_code for r in responses],[200,200])
+        blocks=self.client.get(path).json()['pages'][0]['blocks']
+        self.assertEqual([b['text'] for b in blocks],['Đoạn đã sửa','Chú thích đã sửa'])
+
+    def test_correction_validation_and_book_isolation(self):
+        first=self.upload().json()['id'];second=self.upload(self.package({'manifest.json':{**self.manifest,'id':'other','source_url':'https://other.example.org/'}})).json()['id']
+        path='/api/books/'+first+'/content/chapter-01.json'
+        for data in [self.correction(''),self.correction('x'*100001),self.correction('x',page=True),self.correction('x',block_index='0'),self.correction('x',script='bad')]:
+            self.assertEqual(self.client.patch(path,json=data).status_code,422)
+        self.assertEqual(self.client.patch(path,content=b'x'*2000001).status_code,413)
+        self.assertEqual(self.client.patch('/api/books/missing/content/chapter-01.json',json=self.correction('x')).status_code,404)
+        self.assertEqual(self.client.patch(path,json=self.correction('Sửa riêng sách này')).status_code,200)
+        self.assertEqual(self.client.get('/api/books/'+second+'/content/chapter-01.json').json(),self.files['content/chapter-01.json'])
+
     def test_reimport_keeps_one_book_replaces_assets_and_preserves_edited_metadata(self):
         self.upload();book=self.client.get('/api/books/winning-chess-strategies').json();book['title']='Tên riêng của tôi'
         self.assertEqual(self.client.put('/api/books/'+book['id'],json=book).status_code,200)

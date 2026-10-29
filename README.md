@@ -118,3 +118,8 @@ Bản Sites của web chính sử dụng cùng Site ID và D1 đã có; cập nh
 ### In bản dịch tiếng Việt từ sách .thcbook
 
 Trong Thư phòng, mở sách đã nhập rồi chọn **In / Lưu PDF** ở thanh trên (hoặc Ctrl+P). Chọn một chương, toàn bộ sách hoặc khoảng trang PDF; cỡ chữ 11–16 pt và tùy chọn kèm ghi chú. Bản in A4 dùng nền trắng, chữ đen, giữ hình thế cờ và nước đi, ẩn menu/công cụ đọc. Tải đủ hình trước khi mở hộp thoại máy in; nếu thiếu chương/hình sẽ báo lỗi thay vì in bản thiếu. Chọn “Lưu thành PDF” trong hộp thoại của trình duyệt để tạo PDF. Không cần nhập lại gói sách sau khi cập nhật ứng dụng.
+
+
+### Sửa lỗi chữ trong sách .thcbook
+
+Trong trình đọc Thư phòng, bật **Sửa nội dung**, bấm đoạn văn, tiêu đề, dòng nước đi hoặc chú thích hình, sửa rồi chọn **Lưu thay đổi** (Ctrl+S khi đang nhập). **Hủy** bỏ bản nháp. Nội dung lưu trong cơ sở dữ liệu sách trên máy, dùng cho tìm kiếm và bản in, còn sau khi mở lại; không chỉ lưu trong trình duyệt. Bản nháp được giữ khi lưu lỗi, có kiểm tra xung đột giữa các tab. Hình gốc và dữ liệu thế cờ/bài tập không bị sửa khi hiệu đính chữ. Nhập lại gói .thcbook sẽ thay thế nội dung sách bằng gói nhập, nên chỉ nhập lại khi chủ ý cập nhật sách.
