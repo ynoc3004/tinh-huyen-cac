@@ -6,6 +6,8 @@ function client(storage=new Map(),exercises=0){
   constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.events={};this.attrs={};this.style={setProperty(){}};this.className='';this.value='';this.complete=true;this.naturalWidth=320;this._text='';this.classList={add:n=>this.className+=' '+n,remove:n=>this.className=this.className.split(' ').filter(x=>x!==n).join(' '),toggle:(n,on)=>{const has=this.className.split(' ').includes(n);on=on??!has;if(on&&!has)this.className+=' '+n;else if(!on)this.className=this.className.split(' ').filter(x=>x!==n).join(' ');return on}}}
   set textContent(value){this._text=String(value);this.children=[]}get textContent(){return this._text+this.children.map(c=>c.textContent).join('')}
   append(...children){for(const child of children){child.parent=this;this.children.push(child)}}replaceChildren(...children){this._text='';this.children=[];this.append(...children)}
+  after(x){const i=this.parent.children.indexOf(this);x.parent=this.parent;this.parent.children.splice(i+1,0,x)}
+  removeAttribute(k){delete this.attrs[k]}
   setAttribute(k,v){this.attrs[k]=String(v)}getAttribute(k){return this.attrs[k]}
   remove(){if(this.parent)this.parent.children=this.parent.children.filter(c=>c!==this)}
   removeEventListener(k,f){this.events[k]=(this.events[k]||[]).filter(x=>x!==f)}
@@ -20,13 +22,14 @@ function client(storage=new Map(),exercises=0){
  const meta={exercises,id:'sample',title:'Sách của tôi',author:'Tác giả',start:'chapter-01',chapters:2,pages:2,assets:[],pdf:true,cover:'assets/cover.png'};
  const catalog=[{id:'chapter-01',title:'Kế hoạch',start:1,end:1,number:1},{id:'chapter-02',title:'Tàn cuộc',start:2,end:2,number:2}];
  const chapters={'chapter-01':{pages:[{page:1,blocks:[{type:'p',text:'Kế hoạch <script>alert(1)</script>'},{type:'figure',figureId:'f1',text:'Thế cờ'},{type:'moves',text:'1. e4 e5'}]}]},'chapter-02':{pages:[{page:2,blocks:[{type:'p',text:'Ôn tàn cuộc'}]}]}};
- const requests=[];let hash='';const location={search:'?id=sample',get hash(){return hash},set hash(v){hash=v.startsWith('#')?v:'#'+v}};
- const fetch=async url=>{assert(url.startsWith('/api/books/sample/'),'Reader must only request local book data');requests.push(url);let data;
+ const requests=[];let hash='';let saveFailure=0;const location={search:'?id=sample',get hash(){return hash},set hash(v){hash=v.startsWith('#')?v:'#'+v}};
+ const fetch=async (url,options={})=>{assert(url.startsWith('/api/books/sample/'),'Reader must only request local book data');requests.push(url);let data;
+  if(options.method==='PATCH'){const body=JSON.parse(options.body);if(saveFailure)return{ok:false,status:saveFailure,json:async()=>({detail:'Không thể lưu bản thử'})};const chapter=chapters[url.split('/').at(-1).replace('.json','')],block=chapter.pages.find(p=>p.page===body.page).blocks[body.block_index];if(block.text!==body.previous_text)return{ok:false,status:409,json:async()=>({detail:'Nội dung đã thay đổi'})};block.text=body.text;return{ok:true,json:async()=>({saved:true,text:body.text})};}
   if(url.endsWith('/offline'))data=meta;else if(url.endsWith('catalog.json'))data=catalog;else if(url.endsWith('figures.json'))data={'1':[{id:'f1',src:'assets/f1.png'}]};else if(url.endsWith('page-labels.json'))data={'1':'1','2':'2'};else data=chapters[url.split('/').at(-1).replace('.json','')];
   return{ok:!!data,json:async()=>structuredClone(data)};
  };
- const ctx={document,location,fetch,URLSearchParams,URL,Blob,Date,console,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},setTimeout:()=>1,clearTimeout(){},requestAnimationFrame:f=>f(),window:{printCalls:0,print(){this.printCalls++},addEventListener(){},scrollTo(){},open(){},innerHeight:900,scrollY:0}};
- vm.createContext(ctx);vm.runInContext(core,ctx);return{ctx,document,storage,requests,run:code=>vm.runInContext(code,ctx)};
+ const ctx={document,location,fetch,confirm:()=>true,history:{replaceState(a,b,value){location.hash=value}},URLSearchParams,URL,Blob,Date,console,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},setTimeout:()=>1,clearTimeout(){},requestAnimationFrame:f=>f(),window:{printCalls:0,print(){this.printCalls++},addEventListener(){},scrollTo(){},open(){},innerHeight:900,scrollY:0}};
+ vm.createContext(ctx);vm.runInContext(core,ctx);return{ctx,document,storage,requests,setSaveFailure:v=>saveFailure=v,run:code=>vm.runInContext(code,ctx)};
 }
 (async()=>{
  const c=client();await c.run('bootOffline()');assert.equal(c.document.querySelector('#reader-practice-link').hidden,true);
@@ -75,6 +78,23 @@ function client(storage=new Map(),exercises=0){
  const create=broken.document.createElement;broken.document.createElement=tag=>{const x=create(tag);if(tag==='img')x.naturalWidth=0;return x;};await broken.run('prepareBookPrint()');assert.equal(broken.ctx.window.printCalls,0);assert(broken.document.querySelector('#print-status').textContent.includes('hình thế cờ'));
  const interrupted=client();await interrupted.run('bootOffline()');interrupted.run('openPrintOptions()');interrupted.document.querySelector('#print-size').value='13';interrupted.run("cache.set('chapter-01',new Promise(resolve=>{window.finishLoad=resolve}))");
  const pending=interrupted.run('prepareBookPrint()');interrupted.run('closePrintOptions();window.finishLoad({pages:[]})');await pending;assert.equal(interrupted.ctx.window.printCalls,0);assert(interrupted.document.querySelector('#print-status').textContent.includes('Đã hủy'));
+
+ const editor=client();await editor.run('bootOffline()');editor.run('toggleEditMode()');
+ assert.equal(editor.document.querySelector('.book-editable').getAttribute('role'),'button');
+ await editor.run("load('chapter-01').then(d=>beginTextEdit(document.querySelector('.book-editable'),d.pages[0].blocks[0],1,0,'chapter-01'))");
+ editor.document.querySelector('#book-text-draft').value='Kế hoạch đã sửa <script>an toàn</script>';await editor.run('saveTextEdit()');
+ assert(editor.document.querySelector('#main').textContent.includes('Kế hoạch đã sửa <script>an toàn</script>'));assert.equal(editor.document.querySelector('#main').querySelectorAll('script').length,0);
+ await editor.run("search('Kế hoạch đã sửa')");assert(editor.document.querySelector('#search-results').textContent.includes('Kế hoạch đã sửa'));
+ const printedEdit=await editor.run("load('chapter-01').then(d=>printChapter(meta('chapter-01'),d,1,1,''))");assert(printedEdit.textContent.includes('Kế hoạch đã sửa'));
+ editor.run("cache.clear()");await editor.run("renderReader('chapter-01',1,++routeRun)");assert(editor.document.querySelector('#main').textContent.includes('Kế hoạch đã sửa'));
+ await editor.run("load('chapter-01').then(d=>beginTextEdit(document.querySelector('.book-editable'),d.pages[0].blocks[0],1,0,'chapter-01'))");editor.document.querySelector('#book-text-draft').value='Bản nháp chưa lưu';editor.setSaveFailure(503);await editor.run('saveTextEdit()');
+ assert.equal(editor.document.querySelector('#book-text-draft').value,'Bản nháp chưa lưu');assert.equal(editor.run('activeEdit.save.disabled'),false);assert(editor.run('activeEdit.status.textContent').includes('Không thể lưu'));
+ editor.setSaveFailure(409);await editor.run('saveTextEdit()');assert.equal(editor.run('activeEdit.reload.hidden'),false);
+ editor.ctx.confirm=()=>false;assert.equal(editor.run('leaveTextEdit()'),false);assert(editor.run('activeEdit!==null'));
+ editor.run('finishTextEdit()');assert.equal(editor.document.querySelector('#book-text-draft'),null);
+ // Caption editing leaves the original diagram reference intact.
+ editor.setSaveFailure(0);await editor.run("load('chapter-01').then(d=>beginTextEdit(document.querySelector('.figure-caption-text'),d.pages[0].blocks[1],1,1,'chapter-01'))");editor.document.querySelector('#book-text-draft').value='Chú thích đã sửa';await editor.run('saveTextEdit()');assert.equal(editor.document.querySelector('.figure-caption-text').textContent,'Chú thích đã sửa');assert.equal(editor.document.querySelector('#main').querySelector('img').src,'/api/books/sample/asset/assets/f1.png');
+ console.log('PASS: inline corrections persist across reload, update search/print, escape text, retain failed drafts, detect conflicts and preserve diagrams');
  console.log('PASS: print chapter/book/range, eager diagrams, safe notes, source scans excluded, cancel/failure, cleanup and unchanged reading state');
  console.log('PASS: native offline reader renders chapters/images as text, searches all chapters, saves notes/bookmarks/position per book and opens the local PDF without remote requests');
 })().catch(error=>{console.error(error);process.exitCode=1});

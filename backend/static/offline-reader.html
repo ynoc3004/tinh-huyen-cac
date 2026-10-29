@@ -9,8 +9,8 @@
 
   <link rel="stylesheet" href="/offline-reader.css?v=3">
   <link rel="stylesheet" href="/offline-typography.css?v=1">
-  <link rel="stylesheet" href="/book-print.css?v=1">
-  <script src="/offline-reader.js?v=5" defer></script>
+  <link rel="stylesheet" href="/book-print.css?v=2">
+  <script src="/offline-reader.js?v=6" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Đến nội dung</a>
@@ -28,8 +28,9 @@
   <header class="topbar">
     <button class="icon-button mobile-menu" id="menu-button" aria-label="Mở mục lục" aria-expanded="false">☰</button>
     <div class="breadcrumb"><span>Tủ sách cờ vua</span><span class="crumb-separator">/</span><b id="breadcrumb-current">Đang mở sách…</b></div>
-    <div class="header-actions"><button id="reader-print-button" class="print-trigger" type="button" disabled title="In bản dịch tiếng Việt hoặc lưu PDF">▤ <span>In / Lưu PDF</span></button><button class="search-trigger" id="search-button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.8 4.8"/></svg><span>Tìm trong sách</span><kbd>/</kbd></button><button id="theme-button" class="icon-button" aria-label="Đổi giao diện sáng tối" title="Đổi giao diện sáng tối">◐</button><button id="settings-button" class="icon-button" aria-label="Tùy chỉnh cách đọc" title="Tùy chỉnh cách đọc">Aa</button></div>
+    <div class="header-actions"><button id="reader-edit-button" class="print-trigger" type="button" disabled aria-pressed="false">✎ <span>Sửa nội dung</span></button><button id="reader-print-button" class="print-trigger" type="button" disabled title="In bản dịch tiếng Việt hoặc lưu PDF">▤ <span>In / Lưu PDF</span></button><button class="search-trigger" id="search-button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.8 4.8"/></svg><span>Tìm trong sách</span><kbd>/</kbd></button><button id="theme-button" class="icon-button" aria-label="Đổi giao diện sáng tối" title="Đổi giao diện sáng tối">◐</button><button id="settings-button" class="icon-button" aria-label="Tùy chỉnh cách đọc" title="Tùy chỉnh cách đọc">Aa</button></div>
   </header>
+  <p id="reader-edit-hint" class="reader-edit-hint" hidden>Bấm vào đoạn văn, dòng nước đi hoặc chú thích hình để sửa, rồi chọn “Lưu thay đổi”.</p>
   <main id="main" tabindex="-1"><div class="loading">Đang mở cuốn sách…</div></main>
   <footer class="footer"><span id="offline-footer">Đọc trực tiếp từ dữ liệu đã lưu trên máy</span><button id="backup-button">Sao lưu tiến độ & ghi chú ↗</button></footer>
 </div>

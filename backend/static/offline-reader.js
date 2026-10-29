@@ -48,7 +48,7 @@ function source(page){
   $('#source-frame').src=url;$('#source-link').href=url;$('#source-dialog').showModal();
 }
 async function load(id){
-  if(!cache.has(id))cache.set(id,fetch(BASE+`/content/${id}.json`).then(r=>{if(!r.ok)throw Error('Nội dung chưa tải được');return r.json();}).catch(e=>{cache.delete(id);throw e;}));
+  if(!cache.has(id))cache.set(id,fetch(BASE+`/content/${id}.json`,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Nội dung chưa tải được');return r.json();}).catch(e=>{cache.delete(id);throw e;}));
   return cache.get(id);
 }
 function renderHome(){
@@ -91,7 +91,7 @@ function figureBlock(b,page){
   const asset=(figures[page]||[]).find(f=>f.id===b.figureId);if(!asset){return el('p','',b.text||'');}
   const fig=el('figure',asset.group?'group':'');const image=el('img');image.src=asset.src;image.loading='lazy';image.decoding='async';image.alt=b.text||'Hình thế cờ trong sách';
   const zoom=button('','',()=>{$('#large-figure').src=asset.src;$('#large-figure').alt=b.text||'Hình thế cờ gốc';$('#figure-caption').textContent=b.text||pageLabel(page);$('#figure-dialog').showModal();});zoom.setAttribute('aria-label','Phóng lớn: '+(b.text||'hình thế cờ'));zoom.append(image);
-  const cap=el('figcaption','',b.text||'');cap.append(el('span','zoom-label','Bấm vào hình để phóng lớn'));fig.append(zoom,cap);if(b.original){const details=el('details','original-page');details.append(el('summary','','Đối chiếu trang gốc (nguyên ngữ)'),fig);return details;}return fig;
+  const cap=el('figcaption');cap.append(el('span','figure-caption-text',b.text||''));cap.append(el('span','zoom-label','Bấm vào hình để phóng lớn'));fig.append(zoom,cap);if(b.original){const details=el('details','original-page');details.append(el('summary','','Đối chiếu trang gốc (nguyên ngữ)'),fig);return details;}return fig;
 }
 function block(b,page){
   if(b.type==='figure')return figureBlock(b,page);
@@ -126,7 +126,7 @@ async function renderReader(id,targetPage,token){
     const section=el('section','source-page');section.id='page-'+p.page;section.dataset.page=p.page;section.setAttribute('aria-label',pageLabel(p.page));
     const tools=el('div','page-tools');tools.append(el('span','',pageLabel(p.page)));const pa=el('div','page-actions');pa.append(button('Đối chiếu bản gốc ↗','',()=>source(p.page)));
     const mark=button(isSaved(id,p.page)?'◆ Đã lưu':'◇ Lưu trang',isSaved(id,p.page)?'saved':'',()=>toggleBookmark(id,p.page));mark.dataset.bookmark=p.page;pa.append(mark);tools.append(pa);section.append(tools);
-    const prose=el('div','translation');for(const b of p.blocks)if(b.text||b.type==='figure')prose.append(block(b,p.page));section.append(prose);body.append(section);
+    const prose=el('div','translation');p.blocks.forEach((b,index)=>{if(b.text||b.type==='figure')prose.append(editableBlock(block(b,p.page),b,p.page,index,id));});section.append(prose);body.append(section);
   }reader.append(body);
   const end=el('section','chapter-end');if(c.number){
     const complete=el('div','complete-row');const msg=el('div');msg.append(el('h2','','Một chương, thêm một bước.'),el('p','','Đánh dấu khi bạn đã đọc và ôn xong chương này.'));
@@ -139,7 +139,7 @@ async function renderReader(id,targetPage,token){
   const nav=el('nav','chapter-navigation');nav.setAttribute('aria-label','Chuyển phần đọc');const ix=catalog.findIndex(x=>x.id===id);
   for(const [other,label]of [[catalog[ix-1],'← Phần trước'],[catalog[ix+1],'Phần tiếp theo →']]){if(other){const a=el('a');a.href='#'+other.id;a.append(document.createTextNode(label),el('strong','',other.title));nav.append(a);}else nav.append(el('span'));}end.append(nav);reader.append(end);
   const progress=el('div','reader-progress');progress.append(el('span'));reader.append(progress);$('#main').replaceChildren(reader);
-  currentPage=c.start;
+  syncEditMode();currentPage=c.start;
   if(targetPage&&data.pages.some(p=>p.page===targetPage)){
     requestAnimationFrame(()=>{scrollPage(targetPage,false);const section=$('#page-'+targetPage);Promise.all($$('img',section).map(im=>im.complete?Promise.resolve():new Promise(resolve=>{im.addEventListener('load',resolve,{once:true});im.addEventListener('error',resolve,{once:true});}))).then(()=>{if(current===id)scrollPage(targetPage,false);});});
   }else{window.scrollTo({top:0,behavior:'instant'});}
@@ -148,6 +148,7 @@ async function renderReader(id,targetPage,token){
 function scrollPage(page,smooth=true){const x=$('#page-'+page);if(x){x.scrollIntoView({behavior:smooth?'smooth':'instant',block:'start'});currentPage=page;const s=$('#page-select');if(s)s.value=page;}}
 async function route(){
   const [id,p]=location.hash.slice(1).split('/');if(id==='main'){document.querySelector('#main').focus({preventScroll:true});return;}
+  if(!leaveTextEdit()){history.replaceState(null,'',activeEdit.hash);return;}
   persist(true);closeSidebar();const token=++routeRun;
   if(!id||id==='home'){renderHome();window.scrollTo({top:0,behavior:'instant'});return;}
   try{await renderReader(id,Number(p)||null,token);}catch(e){if(token!==routeRun)return;const x=el('div','error-box');x.append(el('h1','','Chưa mở được phần đọc'),el('p','','Hãy kiểm tra ứng dụng Tĩnh Huyền Các trên máy vẫn đang chạy rồi tải lại phần này.'),button('Thử lại','button',()=>route()));$('#main').replaceChildren(x);}
@@ -192,6 +193,57 @@ async function importBackup(file){
     persist(true);$('#settings-dialog').close();renderNav();if(current){const input=$('#note-input');if(input)input.value=state.notes[current]||'';}else renderHome();toast('Đã nhập và hợp nhất bản sao lưu'+(noteConflicts?' · giữ cả hai bản ghi chú':''));
   }catch{toast('Tệp này không phải bản sao lưu hợp lệ của cuốn sách.');}
 }
+// Corrections are saved in the imported book on the local server, not in browser-only notes.
+let editMode=false, activeEdit=null;
+function editDirty(){return !!activeEdit&&activeEdit.input.value!==activeEdit.original;}
+function finishTextEdit(){if(!activeEdit)return;activeEdit.node.hidden=false;activeEdit.editor.remove();activeEdit=null;}
+function leaveTextEdit(){
+  if(!activeEdit)return true;
+  if(activeEdit.saving){toast('Đang lưu nội dung. Chờ lưu xong rồi chuyển phần đọc.');return false;}
+  if(editDirty()&&!confirm('Đoạn đang sửa chưa được lưu. Bạn muốn bỏ thay đổi này?'))return false;
+  finishTextEdit();return true;
+}
+function syncEditMode(){
+  document.body.classList.toggle('book-edit-mode',editMode);$('#reader-edit-button').setAttribute('aria-pressed',String(editMode));$('#reader-edit-hint').hidden=!editMode;
+  for(const node of $$('.book-editable')){node.tabIndex=editMode?0:-1;if(editMode){node.setAttribute('role','button');node.setAttribute('aria-label',node.dataset.editLabel);}else{node.removeAttribute('role');node.removeAttribute('aria-label');}}
+}
+function toggleEditMode(){if(!leaveTextEdit())return;editMode=!editMode;syncEditMode();}
+function editableBlock(node,b,page,index,id){
+  const target=b.type==='figure'?$('.figure-caption-text',node)||node:node;
+  target.classList.add('book-editable');target.dataset.editLabel=b.type==='figure'?'Sửa chú thích hình':'Sửa '+(({moves:'ký hiệu nước đi',h2:'tiêu đề',h3:'tiêu đề',quote:'trích dẫn',test:'đề bài'})[b.type]||'đoạn văn');
+  const open=e=>{if(!editMode||e.target.closest?.('button,a,input,textarea,select,summary'))return;e.preventDefault();beginTextEdit(target,b,page,index,id);};
+  target.addEventListener('click',open);target.addEventListener('keydown',e=>{if(e.target===target&&['Enter',' '].includes(e.key))open(e);});
+  return node;
+}
+function beginTextEdit(node,b,page,index,id){
+  if(!editMode||preparingPrint||!leaveTextEdit())return;
+  const editor=el('div','book-text-editor'),label=el('label','',b.type==='figure'?'Sửa chú thích hình':b.type==='moves'?'Sửa ký hiệu nước đi':'Sửa nội dung');label.htmlFor='book-text-draft';
+  const input=el('textarea');input.id='book-text-draft';input.maxLength=100000;input.rows=Math.min(18,Math.max(4,Math.ceil((b.text||'').length/75)));input.value=b.text||'';input.spellcheck=true;input.lang='vi';
+  const actions=el('div','book-edit-actions'),status=el('p','book-edit-status');status.setAttribute('role','status');
+  const save=button('Lưu thay đổi','button small',()=>saveTextEdit()),cancel=button('Hủy','button small outline',finishTextEdit),reload=button('Tải lại bản đã lưu','text-button',async()=>{
+    if(!leaveTextEdit())return;cache.delete(id);await renderReader(id,page,++routeRun);
+  });reload.hidden=true;
+  actions.append(save,cancel,reload);editor.append(label,input,actions,status);node.after(editor);node.hidden=true;
+  activeEdit={node,b,page,index,id,editor,input,status,save,cancel,reload,original:b.text||'',hash:location.hash,saving:false};input.focus();
+  input.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveTextEdit();}else if(e.key==='Escape'&&!activeEdit?.saving){e.preventDefault();e.stopPropagation();finishTextEdit();}});
+}
+async function saveTextEdit(){
+  const edit=activeEdit;if(!edit||edit.saving)return;
+  const text=edit.input.value;
+  if(text===edit.original){finishTextEdit();return;}
+  if(text.length>100000||(!text.trim()&&edit.b.type!=='figure')){edit.status.textContent='Đoạn văn cần có nội dung và không vượt quá 100.000 ký tự.';return;}
+  edit.saving=true;edit.save.disabled=true;edit.cancel.disabled=true;edit.input.readOnly=true;edit.status.textContent='Đang lưu vào sách…';edit.reload.hidden=true;
+  try{
+    const r=await fetch(BASE+'/content/'+encodeURIComponent(edit.id)+'.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({page:edit.page,block_index:edit.index,block_type:edit.b.type,previous_text:edit.original,text})});
+    const data=await r.json().catch(()=>null);
+    if(!r.ok){edit.reload.hidden=r.status!==409;throw Error(typeof data?.detail==='string'?data.detail:'Chưa lưu được nội dung. Bản nháp của bạn vẫn còn để thử lại.');}
+    if(data?.saved!==true||data.text!==text)throw Error('Chưa xác nhận được bản đã lưu. Bản nháp được giữ lại; hãy thử lại.');
+    edit.b.text=text;finishTextEdit();
+    await renderReader(edit.id,edit.page,++routeRun);toast('Đã lưu nội dung sách. Bản in cũng dùng nội dung đã sửa.');
+  }catch(e){if(activeEdit===edit)edit.status.textContent=e.message;}
+  finally{edit.saving=false;edit.save.disabled=false;edit.cancel.disabled=false;edit.input.readOnly=false;}
+}
+
 // Printing builds a separate document tree; reading position, progress and notes stay intact.
 let preparingPrint=false, cancelPrint=false, printTitle=null;
 function syncPrintOptions(){
@@ -202,7 +254,7 @@ function syncPrintOptions(){
 }
 function openPrintOptions(){
   if(!catalog.length){toast('Chờ nội dung sách tải xong rồi thử in.');return;}
-  if(preparingPrint)return;
+  if(preparingPrint||!leaveTextEdit())return;
   cleanupPrint();
   const select=$('#print-chapter');select.replaceChildren();
   for(const c of catalog){const o=el('option','',(c.number?'Chương '+chapterNumber(c)+' · ':'')+c.title);o.value=c.id;select.append(o);}
@@ -282,6 +334,8 @@ async function prepareBookPrint(event){
   }catch(e){cleanupPrint();status.textContent=cancelPrint?'Đã hủy. Chưa mở hộp thoại in.':e.message||'Chưa tạo được bản in. Hãy thử lại.';}
   finally{preparingPrint=false;$('#print-submit').disabled=false;$('#print-form').setAttribute('aria-busy','false');}
 }
+$('#reader-edit-button').addEventListener('click',toggleEditMode);
+window.addEventListener('beforeunload',e=>{if(editDirty()||activeEdit?.saving){e.preventDefault();e.returnValue='';}});
 $('#home-button').addEventListener('click',()=>go('home'));
 $('#menu-button').addEventListener('click',()=>{const open=$('#sidebar').classList.toggle('open');$('#sidebar-shade').classList.toggle('open',open);$('#menu-button').setAttribute('aria-expanded',String(open));});
 $('#sidebar-shade').addEventListener('click',closeSidebar);
@@ -322,7 +376,7 @@ async function bootOffline(){
   for(const group of Object.values(figures))for(const figure of group)figure.src=assetURL(figure.src);
   if(!bookInfo.pdf){$('#source-link').hidden=true;}
   if(!location.hash){const last=state.last&&meta(state.last.id)?state.last:null;go(last?.id||bookInfo.start||'home',last?.page);}
-  $('#reader-print-button').disabled=false;
+  $('#reader-print-button').disabled=false;$('#reader-edit-button').disabled=false;
   await route();
 }
 bootOffline().catch(error=>{$('#main').replaceChildren(el('p','empty',error.message));});

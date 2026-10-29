@@ -5,6 +5,7 @@ import json
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from db import conn
 from services.online_books import Book, fold, url_key
 
@@ -65,13 +66,63 @@ def offline_info(book_id: str):
 
 
 @router.get('/{book_id}/content/{name}')
-def offline_content(book_id: str, name: str):
+def offline_content(book_id: str, name: str, response: Response):
+    response.headers["Cache-Control"] = "no-store"
     with conn() as db:
         row = db.execute('SELECT content FROM online_book_packages WHERE book_id=?', (book_id,)).fetchone()
     content = json.loads(row['content']) if row else {}
     if name not in content:
         raise HTTPException(404, 'Không tìm thấy nội dung chương đã lưu.')
     return content[name]
+
+
+class TextCorrection(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    page: int = Field(ge=1, le=100000)
+    block_index: int = Field(ge=0, le=2999)
+    block_type: str = Field(pattern='^(p|h2|h3|moves|quote|test|figure)$')
+    previous_text: str = Field(max_length=100000)
+    text: str = Field(max_length=100000)
+
+
+@router.patch('/{book_id}/content/{name}')
+async def correct_text(book_id: str, name: str, request: Request):
+    raw = bytearray()
+    async for chunk in request.stream():
+        raw.extend(chunk)
+        if len(raw) > 2000000:
+            raise HTTPException(413, 'Đoạn sửa quá dài.')
+    try:
+        edit = TextCorrection.model_validate_json(raw)
+    except ValidationError:
+        raise HTTPException(422, 'Thông tin chỉnh sửa không hợp lệ. Mỗi đoạn tối đa 100.000 ký tự.')
+    if edit.block_type != 'figure' and not edit.text.strip():
+        raise HTTPException(422, 'Nội dung đoạn văn không được để trống.')
+    with conn() as db:
+        # Serialize read/modify/write so simultaneous corrections to other paragraphs survive.
+        db.execute('BEGIN IMMEDIATE')
+        row = db.execute('SELECT content FROM online_book_packages WHERE book_id=?', (book_id,)).fetchone()
+        docs = json.loads(row['content']) if row else {}
+        catalog = docs.get('catalog.json', [])
+        if not any(c['id'] + '.json' == name for c in catalog) or name not in docs:
+            raise HTTPException(404, 'Không tìm thấy chương đã lưu.')
+        chapter = docs[name]
+        page = next((p for p in chapter['pages'] if p['page'] == edit.page), None)
+        if page is None or edit.block_index >= len(page['blocks']):
+            raise HTTPException(404, 'Không tìm thấy đoạn cần sửa. Hãy tải lại chương.')
+        block = page['blocks'][edit.block_index]
+        if block['type'] != edit.block_type or block.get('text', '') != edit.previous_text:
+            raise HTTPException(409, 'Đoạn này đã thay đổi ở nơi khác. Bản sửa của bạn chưa được ghi đè. Hãy tải lại bản đã lưu để đối chiếu.')
+        block['text'] = edit.text
+        from services.offline_books import MAX_FILE, MAX_EXPANDED
+        if len(json.dumps(chapter, ensure_ascii=False).encode()) > MAX_FILE:
+            raise HTTPException(413, 'Chương quá lớn sau khi sửa.')
+        content = json.dumps(docs, ensure_ascii=False)
+        if len(content.encode()) > MAX_EXPANDED:
+            raise HTTPException(413, 'Nội dung sách quá lớn sau khi sửa.')
+        db.execute('UPDATE online_book_packages SET content=? WHERE book_id=?', (content, book_id))
+        db.execute("UPDATE online_books SET updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE id=?", (book_id,))
+    return {'saved': True, 'page': edit.page, 'block_index': edit.block_index, 'text': edit.text}
 
 
 @router.get('/{book_id}/asset/{path:path}')

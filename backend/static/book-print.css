@@ -43,3 +43,18 @@
   .print-chapter-notes p{white-space:pre-wrap;overflow-wrap:break-word;orphans:3;widows:3}
   a{color:#000!important;text-decoration:none!important}
 }
+
+/* Corrections share the reader's colors and never appear in the paper copy. */
+.reader-edit-hint{margin:0;padding:12px 42px;background:var(--wash);border-bottom:1px solid var(--line);color:var(--green);font-size:12px;line-height:1.8}
+.book-edit-mode .book-editable{cursor:text;border-radius:3px;outline:1px dashed transparent;outline-offset:4px}
+.book-edit-mode .book-editable:hover,.book-edit-mode .book-editable:focus-visible{outline-color:var(--green);background:var(--wash)}
+.book-edit-mode .figure-caption-text{display:block;min-height:1.8em}
+.book-edit-mode .figure-caption-text:empty::before{content:'Bấm để thêm chú thích';color:var(--muted)}
+.book-text-editor{margin:18px 0;padding:16px;background:var(--wash);border:1px solid var(--green);border-radius:5px;font-family:var(--font-ui);text-align:left}
+.book-text-editor label{display:block;margin-bottom:9px;font-size:12px;font-weight:600;color:var(--green)}
+.book-text-editor textarea{display:block;width:100%;min-height:6em;max-height:60vh;resize:vertical;padding:12px;border:1px solid var(--line);border-radius:3px;background:var(--paper);color:var(--ink);font:16px/1.8 var(--font-ui);white-space:pre-wrap}
+.book-edit-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.book-edit-status{margin:10px 0 0!important;font-size:12px;line-height:1.8;color:var(--green);white-space:pre-wrap}
+#reader-edit-button[aria-pressed="true"]{background:var(--wash);border-color:var(--green)}
+@media(max-width:860px){.topbar{height:auto;min-height:76px;flex-wrap:wrap;padding-block:12px;gap:9px}.header-actions{flex-wrap:wrap;margin-left:auto;gap:7px}.reader-edit-hint{padding:10px 22px}}
+@media print{.reader-edit-hint,.book-text-editor{display:none!important}.book-editable{outline:0!important;background:none!important}}
