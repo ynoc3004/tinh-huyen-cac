@@ -3,10 +3,12 @@ const directory=path.join(__dirname,'../static'),source=fs.readFileSync(path.joi
 const core=source.slice(0,source.indexOf("$('#home-button').addEventListener"))+source.slice(source.indexOf('async function bootOffline(){'),source.lastIndexOf('bootOffline().catch'));
 function client(storage=new Map(),exercises=0){
  class E{
-  constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.events={};this.attrs={};this.style={setProperty(){}};this.className='';this.value='';this.complete=true;this._text='';this.classList={add:n=>this.className+=' '+n,remove:n=>this.className=this.className.split(' ').filter(x=>x!==n).join(' '),toggle:(n,on)=>{const has=this.className.split(' ').includes(n);on=on??!has;if(on&&!has)this.className+=' '+n;else if(!on)this.className=this.className.split(' ').filter(x=>x!==n).join(' ');return on}}}
+  constructor(tag='div'){this.tagName=tag.toUpperCase();this.children=[];this.dataset={};this.events={};this.attrs={};this.style={setProperty(){}};this.className='';this.value='';this.complete=true;this.naturalWidth=320;this._text='';this.classList={add:n=>this.className+=' '+n,remove:n=>this.className=this.className.split(' ').filter(x=>x!==n).join(' '),toggle:(n,on)=>{const has=this.className.split(' ').includes(n);on=on??!has;if(on&&!has)this.className+=' '+n;else if(!on)this.className=this.className.split(' ').filter(x=>x!==n).join(' ');return on}}}
   set textContent(value){this._text=String(value);this.children=[]}get textContent(){return this._text+this.children.map(c=>c.textContent).join('')}
   append(...children){for(const child of children){child.parent=this;this.children.push(child)}}replaceChildren(...children){this._text='';this.children=[];this.append(...children)}
   setAttribute(k,v){this.attrs[k]=String(v)}getAttribute(k){return this.attrs[k]}
+  remove(){if(this.parent)this.parent.children=this.parent.children.filter(c=>c!==this)}
+  removeEventListener(k,f){this.events[k]=(this.events[k]||[]).filter(x=>x!==f)}
   addEventListener(k,f){(this.events[k]??=[]).push(f)}fire(k){for(const f of this.events[k]||[])f({target:this})}
   focus(){}scrollIntoView(){}showModal(){this.open=true}close(){this.open=false}getBoundingClientRect(){return{top:0,bottom:500}}
   matches(s){if(s.startsWith('#'))return this.id===s.slice(1);if(s.startsWith('.'))return this.className.split(' ').includes(s.slice(1));const data=s.match(/^\[data-bookmark="(\d+)"\]$/);if(data)return String(this.dataset.bookmark)===data[1];return s.toUpperCase()===this.tagName}
@@ -23,7 +25,7 @@ function client(storage=new Map(),exercises=0){
   if(url.endsWith('/offline'))data=meta;else if(url.endsWith('catalog.json'))data=catalog;else if(url.endsWith('figures.json'))data={'1':[{id:'f1',src:'assets/f1.png'}]};else if(url.endsWith('page-labels.json'))data={'1':'1','2':'2'};else data=chapters[url.split('/').at(-1).replace('.json','')];
   return{ok:!!data,json:async()=>structuredClone(data)};
  };
- const ctx={document,location,fetch,URLSearchParams,URL,Blob,Date,console,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},setTimeout:()=>1,clearTimeout(){},requestAnimationFrame:f=>f(),window:{addEventListener(){},scrollTo(){},open(){},innerHeight:900,scrollY:0}};
+ const ctx={document,location,fetch,URLSearchParams,URL,Blob,Date,console,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},setTimeout:()=>1,clearTimeout(){},requestAnimationFrame:f=>f(),window:{printCalls:0,print(){this.printCalls++},addEventListener(){},scrollTo(){},open(){},innerHeight:900,scrollY:0}};
  vm.createContext(ctx);vm.runInContext(core,ctx);return{ctx,document,storage,requests,run:code=>vm.runInContext(code,ctx)};
 }
 (async()=>{
@@ -44,5 +46,35 @@ function client(storage=new Map(),exercises=0){
  c.run("block({type:'test',text:'Bài 2',exerciseId:'2'},1).children[0].fire('click')");assert.equal(c.ctx.location.href,'/book-practice.html?id=sample&exercise=2');
  c.run("bookInfo.exercises=0");c.run("block({type:'test',text:'Bài 7',exerciseId:'7'},1).children[0].fire('click')");assert.equal(c.ctx.location.href,'/book-practice.html?id=sample&exercise=7','Legacy metadata cannot hide the exercise action');
  const original=c.run("figureBlock({type:'figure',figureId:'f1',text:'Trang gốc',original:true},1)");assert.equal(original.tagName,'DETAILS');assert(original.textContent.includes('nguyên ngữ'));
+
+ // Print the actual reader data, never the navigation or action controls.
+ const printer=client();await printer.run('bootOffline()');printer.run('openPrintOptions()');
+ assert.equal(printer.document.querySelector('#print-dialog').open,true);
+ assert.equal(printer.document.querySelector('#print-chapter').value,'chapter-01');
+ assert.equal(printer.run("printSelection('all').length"),2);
+ assert.equal(printer.run("printSelection('pages',null,2,2)[0].c.id"),'chapter-02');
+ for(const [start,end] of [[0,1],[2,1],[1,3],[1.5,2]])assert.throws(()=>printer.run(`printSelection('pages',null,${start},${end})`));
+ printer.run("state.notes['chapter-01']='Ghi chú riêng <script>không chạy</script>';persist(true)");
+ const before=printer.storage.get('thc-offline-book-sample'),title=printer.document.title;
+ printer.document.querySelector('#print-scope').value='all';printer.document.querySelector('#print-size').value='14';printer.document.querySelector('#print-notes').checked=true;
+ await printer.run('prepareBookPrint()');
+ const printRoot=printer.document.querySelector('#book-print-root');assert(printRoot);assert.equal(printRoot.children.length,2);
+ assert(printRoot.textContent.includes('Ôn tàn cuộc'));assert(printRoot.textContent.includes('Ghi chú riêng <script>không chạy</script>'));
+ assert.equal(printRoot.querySelectorAll('script').length,0);assert.equal(printRoot.querySelectorAll('button').length,0);assert.equal(printRoot.querySelector('img').loading,'eager');
+ assert.equal(printer.ctx.window.printCalls,1);assert(printer.document.body.className.includes('book-print-active'));
+ assert.equal(printer.storage.get('thc-offline-book-sample'),before,'Printing must not modify reading position, notes or progress');
+ printer.run('cleanupPrint()');assert.equal(printer.document.querySelector('#book-print-root'),null);assert.equal(printer.document.title,title);
+ printer.document.querySelector('#print-scope').value='pages';printer.document.querySelector('#print-from').value='2';printer.document.querySelector('#print-to').value='2';printer.document.querySelector('#print-notes').checked=false;
+ await printer.run('prepareBookPrint()');const range=printer.document.querySelector('#book-print-root');assert.equal(range.children.length,1);assert(!range.textContent.includes('Kế hoạch <script>'));assert(!range.textContent.includes('Ghi chú riêng'));printer.run('cleanupPrint()');
+ const originalPrint=printer.run("printBlock({type:'figure',figureId:'missing',original:true},1)");assert.equal(originalPrint,null);
+ assert.throws(()=>printer.run("printBlock({type:'figure',figureId:'missing'},1)"),/Thiếu hình/);
+ // A missing chapter or broken image must not produce a silently incomplete print.
+ const failed=client();await failed.run('bootOffline()');failed.run('openPrintOptions()');failed.document.querySelector('#print-scope').value='all';failed.document.querySelector('#print-size').value='13';
+ failed.run("cache.set('chapter-02',Promise.resolve({pages:[]}));cache.set('chapter-01',Promise.resolve(null))");await failed.run('prepareBookPrint()');assert.equal(failed.ctx.window.printCalls,0);assert.equal(failed.document.querySelector('#book-print-root'),null);assert(failed.document.querySelector('#print-status').textContent);
+ const broken=client();await broken.run('bootOffline()');broken.run('openPrintOptions()');broken.document.querySelector('#print-size').value='13';
+ const create=broken.document.createElement;broken.document.createElement=tag=>{const x=create(tag);if(tag==='img')x.naturalWidth=0;return x;};await broken.run('prepareBookPrint()');assert.equal(broken.ctx.window.printCalls,0);assert(broken.document.querySelector('#print-status').textContent.includes('hình thế cờ'));
+ const interrupted=client();await interrupted.run('bootOffline()');interrupted.run('openPrintOptions()');interrupted.document.querySelector('#print-size').value='13';interrupted.run("cache.set('chapter-01',new Promise(resolve=>{window.finishLoad=resolve}))");
+ const pending=interrupted.run('prepareBookPrint()');interrupted.run('closePrintOptions();window.finishLoad({pages:[]})');await pending;assert.equal(interrupted.ctx.window.printCalls,0);assert(interrupted.document.querySelector('#print-status').textContent.includes('Đã hủy'));
+ console.log('PASS: print chapter/book/range, eager diagrams, safe notes, source scans excluded, cancel/failure, cleanup and unchanged reading state');
  console.log('PASS: native offline reader renders chapters/images as text, searches all chapters, saves notes/bookmarks/position per book and opens the local PDF without remote requests');
 })().catch(error=>{console.error(error);process.exitCode=1});

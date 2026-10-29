@@ -192,6 +192,96 @@ async function importBackup(file){
     persist(true);$('#settings-dialog').close();renderNav();if(current){const input=$('#note-input');if(input)input.value=state.notes[current]||'';}else renderHome();toast('Đã nhập và hợp nhất bản sao lưu'+(noteConflicts?' · giữ cả hai bản ghi chú':''));
   }catch{toast('Tệp này không phải bản sao lưu hợp lệ của cuốn sách.');}
 }
+// Printing builds a separate document tree; reading position, progress and notes stay intact.
+let preparingPrint=false, cancelPrint=false, printTitle=null;
+function syncPrintOptions(){
+  const scope=$('#print-scope').value;
+  $('#print-chapter-field').hidden=scope!=='chapter';$('#print-range').hidden=scope!=='pages';$('#print-range-hint').hidden=scope!=='pages';
+  $('#print-chapter').disabled=scope!=='chapter';
+  for(const id of ['print-from','print-to']){$('#'+id).disabled=scope!=='pages';$('#'+id).required=scope==='pages';}
+}
+function openPrintOptions(){
+  if(!catalog.length){toast('Chờ nội dung sách tải xong rồi thử in.');return;}
+  if(preparingPrint)return;
+  cleanupPrint();
+  const select=$('#print-chapter');select.replaceChildren();
+  for(const c of catalog){const o=el('option','',(c.number?'Chương '+chapterNumber(c)+' · ':'')+c.title);o.value=c.id;select.append(o);}
+  select.value=meta(current)?current:catalog[0].id;$('#print-scope').value=current?'chapter':'all';
+  const first=Math.min(...catalog.map(c=>c.start)),last=Math.max(...catalog.map(c=>c.end));
+  for(const id of ['print-from','print-to']){$('#'+id).min=first;$('#'+id).max=last;}
+  $('#print-from').value=meta(current)?.start||first;$('#print-to').value=meta(current)?.end||last;
+  $('#print-status').textContent='';syncPrintOptions();
+  for(const d of $$('dialog[open]'))d.close();
+  $('#print-dialog').showModal();
+}
+function printSelection(scope,chapter,from,to){
+  if(scope==='all')return catalog.map(c=>({c,from:c.start,to:c.end}));
+  if(scope==='chapter'){const c=meta(chapter);if(!c)throw Error('Hãy chọn một chương để in.');return[{c,from:c.start,to:c.end}];}
+  if(scope!=='pages'||!Number.isInteger(from)||!Number.isInteger(to)||from>to||from<Math.min(...catalog.map(c=>c.start))||to>Math.max(...catalog.map(c=>c.end)))throw Error('Khoảng trang PDF không hợp lệ. Kiểm tra trang bắt đầu và kết thúc.');
+  const selected=catalog.filter(c=>c.end>=from&&c.start<=to).map(c=>({c,from:Math.max(from,c.start),to:Math.min(to,c.end)}));
+  if(!selected.length)throw Error('Khoảng trang này chưa có nội dung đã nhập.');
+  return selected;
+}
+function printBlock(b,page){
+  // Original-language comparison scans stay out of the Vietnamese reading copy.
+  if(b.original)return null;
+  if(b.type==='figure'){
+    const asset=(figures[page]||[]).find(f=>f.id===b.figureId);
+    if(!asset)throw Error('Thiếu hình ở '+pageLabel(page)+'. Hãy nhập lại gói sách trước khi in.');
+    const fig=el('figure',asset.group?'group':''),im=el('img');im.src=asset.src;im.loading='eager';im.alt=b.text||'Thế cờ trong sách';fig.append(im);if(b.text)fig.append(el('figcaption','',b.text));return fig;
+  }
+  const tag=['h2','h3'].includes(b.type)?b.type:b.type==='quote'?'blockquote':b.type==='moves'||b.type==='test'?'div':'p';
+  return el(tag,['moves','test'].includes(b.type)?b.type:'',b.text||'');
+}
+function printChapter(c,data,from,to,notes){
+  const pages=data.pages.filter(p=>p.page>=from&&p.page<=to);if(!pages.length)return null;
+  const chapter=el('article','print-chapter'),heading=el('header','print-chapter-heading');
+  heading.append(el('p','print-book-name',bookInfo.title),el('h1','',(c.number?'Chương '+chapterNumber(c)+' · ':'')+c.title));
+  heading.append(el('p','print-book-meta',[bookInfo.author,bookInfo.edition||'Bản dịch tiếng Việt',`Trang PDF ${pages[0].page}–${pages.at(-1).page}`].filter(Boolean).join(' · ')));chapter.append(heading);
+  for(const p of pages){const section=el('section','print-source-page');section.append(el('p','print-page-label',pageLabel(p.page)));const prose=el('div','translation');for(const b of p.blocks){const node=printBlock(b,p.page);if(node)prose.append(node);}section.append(prose);chapter.append(section);}
+  if(notes?.trim()){const n=el('section','print-chapter-notes');n.append(el('h2','','Ghi chú của tôi'),el('p','',notes));chapter.append(n);}
+  return chapter;
+}
+async function readyToPrint(root){
+  // Eagerly load even off-screen diagrams before opening the browser's print preview.
+  await Promise.all($$('img',root).map(im=>new Promise((resolve,reject)=>{
+    let timer;const finish=ok=>{clearTimeout(timer);im.removeEventListener('load',loaded);im.removeEventListener('error',failed);ok?resolve():reject(Error('Một hình thế cờ chưa tải được. Kiểm tra ứng dụng đang chạy rồi thử in lại.'));};
+    const loaded=()=>finish(im.naturalWidth>0),failed=()=>finish(false);
+    im.addEventListener('load',loaded,{once:true});im.addEventListener('error',failed,{once:true});timer=setTimeout(failed,30000);if(im.complete)loaded();
+  })));
+  if(document.fonts?.ready)await document.fonts.ready;
+}
+function cleanupPrint(){
+  $('#book-print-root')?.remove();document.body.classList.remove('book-print-active');
+  if(printTitle!==null){document.title=printTitle;printTitle=null;}
+}
+function closePrintOptions(){
+  if(preparingPrint){cancelPrint=true;$('#print-status').textContent='Đang hủy chuẩn bị bản in…';return;}
+  $('#print-dialog').close();
+}
+async function prepareBookPrint(event){
+  event?.preventDefault();if(preparingPrint)return;
+  const status=$('#print-status');let selected,size=Number($('#print-size').value);
+  try{selected=printSelection($('#print-scope').value,$('#print-chapter').value,Number($('#print-from').value),Number($('#print-to').value));if(![11,12,13,14,16].includes(size))throw Error('Cỡ chữ in không hợp lệ.');}catch(e){status.textContent=e.message;return;}
+  preparingPrint=true;cancelPrint=false;$('#print-submit').disabled=true;$('#print-form').setAttribute('aria-busy','true');
+  const root=el('div','book-print-root');root.id='book-print-root';root.setAttribute('aria-hidden','true');root.style.setProperty('--book-print-size',size+'pt');
+  const includeNotes=$('#print-notes').checked,notes={...state.notes};
+  try{
+    for(let i=0;i<selected.length;i++){
+      if(cancelPrint)break;const {c,from,to}=selected[i];status.textContent=`Đang chuẩn bị ${i+1}/${selected.length}: ${c.title}…`;
+      const data=await load(c.id);if(cancelPrint)break;const chapter=printChapter(c,data,from,to,includeNotes?notes[c.id]:'');if(chapter)root.append(chapter);
+    }
+    if(cancelPrint){status.textContent='Đã hủy. Chưa mở hộp thoại in.';return;}
+    if(!root.children.length)throw Error('Khoảng đã chọn không có nội dung để in.');
+    cleanupPrint();document.body.append(root);status.textContent='Đang tải đầy đủ hình thế cờ và phông chữ…';
+    await readyToPrint(root);if(cancelPrint){cleanupPrint();status.textContent='Đã hủy. Chưa mở hộp thoại in.';return;}
+    printTitle=document.title;document.title=bookInfo.title+' · '+(selected.length===1?selected[0].c.title:'Bản in tiếng Việt');
+    document.body.classList.add('book-print-active');$('#print-dialog').close();
+    status.textContent='Đã chuẩn bị bản in.';
+    window.print();
+  }catch(e){cleanupPrint();status.textContent=cancelPrint?'Đã hủy. Chưa mở hộp thoại in.':e.message||'Chưa tạo được bản in. Hãy thử lại.';}
+  finally{preparingPrint=false;$('#print-submit').disabled=false;$('#print-form').setAttribute('aria-busy','false');}
+}
 $('#home-button').addEventListener('click',()=>go('home'));
 $('#menu-button').addEventListener('click',()=>{const open=$('#sidebar').classList.toggle('open');$('#sidebar-shade').classList.toggle('open',open);$('#menu-button').setAttribute('aria-expanded',String(open));});
 $('#sidebar-shade').addEventListener('click',closeSidebar);
@@ -199,10 +289,18 @@ $('#theme-button').addEventListener('click',()=>{state.prefs.dark=!state.prefs.d
 $('#settings-button').addEventListener('click',()=>$('#settings-dialog').showModal());
 $('#font-size').addEventListener('input',e=>{state.prefs.size=Number(e.target.value);applyPrefs();persist();});
 $('#serif-toggle').addEventListener('change',e=>{state.prefs.serif=e.target.checked;applyPrefs();persist();});
-$('#print-button').addEventListener('click',()=>{if(!current){toast('Hãy mở một chương trước khi in.');return;}$('#settings-dialog').close();window.print();});
+$('#print-button').addEventListener('click',openPrintOptions);
+$('#reader-print-button').addEventListener('click',openPrintOptions);
+$('#print-scope').addEventListener('change',syncPrintOptions);
+$('#print-form').addEventListener('submit',prepareBookPrint);
+$('#print-close').addEventListener('click',closePrintOptions);$('#print-cancel').addEventListener('click',closePrintOptions);
+$('#print-dialog').addEventListener('cancel',e=>{if(preparingPrint){e.preventDefault();closePrintOptions();}});
+window.addEventListener('afterprint',cleanupPrint);
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='p'&&catalog.length){e.preventDefault();openPrintOptions();}});
+
 $('#search-button').addEventListener('click',()=>{$('#search-dialog').showModal();$('#search-input').focus();});
 let searchTimer;$('#search-input').addEventListener('input',e=>{clearTimeout(searchTimer);searchRun++;searchTimer=setTimeout(()=>search(e.target.value).catch(()=>toast('Chưa đọc được dữ liệu đã lưu. Hãy kiểm tra ứng dụng trên máy và thử lại.')),220);});
-for(const d of $$('dialog')){d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}});$('.close-dialog',d).addEventListener('click',()=>d.close());}
+for(const d of $$('dialog:not(#print-dialog)')){d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}});$('.close-dialog',d).addEventListener('click',()=>d.close());}
 $('#source-dialog').addEventListener('close',()=>{$('#source-frame').src='about:blank';});
 $('#backup-button').addEventListener('click',()=>$('#settings-dialog').showModal());
 $('#export-button').addEventListener('click',exportBackup);$('#import-button').addEventListener('click',()=>$('#import-file').click());$('#import-file').addEventListener('change',e=>{importBackup(e.target.files[0]);e.target.value='';});
@@ -224,6 +322,7 @@ async function bootOffline(){
   for(const group of Object.values(figures))for(const figure of group)figure.src=assetURL(figure.src);
   if(!bookInfo.pdf){$('#source-link').hidden=true;}
   if(!location.hash){const last=state.last&&meta(state.last.id)?state.last:null;go(last?.id||bookInfo.start||'home',last?.page);}
+  $('#reader-print-button').disabled=false;
   await route();
 }
 bootOffline().catch(error=>{$('#main').replaceChildren(el('p','empty',error.message));});
