@@ -9,7 +9,8 @@
 
   <link rel="stylesheet" href="/offline-reader.css?v=3">
   <link rel="stylesheet" href="/offline-typography.css?v=1">
-  <script src="/offline-reader.js?v=4" defer></script>
+  <link rel="stylesheet" href="/book-print.css?v=1">
+  <script src="/offline-reader.js?v=5" defer></script>
 </head>
 <body>
 <a class="skip" href="#main">Đến nội dung</a>
@@ -27,13 +28,28 @@
   <header class="topbar">
     <button class="icon-button mobile-menu" id="menu-button" aria-label="Mở mục lục" aria-expanded="false">☰</button>
     <div class="breadcrumb"><span>Tủ sách cờ vua</span><span class="crumb-separator">/</span><b id="breadcrumb-current">Đang mở sách…</b></div>
-    <div class="header-actions"><button class="search-trigger" id="search-button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.8 4.8"/></svg><span>Tìm trong sách</span><kbd>/</kbd></button><button id="theme-button" class="icon-button" aria-label="Đổi giao diện sáng tối" title="Đổi giao diện sáng tối">◐</button><button id="settings-button" class="icon-button" aria-label="Tùy chỉnh cách đọc" title="Tùy chỉnh cách đọc">Aa</button></div>
+    <div class="header-actions"><button id="reader-print-button" class="print-trigger" type="button" disabled title="In bản dịch tiếng Việt hoặc lưu PDF">▤ <span>In / Lưu PDF</span></button><button class="search-trigger" id="search-button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.8 4.8"/></svg><span>Tìm trong sách</span><kbd>/</kbd></button><button id="theme-button" class="icon-button" aria-label="Đổi giao diện sáng tối" title="Đổi giao diện sáng tối">◐</button><button id="settings-button" class="icon-button" aria-label="Tùy chỉnh cách đọc" title="Tùy chỉnh cách đọc">Aa</button></div>
   </header>
   <main id="main" tabindex="-1"><div class="loading">Đang mở cuốn sách…</div></main>
   <footer class="footer"><span id="offline-footer">Đọc trực tiếp từ dữ liệu đã lưu trên máy</span><button id="backup-button">Sao lưu tiến độ & ghi chú ↗</button></footer>
 </div>
 <dialog id="search-dialog" class="search-dialog"><div class="dialog-top"><h2>Tìm trong sách</h2><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><label class="search-field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.8 4.8"/></svg><input id="search-input" placeholder="Ví dụ: cánh vua, tốt cô lập, Nf3…" autocomplete="off"></label><div id="search-results" aria-live="polite"><p class="empty">Tìm một ý tưởng, thuật ngữ hoặc nước đi.</p></div></dialog>
-<dialog id="settings-dialog" class="small-dialog"><div class="dialog-top"><h2>Cách đọc của bạn</h2><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><label class="setting-label" for="font-size">Cỡ chữ <strong id="font-size-label">19 px</strong></label><input id="font-size" type="range" min="16" max="28" step="1" value="19"><div class="setting-row"><label for="serif-toggle">Phông chữ có chân</label><input type="checkbox" id="serif-toggle"></div><div class="setting-row"><span>In chương đang đọc</span><button class="button small outline" id="print-button">In / lưu PDF</button></div><p class="muted small-text">Tiến độ, trang đã lưu và ghi chú được giữ trên trình duyệt này. Dùng bản sao lưu để chuyển sang thiết bị khác.</p><div class="setting-row"><button class="text-button" id="export-button">Xuất bản sao lưu ↓</button><button class="text-button" id="import-button">Nhập bản sao lưu ↑</button></div><input id="import-file" type="file" accept="application/json,.json" hidden></dialog>
+<dialog id="settings-dialog" class="small-dialog"><div class="dialog-top"><h2>Cách đọc của bạn</h2><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><label class="setting-label" for="font-size">Cỡ chữ <strong id="font-size-label">19 px</strong></label><input id="font-size" type="range" min="16" max="28" step="1" value="19"><div class="setting-row"><label for="serif-toggle">Phông chữ có chân</label><input type="checkbox" id="serif-toggle"></div><div class="setting-row"><span>In bản dịch tiếng Việt</span><button class="button small outline" id="print-button">In / lưu PDF</button></div><p class="muted small-text">Tiến độ, trang đã lưu và ghi chú được giữ trên trình duyệt này. Dùng bản sao lưu để chuyển sang thiết bị khác.</p><div class="setting-row"><button class="text-button" id="export-button">Xuất bản sao lưu ↓</button><button class="text-button" id="import-button">Nhập bản sao lưu ↑</button></div><input id="import-file" type="file" accept="application/json,.json" hidden></dialog>
+<dialog id="print-dialog" class="book-print-dialog" aria-labelledby="print-title">
+  <form id="print-form">
+    <div class="dialog-top"><h2 id="print-title">In sách tiếng Việt</h2><button type="button" id="print-close" class="icon-button" aria-label="Đóng tùy chọn in">×</button></div>
+    <p class="print-intro">Bản in A4 dùng nền trắng, chữ đen; giữ hình thế cờ và ký hiệu nước đi.</p>
+    <label class="print-field" for="print-scope">Nội dung cần in<select id="print-scope"><option value="chapter">Một chương</option><option value="all">Toàn bộ sách</option><option value="pages">Khoảng trang PDF của sách</option></select></label>
+    <label class="print-field" id="print-chapter-field" for="print-chapter">Chương<select id="print-chapter"></select></label>
+    <div id="print-range" class="print-range" hidden><label class="print-field" for="print-from">Từ trang PDF<input id="print-from" type="number" min="1" step="1"></label><label class="print-field" for="print-to">Đến trang PDF<input id="print-to" type="number" min="1" step="1"></label></div>
+    <p id="print-range-hint" class="muted small-text" hidden>Dùng số trang PDF hiển thị trong sách, có thể khác số trang đánh trên giấy gốc.</p>
+    <label class="print-field" for="print-size">Cỡ chữ trên giấy<select id="print-size"><option value="11">11 pt · Nhỏ gọn</option><option value="12">12 pt</option><option value="13" selected>13 pt · Dễ đọc</option><option value="14">14 pt · Chữ lớn</option><option value="16">16 pt · Rất lớn</option></select></label>
+    <label class="print-check"><input id="print-notes" type="checkbox"> Kèm ghi chú của tôi ở cuối mỗi chương</label>
+    <p class="muted small-text">Nút bên dưới mở hộp thoại in của trình duyệt. Chọn máy in hoặc “Lưu thành PDF”. Gói sách đã nhập dùng được khi không có mạng.</p>
+    <p id="print-status" class="small-text" role="status" aria-live="polite"></p>
+    <div class="print-actions"><button id="print-cancel" class="button outline" type="button">Hủy</button><button id="print-submit" class="button" type="submit">In / Lưu PDF</button></div>
+  </form>
+</dialog>
 <dialog id="source-dialog" class="source-dialog"><div class="dialog-top"><h2 id="source-title">Trang sách gốc</h2><a class="text-button" id="source-link" target="_blank" rel="noopener">Mở riêng ↗</a><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><iframe title="Trang sách PDF gốc" id="source-frame"></iframe></dialog>
 <dialog id="figure-dialog" class="figure-dialog"><div class="dialog-top"><p id="figure-caption"></p><button class="icon-button close-dialog" aria-label="Đóng">×</button></div><img id="large-figure" alt="Hình thế cờ gốc phóng lớn"></dialog>
 <div class="toast" id="toast" role="status"></div>

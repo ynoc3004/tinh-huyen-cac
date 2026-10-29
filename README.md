@@ -113,3 +113,8 @@ Sau khi cập nhật repo bằng `git pull`, khởi động lại backend đang 
 Tính năng bổ sung: thêm từng kỳ thủ, thông tin địa điểm/ban tổ chức/trọng tài/thời gian mỗi bên, chọn nguồn lịch Swiss, kiểm tra lịch, xuất/khôi phục toàn giải và bảo vệ kết quả khi mở nhiều cửa sổ. Mật khẩu quản trị để xóa giải của bản Python được giữ nguyên.
 
 Bản Sites của web chính sử dụng cùng Site ID và D1 đã có; cập nhật mã không cấp lại kho dữ liệu hoặc tài khoản. Mã nguồn mô-đun độc lập vẫn có ở `sites/arena` để tham khảo; phần chạy trong web chính là `backend/static` + `backend/routers/arena.py`.
+
+
+### In bản dịch tiếng Việt từ sách .thcbook
+
+Trong Thư phòng, mở sách đã nhập rồi chọn **In / Lưu PDF** ở thanh trên (hoặc Ctrl+P). Chọn một chương, toàn bộ sách hoặc khoảng trang PDF; cỡ chữ 11–16 pt và tùy chọn kèm ghi chú. Bản in A4 dùng nền trắng, chữ đen, giữ hình thế cờ và nước đi, ẩn menu/công cụ đọc. Tải đủ hình trước khi mở hộp thoại máy in; nếu thiếu chương/hình sẽ báo lỗi thay vì in bản thiếu. Chọn “Lưu thành PDF” trong hộp thoại của trình duyệt để tạo PDF. Không cần nhập lại gói sách sau khi cập nhật ứng dụng.
