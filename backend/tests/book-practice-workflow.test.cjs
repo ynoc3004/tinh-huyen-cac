@@ -1,15 +1,25 @@
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const root=path.join(__dirname,'../static');
-class E{constructor(){this.value='';this.textContent='';this.children=[];this.dataset={};this.style={};this.attributes={};}setAttribute(k,v){this.attributes[k]=v}removeAttribute(k){delete this.attributes[k];delete this[k]}replaceChildren(...x){this.children=x}append(...x){this.children.push(...x)}click(){return this.onclick?.()}getAttribute(k){return this.attributes[k]}}
+class E{
+ constructor(){this.value='';this.textContent='';this.children=[];this.dataset={};this.style={};this.attributes={};this.listeners={};const classes=new Set();this.classList={add:x=>classes.add(x),remove:x=>classes.delete(x),contains:x=>classes.has(x),toggle:(x,on)=>on?classes.add(x):classes.delete(x)};}
+ setAttribute(k,v){this.attributes[k]=v}removeAttribute(k){delete this.attributes[k];delete this[k]}
+ replaceChildren(...x){for(const child of this.children)child.parentNode=null;this.children=[];this.append(...x)}
+ append(...x){for(const child of x){if(child.parentNode)child.parentNode.children=child.parentNode.children.filter(c=>c!==child);child.parentNode=this;this.children.push(child)}}
+ click(){if(!this.disabled)return this.onclick?.()}getAttribute(k){return this.attributes[k]}
+ addEventListener(name,fn){(this.listeners[name]??=[]).push(fn)}
+ dispatchEvent(event){for(const fn of this.listeners[event.type]||[])fn(event)}
+ showModal(){this.open=true}close(){this.open=false;this.dispatchEvent({type:'close'})}
+ focus(){if(this.ownerDocument)this.ownerDocument.activeElement=this}
+}
 const flush=async()=>{for(let i=0;i<20;i++)await new Promise(r=>setImmediate(r))};
 async function client(storage=new Map(),exercise=''){
  const html=fs.readFileSync(path.join(root,'book-practice.html'),'utf8'),els={};for(const [,id] of html.matchAll(/id="([^"]+)"/g))els[id]=new E();els.group.value='';els.filter.value='all';els.promotion.value='q';
- const document={title:'',body:new E(),getElementById:id=>{assert(els[id],'Missing HTML '+id);return els[id]},createElement:()=>new E(),createElementNS:()=>new E()};
+ const document=new E();document.title='';document.body=new E();document.documentElement=new E();document.activeElement=els.present;document.getElementById=id=>{assert(els[id],'Missing HTML '+id);return els[id]};document.createElement=document.createElementNS=()=>new E();document.querySelector=()=>Object.values(els).find(e=>e.open)||null;for(const e of Object.values(els))e.ownerDocument=document;els['board-home'].append(els.board);els['presentation-prompt'].hidden=true;
  const {Chess}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'vendor/chess.js')).toString('base64'));
  const leaf=move=>({move,next:[]}),one={id:'1',number:1,title:'Bài 1',group:'Khai cuộc',prompt:'Tìm nước',kind:'line',status:'verified',fen:new Chess().fen(),page:1,answer_page:2,answer:'1. e4 <script>literal</script>',answer_vi:'1. e4 · Trắng có thế thắng <script>literal</script>',tree:[leaf('e2e4')]};
  const items=[one,{...one,id:'2',number:2,title:'Bài 2'},{...one,id:'3',number:3,title:'Bài 3',status:'review',tree:[]}],requests=[],location={search:'?id=sample'+exercise};
  let blob;const ctx={Chess,PIECE_DEFS:'',document,location,URLSearchParams,URL:{createObjectURL:b=>{blob=b;return 'blob:backup'},revokeObjectURL(){}},Blob,Date,Math,Set,console,setTimeout:()=>1,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},fetch:async url=>{assert(url.startsWith('/api/books/sample/'));requests.push(url);return {ok:true,json:async()=>structuredClone(url.endsWith('/offline')?{id:'package',title:'Sách bài tập',author:'Tác giả',exercises:3}:items)}}};
- vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-exercise-session.js'),'utf8').replace(/^import .*;\n/gm,'').replace('export class','class'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-practice.js'),'utf8').replace(/^import .*;\n/gm,''),ctx);await flush();return {els,ctx,storage,requests,backup:()=>blob,run:s=>vm.runInContext(s,ctx)};
+ vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-exercise-session.js'),'utf8').replace(/^import .*;\n/gm,'').replace('export class','class'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-presentation.js'),'utf8').replace('export function','function'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-practice.js'),'utf8').replace(/^import .*;\n/gm,''),ctx);await flush();return {els,ctx,document,storage,requests,backup:()=>blob,run:s=>vm.runInContext(s,ctx),key:(key,target=document.body,extra={})=>{const event={type:'keydown',key,target,preventDefault(){this.defaultPrevented=true},...extra};document.dispatchEvent(event);return event}};
 }
 (async()=>{
  const c=await client(),e=c.els;assert.equal(e['exercise-title'].textContent,'Bài 1');assert(e['answer-panel'].hidden);assert(!e.answer.textContent);assert.equal(e['answer-source'].href,undefined);assert.equal(e.board.children.length,64);
@@ -24,6 +34,21 @@ async function client(storage=new Map(),exercise=''){
  e.export.click();const backup=JSON.parse(await c.backup().text());assert.equal(backup.packageId,'package');assert.equal(backup.progress.records['1'].note,'Kế hoạch của mình');
  const reload=await client(c.storage);assert.equal(reload.els['exercise-title'].textContent,'Bài 2');assert(reload.requests.every(x=>x.startsWith('/api/books/sample/')));
  const linked=await client(new Map(),'&exercise=3');assert.equal(linked.els['exercise-title'].textContent,'Bài 3');
+ // The classroom view owns the existing board, never a second exercise/session.
+ const p=await client(),pe=p.els,board=pe.board,originalFen=p.run('session.chess.fen()');
+ p.key('f',{tagName:'INPUT'});assert(!pe['board-presentation'].open,'Typing must not launch presentation');
+ p.key('f');assert(pe['board-presentation'].open);assert.equal(board.parentNode,pe['presentation-stage']);assert(p.document.body.classList.contains('presenting-board'));assert(pe['presentation-prompt'].hidden);assert(pe['answer-panel'].hidden);assert(pe['presentation-previous'].disabled);
+ const psquare=s=>board.children.find(x=>x.title===s);psquare('e2').click();psquare('e4').click();assert.equal(p.run('session.chess.get("e4").type'),'p');assert(p.run('record().solved'),'Moves in presentation use normal progress');
+ p.key('h');assert(!pe['presentation-prompt'].hidden);p.key('h');assert(pe['presentation-prompt'].hidden);
+ p.key('x');assert.equal(board.children[0].title,'h1');
+ p.key('ArrowRight');assert.equal(pe['presentation-title'].textContent,'Bài 2');assert.equal(pe['presentation-position'].textContent,'2 / 3');assert(pe['answer-panel'].hidden);
+ p.key('PageDown');assert.equal(pe['presentation-title'].textContent,'Bài 3');assert(pe['presentation-next'].disabled);p.key('ArrowRight');assert.equal(pe['presentation-title'].textContent,'Bài 3');
+ p.key('ArrowLeft');psquare('e2').click();psquare('e4').click();pe['presentation-reset'].click();assert.equal(p.run('session.chess.fen()'),originalFen);
+ p.key('Escape');assert(!pe['board-presentation'].open);assert.equal(board.parentNode,pe['board-home']);assert(!p.document.body.classList.contains('presenting-board'));assert.equal(p.document.activeElement,pe.present);
+ // Fullscreen denial leaves a usable viewport modal; browser Esc restores the page.
+ p.document.documentElement.requestFullscreen=()=>Promise.reject(Error('Denied'));pe.present.click();await flush();assert(pe['board-presentation'].open);let cancelled=false;pe['board-presentation'].dispatchEvent({type:'cancel',preventDefault(){cancelled=true}});assert(cancelled);assert.equal(board.parentNode,pe['board-home']);
+ p.document.documentElement.requestFullscreen=()=>{p.document.fullscreenElement=p.document.documentElement;p.document.dispatchEvent({type:'fullscreenchange'});return Promise.resolve()};p.document.exitFullscreen=()=>{p.document.fullscreenElement=null;p.document.dispatchEvent({type:'fullscreenchange'});return Promise.resolve()};pe.present.click();await flush();assert(pe['board-presentation'].open);await p.document.exitFullscreen();assert(!pe['board-presentation'].open);assert.equal(board.parentNode,pe['board-home']);
+ pe.present.click();pe['presentation-exit'].click();await flush();assert.equal(p.document.fullscreenElement,null);assert.equal(board.parentNode,pe['board-home']);
  backup.progress.records['1'].note='Ghi chú nhập thêm';e['import-file'].files=[{size:100,text:async()=>JSON.stringify(backup)}];await e['import-file'].onchange();assert(c.run('progress.records["1"].note').includes('Kế hoạch của mình'));assert(c.run('progress.records["1"].note').includes('Ghi chú nhập thêm'));
- console.log('PASS: answer hiding, assisted vs independent progress, review-only sources, reset, filters/jump, persisted notes/stars, solution navigation, deep links and backup merge');
+ console.log('PASS: exercise workflow and progress; live presentation board, navigation, hidden prompts/answers, keyboard, fullscreen denial/Esc and focus restoration');
 })().catch(e=>{console.error(e);process.exitCode=1});

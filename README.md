@@ -103,6 +103,8 @@ Giao diện Thư phòng/dịch cũ đã được thay; API và dữ liệu dịc
 
 Gói `.thcbook` cũng hỗ trợ bài tập tương tác: mở sách → **Vào luyện tập**, giải trên bàn cờ với đáp án ẩn, gợi ý, đáp trả theo lời giải, ghi chú và ôn bài. Nước ngoài lời giải không tự bị chấm là nước xấu. Nguồn chưa xác minh có nhãn riêng và không tự chấm; xem `backend/README.md`.
 
+Trong trang luyện sách, bấm **⛶ Trình chiếu** hoặc phím **F** để đưa bàn cờ lên toàn màn hình khi dạy học. Menu, bộ lọc và lời giải được ẩn; đề bài mặc định ẩn, bấm **H** để hiện/ẩn. Dùng **← / →** hoặc **Page Up / Page Down** để chuyển bài trong bộ lọc, **X** để xoay bàn cờ, **Esc** để trở lại. Vẫn bấm/kéo quân và làm lại được trên cùng thế cờ, tiến độ vẫn lưu như bình thường. Nếu trình duyệt không cho phép toàn màn hình, chế độ trình chiếu vẫn phủ kín vùng trang web. Cập nhật đủ `book-practice.html`, `book-practice.css`, `book-practice.js` và tệp mới `book-presentation.js` trong `backend/static`, rồi tải lại trang với **Ctrl+F5**.
+
 
 ## Đấu trường mới — thay trực tiếp trang cũ
 
