@@ -8,6 +8,9 @@ class E{
  click(){if(!this.disabled)return this.onclick?.()}getAttribute(k){return this.attributes[k]}
  addEventListener(name,fn){(this.listeners[name]??=[]).push(fn)}
  dispatchEvent(event){for(const fn of this.listeners[event.type]||[])fn(event)}
+ remove(){if(this.parentNode)this.parentNode.children=this.parentNode.children.filter(x=>x!==this);this.parentNode=null}
+ getBoundingClientRect(){return {left:0,top:0,width:800,height:800}}
+ setPointerCapture(id){this.capture=id}hasPointerCapture(id){return this.capture===id}releasePointerCapture(){this.capture=null}
  showModal(){this.open=true}close(){this.open=false;this.dispatchEvent({type:'close'})}
  focus(){if(this.ownerDocument)this.ownerDocument.activeElement=this}
 }
@@ -20,7 +23,11 @@ async function client(storage=new Map(),exercise=''){
  const items=[one,{...one,id:'2',number:2,title:'Bài 2'},{...one,id:'3',number:3,title:'Bài 3',status:'review',tree:[]}],requests=[],location={search:'?id=sample'+exercise};
  let blob,time=Date.now(),timerID=0;const timers=new Map();class ClockDate extends Date{static now(){return time}}
  const ctx={Chess,PIECE_DEFS:'',document,location,URLSearchParams,URL:{createObjectURL:b=>{blob=b;return 'blob:backup'},revokeObjectURL(){}},Blob,Date:ClockDate,Math,Set,console,setTimeout:()=>1,setInterval:fn=>{timers.set(++timerID,fn);return timerID},clearInterval:id=>timers.delete(id),localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},fetch:async url=>{assert(url.startsWith('/api/books/sample/'));requests.push(url);return {ok:true,json:async()=>structuredClone(url.endsWith('/offline')?{id:'package',title:'Sách bài tập',author:'Tác giả',exercises:3}:items)}}};
- vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-exercise-session.js'),'utf8').replace(/^import .*;\n/gm,'').replace('export class','class'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-classroom.js'),'utf8').replace(/export function/g,'function'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-presentation.js'),'utf8').replace('export function','function'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-practice.js'),'utf8').replace(/^import .*;\n/gm,''),ctx);await flush();return {els,ctx,document,storage,requests,backup:()=>blob,run:s=>vm.runInContext(s,ctx),advance:ms=>{time+=ms;for(const fn of [...timers.values()])fn()},timerCount:()=>timers.size,key:(key,target=document.body,extra={})=>{const event={type:'keydown',key,target,preventDefault(){this.defaultPrevented=true},...extra};document.dispatchEvent(event);return event}};
+ vm.createContext(ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-exercise-session.js'),'utf8').replace(/^import .*;\n/gm,'').replace('export class','class'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-arrows.js'),'utf8').replace(/export function/g,'function'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-classroom.js'),'utf8').replace(/export function/g,'function'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-presentation.js'),'utf8').replace('export function','function'),ctx);vm.runInContext(fs.readFileSync(path.join(root,'book-practice.js'),'utf8').replace(/^import .*;\n/gm,''),ctx);await flush();return {els,ctx,document,storage,requests,backup:()=>blob,run:s=>vm.runInContext(s,ctx),advance:ms=>{time+=ms;for(const fn of [...timers.values()])fn()},timerCount:()=>timers.size,key:(key,target=document.body,extra={})=>{const event={type:'keydown',key,target,preventDefault(){this.defaultPrevented=true},...extra};document.dispatchEvent(event);return event}};
+}
+function pointer(client,type,square,{button=2,buttons=2,target=client.els.board}={}){
+ const point=client.run(`arrowCenter(${JSON.stringify(square)},flipped)`),event={type,pointerId:1,button,buttons,clientX:point.x*100,clientY:point.y*100,preventDefault(){this.defaultPrevented=true}};
+ target.dispatchEvent(event);return event;
 }
 (async()=>{
  const c=await client(),e=c.els;assert.equal(e['exercise-title'].textContent,'Bài 1');assert(e['answer-panel'].hidden);assert(!e.answer.textContent);assert.equal(e['answer-source'].href,undefined);assert.equal(e.board.children.length,64);
@@ -62,7 +69,7 @@ async function client(storage=new Map(),exercise=''){
  qe['presentation-reveal'].click();assert(qe['presentation-answer-panel'].hidden);assert.equal(qe['presentation-answer'].textContent,'');
  qe.jump.value='2';qe['jump-go'].click();assert.equal(qe['presentation-title'].textContent,'Bài 2');assert(qe['presentation-answer-panel'].hidden);assert.equal(qe['presentation-answer'].textContent,'');assert(!q.run('revealed'));
  qe['presentation-mark'].click();qs('e4').click();assert(qs('e4').className.includes('teaching-mark'));assert.equal(q.run('session.chess.fen()'),originalFen);q.key('x');assert(qs('e4').className.includes('teaching-mark'));qe['presentation-clear-marks'].click();assert(!qs('e4').className.includes('teaching-mark'));qe['presentation-mark'].click();
- qs('e4').oncontextmenu({preventDefault(){}});assert(qs('e4').className.includes('teaching-mark'));qe['presentation-clear-marks'].click();
+ pointer(q,'pointerdown','e4');pointer(q,'pointerup','e4');assert(qs('e4').className.includes('teaching-mark'));qe['presentation-clear-marks'].click();
  qe['presentation-mode'].value='free';qe['presentation-mode'].onchange();qs('e2').click();qs('e3').click();assert.equal(qe['presentation-feedback'].dataset.kind,'free');assert(!q.run('record().solved'));assert(!qe['presentation-undo'].disabled);qe['presentation-undo'].click();assert.equal(q.run('session.chess.fen()'),originalFen);assert(qe['presentation-undo'].disabled);
  qe['presentation-promotion'].value='n';qe['presentation-promotion'].onchange();assert.equal(qe.promotion.value,'n');
  qe['presentation-mode'].value='solve';qe['presentation-mode'].onchange();qe['presentation-timer-start'].click();assert.equal(q.timerCount(),1);q.advance(61000);assert.equal(qe['presentation-clock'].textContent,'Hết giờ');assert.equal(q.timerCount(),0);assert(qe['answer-panel'].hidden);assert(qe['presentation-answer-panel'].hidden);
@@ -71,6 +78,20 @@ async function client(storage=new Map(),exercise=''){
  qe.filter.value='star';qe.filter.onchange();assert.equal(qe.board.children.length,0,'Empty filters must not leave a stale board projected');assert(qe['presentation-next'].disabled);assert(qe['presentation-timer-start'].disabled);assert(qe['presentation-picker-status'].textContent.includes('Chưa có bài'));
  qe.filter.value='all';qe.filter.onchange();qe.jump.value='999';qe['jump-go'].click();assert(qe['presentation-picker-status'].textContent.includes('Không tìm thấy'));qe['presentation-review'].click();assert.equal(qe['presentation-review'].getAttribute('aria-pressed'),'false');
  qe['presentation-timer-start'].click();q.key('Escape');assert.equal(q.timerCount(),0);assert.equal(qe['exercise-picker'].parentNode,qe['exercise-picker-home']);assert.equal(qe['exercise-picker'].open,false);
+ // Right dragging annotates without moving a piece; the very first left click clears all marks.
+ const ar=await client(),ae=ar.els,as=s=>ae.board.children.find(x=>x.title===s);
+ const draw=(from,to)=>{pointer(ar,'pointerdown',from);pointer(ar,'pointermove',to);pointer(ar,'pointerup',to);};
+ draw('e2','e4');assert.equal(ar.run('arrows.count()'),1);assert.equal(ar.run('session.chess.fen()'),originalFen);assert(!ar.run('record().solved'));assert(!ae['presentation-clear-marks'].disabled);
+ const overlay=()=>ae.board.children.find(x=>x.getAttribute('class')==='board-arrows');assert.equal(overlay().children[0].getAttribute('data-from'),'e2');assert.equal(overlay().children[0].getAttribute('data-to'),'e4');
+ const originalPath=overlay().children[0].getAttribute('d');ae.flip.click();assert.notEqual(overlay().children[0].getAttribute('d'),originalPath);assert.equal(overlay().children[0].getAttribute('data-from'),'e2');
+ draw('e2','e4');assert.equal(ar.run('arrows.count()'),0,'Drawing the same directed arrow toggles it off');
+ draw('e2','e4');draw('d2','d4');pointer(ar,'pointerdown','h4');pointer(ar,'pointerup','h4');assert(as('h4').className.includes('teaching-mark'));
+ const sameButton=as('e2');pointer(ar,'pointerdown','e2',{button:0,buttons:1});assert.equal(as('e2'),sameButton,'Clearing on pointerdown must preserve the native click target');assert.equal(ar.run('arrows.count()'),0);assert(!as('h4').className.includes('teaching-mark'));sameButton.click();assert.equal(ar.run('selected'),'e2');as('e4').click();assert(ar.run('record().solved'));
+ ae.reset.click();pointer(ar,'pointerdown','e2');pointer(ar,'pointermove','e4');assert(overlay());pointer(ar,'pointercancel','e4');assert(!overlay());assert.equal(ar.run('arrows.count()'),0);
+ pointer(ar,'pointerdown','e2');pointer(ar,'pointermove','e4');pointer(ar,'pointermove','e4',{buttons:0});assert(!overlay());
+ pointer(ar,'pointerdown','e2');pointer(ar,'pointermove','e4');ar.document.dispatchEvent({type:'pointerup',pointerId:1,button:2,clientX:-20,clientY:100,preventDefault(){}});assert.equal(ar.run('arrows.count()'),0);assert(!overlay());
+ ae.present.click();draw('e2','e4');pointer(ar,'pointerdown','h4');pointer(ar,'pointerup','h4');ae['presentation-clear-marks'].click();assert.equal(ar.run('arrows.count()'),0);assert(!as('h4').className.includes('teaching-mark'));
+ draw('e2','e4');ae['presentation-next'].click();assert.equal(ar.run('arrows.count()'),0);assert(!overlay());draw('e2','e4');ar.key('Escape');assert.equal(ar.run('arrows.count()'),0);assert(!overlay());
  backup.progress.records['1'].note='Ghi chú nhập thêm';e['import-file'].files=[{size:100,text:async()=>JSON.stringify(backup)}];await e['import-file'].onchange();assert(c.run('progress.records["1"].note').includes('Kế hoạch của mình'));assert(c.run('progress.records["1"].note').includes('Ghi chú nhập thêm'));
  console.log('PASS: exercise workflow and progress; live presentation board, navigation, hidden prompts/answers, keyboard, fullscreen denial/Esc and focus restoration');
 })().catch(e=>{console.error(e);process.exitCode=1});
