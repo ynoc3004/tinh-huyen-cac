@@ -42,6 +42,7 @@ a{color:var(--jade)}
 .square.dark{background:#829d80!important}
 .square.selected{box-shadow:inset 0 0 0 4px #dbac50}
 .square.target:after{position:absolute;content:'';inset:39%;border-radius:50%;background:#1b493e77}
+.square.teaching-mark:before{position:absolute;content:'';inset:6%;border:5px solid #b85e1e;border-radius:12%;box-shadow:0 0 0 2px #fff8;pointer-events:none;z-index:1}
 .square svg{width:100%;height:100%;display:block;filter:none!important;forced-color-adjust:none}
 .board-tools,.page-buttons,.lesson-actions,.solution-controls,.practice-footer{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
 .board-tools button,.board-tools select,.lesson-actions button,.solution-controls button{font-size:12px}
@@ -72,13 +73,15 @@ textarea{resize:vertical;width:100%;line-height:1.8}
 #board[aria-disabled=true]{opacity:.5;pointer-events:none}
 body.presenting-board{overflow:hidden}
 body dialog.board-presentation{position:fixed;inset:0;width:100vw;max-width:none;height:100vh;height:100dvh;max-height:none;margin:0;padding:14px 24px;border:0;border-radius:0;overflow:hidden;background:#101914;color:#f0f0e7;color-scheme:dark;box-shadow:none;overscroll-behavior:contain}
-.board-presentation[open]{display:grid;grid-template-rows:54px minmax(0,1fr) 76px;gap:10px}
-.board-presentation[open].with-prompt{grid-template-rows:54px auto minmax(0,1fr) 76px}
+.board-presentation[open]{display:flex;flex-direction:column;gap:10px}
 .board-presentation::backdrop{background:#101914;backdrop-filter:none}
-.presentation-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0}
+.presentation-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;min-width:0;min-height:54px;flex:none}
 .presentation-heading>div{min-width:0}
 .presentation-heading h2{font:600 clamp(15px,2vw,23px)/1.3 var(--font-body);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .presentation-heading p{margin:3px 0 0;color:#b4c4b7;font-size:13px}
+.presentation-header-actions{display:flex;gap:8px;align-items:center;flex:none}
+#presentation-clock{font:600 25px/1.2 ui-monospace,monospace;color:#eed493;min-width:76px;text-align:center}
+#presentation-clock.expired{color:#ffb6a6}
 #presentation-position{margin-left:18px}
 .board-presentation button:not(.square){background:#1c2b23;color:#e6ebe4;border-color:#4a6050;font:14px/1.3 var(--font-body);padding:9px 13px;min-height:38px}
 .board-presentation button:not(.square):hover:not(:disabled){border-color:#d6bd79}
@@ -86,28 +89,64 @@ body dialog.board-presentation{position:fixed;inset:0;width:100vw;max-width:none
 .board-presentation :focus-visible{outline-color:#eed493}
 #presentation-exit{flex:none}
 .board-presentation kbd{font:11px var(--font-body);opacity:.65;margin-left:6px}
-#presentation-prompt{margin:0;text-align:center;font:500 clamp(16px,2vw,24px)/1.4 var(--font-body);max-height:3em;overflow:auto}
+#presentation-prompt{margin:0;text-align:center;font:500 clamp(16px,2vw,24px)/1.4 var(--font-body);max-height:3em;overflow:auto;flex:none}
+.presentation-feedback{flex:none;min-height:36px;margin:0;padding:5px 12px;text-align:center;color:#bed0c1;font:500 clamp(14px,1.6vw,20px)/1.4 var(--font-body);border-radius:6px;overflow-wrap:anywhere}
+.presentation-feedback[data-kind=illegal],.presentation-feedback[data-kind=not-mate]{color:#ffd2c9;background:#5e2825;border-left:4px solid #fca998}
+.presentation-feedback[data-kind=different],.presentation-feedback[data-kind=hint]{color:#ffdf9e;background:#44371e;border-left:4px solid #e6bd66}
+.presentation-feedback[data-kind=correct],.presentation-feedback[data-kind=complete]{color:#d3f6d7;background:#1f492f;border-left:4px solid #86d19a}
+.presentation-body{flex:1;min-height:0;position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.tools-open .presentation-body{grid-template-columns:minmax(0,1fr) minmax(280px,340px)}
 .presentation-stage{min-height:0;min-width:0;display:flex;align-items:center;justify-content:center;container-type:size}
 .presentation-stage #board{flex:none;width:min(100%,calc(100vh - 178px));width:min(100cqw,100cqh);height:auto;max-height:100%;border:3px solid #6a8670;border-radius:0}
-.presentation-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;max-width:1200px;width:100%;margin:auto}
+.presentation-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;max-width:1400px;width:100%;margin:0 auto;min-height:64px;flex:none}
 .presentation-navigation,.presentation-options{display:flex;gap:8px;align-items:center}
 #presentation-help{width:100%;margin:0;text-align:center;color:#9ead9f;font:12px/1.4 var(--font-body)}
+.presentation-tools{min-height:0;overflow:auto;overscroll-behavior:contain;background:#18271e;border:1px solid #4a6050;border-radius:9px;padding:16px;font:14px/1.5 var(--font-body);scrollbar-width:thin;color:#e6ebe4}
+.presentation-tools-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.presentation-tools :is(h3,h4){font:600 16px/1.4 var(--font-body);margin:0 0 10px}
+.presentation-tools-heading h3{margin:0}
+.presentation-tools>section{margin-top:18px;border-top:1px solid #435347;padding-top:14px}
+.presentation-tools label{color:#bed0c1;font-size:12px;margin:8px 0}
+.board-presentation :is(input,select){width:100%;background:#101d15;color:#f0f0e7;border:1px solid #65796a;font:14px/1.5 var(--font-body);padding:8px;border-radius:6px;color-scheme:dark}
+.presentation-tools .practice-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:6px}
+.presentation-tools .practice-tools label{min-width:0;margin:0}
+.presentation-tools .practice-tools label:first-child{min-width:0;grid-column:1/-1}
+.presentation-tools .exercise-picker{border-color:#435347}
+.presentation-tools .exercise-picker>summary{color:#c5d9c8;font-size:14px}
+.presentation-tools .practice-tools button{width:100%;white-space:nowrap}
+.classroom-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.presentation-tools button:not(.square){font-size:12px;padding:8px 10px}
+.presentation-tools .presentation-tip{font:12px/1.6 var(--font-body);color:#b4c4b7;margin:7px 0}
+#presentation-picker-status{color:#ffdf9e;font-size:13px;overflow-wrap:anywhere}
+#presentation-picker-status:empty{display:none}
+#presentation-answer-panel{margin-top:16px;border-top:1px solid #65796a;padding-top:14px}
+#presentation-answer{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto;line-height:1.7}
+#presentation-solution-ply{font:12px ui-monospace,monospace}
+@media(max-width:950px){
+ .tools-open .presentation-body{grid-template-columns:minmax(0,1fr)}
+ .presentation-tools{position:absolute;inset:0 0 0 auto;width:min(380px,100%);z-index:3;box-shadow:-15px 0 35px #0007}
+}
 @media(max-width:650px){
  body dialog.board-presentation{padding:10px}
- .board-presentation[open]{grid-template-rows:52px minmax(0,1fr) 114px;gap:6px}
- .board-presentation[open].with-prompt{grid-template-rows:52px auto minmax(0,1fr) 114px}
+ .board-presentation[open]{gap:6px}
+ .presentation-heading{gap:8px;min-height:52px}
  .presentation-toolbar{justify-content:center;gap:7px}
  .board-presentation button:not(.square){font-size:12px;padding:7px 10px}
  .presentation-navigation{justify-content:center;width:100%}
- .presentation-options{gap:6px}
+ .presentation-options{gap:6px;flex-wrap:wrap;justify-content:center}
  .presentation-heading h2{font-size:15px}
  #presentation-help{font-size:10px}
+ .presentation-header-actions{gap:5px}
+ #presentation-clock{font-size:17px;min-width:46px}
+ .board-presentation kbd{display:none}
  .exercise-actions{max-width:140px}
 }
 @media(max-height:500px) and (min-width:651px){
  body dialog.board-presentation{padding:6px 16px}
- .board-presentation[open]{grid-template-rows:40px minmax(0,1fr) 40px;gap:6px}
- .board-presentation[open].with-prompt{grid-template-rows:40px auto minmax(0,1fr) 40px}
+ .board-presentation[open]{gap:6px}
+ .presentation-heading{min-height:40px}
+ .presentation-toolbar{min-height:40px}
+ .presentation-feedback{font-size:13px;min-height:28px;padding:3px}
  #presentation-help{display:none}
 }
 @media(max-width:800px){
