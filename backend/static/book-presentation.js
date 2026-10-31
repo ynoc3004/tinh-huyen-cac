@@ -1,15 +1,17 @@
 // Move the live board into a modal, so moves and progress use the same session.
-export function createBoardPresentation({document, onPrevious, onNext, onFlip, onReset}) {
+export function createBoardPresentation({document, onPrevious, onNext, onFlip, onReset, tools}) {
  const $=id=>document.getElementById(id), dialog=$('board-presentation'), fullscreenTarget=document.documentElement;
  let active=false, ownedFullscreen=false, requestedFullscreen=false, lastFocus=null, generation=0;
  const editing=target=>target?.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(target?.tagName||'');
- function update({title,prompt,turn,position,previousDisabled,nextDisabled}) {
+ function update(data) {
+  const {title,prompt,turn,position,previousDisabled,nextDisabled}=data;
   $('presentation-title').textContent=title;
   $('presentation-prompt').textContent=prompt;
   $('presentation-turn').textContent=turn;
   $('presentation-position').textContent=position;
   $('presentation-previous').disabled=previousDisabled;
   $('presentation-next').disabled=nextDisabled;
+  tools.update(data);
  }
  function togglePrompt() {
   const show=$('presentation-prompt').hidden;
@@ -21,6 +23,7 @@ export function createBoardPresentation({document, onPrevious, onNext, onFlip, o
  function close() {
   if(!active)return;
   active=false;generation++;
+  tools.close();
   $('board-home').append($('board'));
   document.body.classList.remove('presenting-board');
   if(dialog.open)dialog.close();
@@ -28,7 +31,7 @@ export function createBoardPresentation({document, onPrevious, onNext, onFlip, o
    try{Promise.resolve(document.exitFullscreen()).catch(()=>{});}catch{}
   }
   ownedFullscreen=false;requestedFullscreen=false;
-  lastFocus?.focus({preventScroll:true});
+  (lastFocus?.isConnected===false?$('present'):lastFocus)?.focus({preventScroll:true});
  }
  function open() {
   if(active||$('workspace').hidden||$('board').getAttribute('aria-disabled')==='true')return;
@@ -38,6 +41,7 @@ export function createBoardPresentation({document, onPrevious, onNext, onFlip, o
   $('presentation-stage').append($('board'));
   document.body.classList.add('presenting-board');
   active=true;const attempt=++generation;
+  tools.open();
   $('presentation-exit').focus({preventScroll:true});
   // Fullscreen can be denied or absent (e.g. mobile); the modal still fills the viewport.
   if(!document.fullscreenElement&&fullscreenTarget.requestFullscreen) {
@@ -64,8 +68,8 @@ export function createBoardPresentation({document, onPrevious, onNext, onFlip, o
  document.addEventListener('keydown',event=>{
   if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey||editing(event.target))return;
   if(!active){if(event.key.toLowerCase()==='f'&&!document.querySelector('dialog[open]')){event.preventDefault();open();}return;}
-  const action={ArrowLeft:()=>$('presentation-previous').click(),ArrowRight:()=>$('presentation-next').click(),PageUp:()=>$('presentation-previous').click(),PageDown:()=>$('presentation-next').click(),x:onFlip,h:togglePrompt,Escape:close}[event.key.length===1?event.key.toLowerCase():event.key];
+  const action={ArrowLeft:()=>$('presentation-previous').click(),ArrowRight:()=>$('presentation-next').click(),PageUp:()=>$('presentation-previous').click(),PageDown:()=>$('presentation-next').click(),x:onFlip,h:togglePrompt,t:()=>tools.toggle(),Escape:close}[event.key.length===1?event.key.toLowerCase():event.key];
   if(action){event.preventDefault();if(!event.repeat)action();}
  });
- return {update,close};
+ return {update,close,feedback:(kind,text)=>tools.feedback(kind,text),isActive:()=>active};
 }
