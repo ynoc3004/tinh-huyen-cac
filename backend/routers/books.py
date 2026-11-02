@@ -2,6 +2,7 @@
 import sqlite3
 import uuid
 import json
+from urllib.parse import quote
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
@@ -11,18 +12,30 @@ from services.online_books import Book, fold, url_key
 
 router = APIRouter(prefix='/api/books')
 
+BOOK_SELECT = '''SELECT b.id,b.title,b.author,b.subject,b.description,b.url,b.created_at,b.updated_at,
+    p.book_id IS NOT NULL AS offline,p.manifest AS package_manifest
+    FROM online_books b LEFT JOIN online_book_packages p ON p.book_id=b.id'''
+
+
+def book_record(row):
+    book = dict(row)
+    manifest = book.pop('package_manifest')
+    cover = json.loads(manifest).get('cover') if manifest else None
+    book['cover_url'] = f"/api/books/{quote(book['id'], safe='')}/asset/{quote(cover, safe='/')}" if cover else None
+    return book
+
 
 def get_row(db, book_id):
-    row = db.execute('SELECT b.id,b.title,b.author,b.subject,b.description,b.url,b.created_at,b.updated_at, EXISTS(SELECT 1 FROM online_book_packages p WHERE p.book_id=b.id) AS offline FROM online_books b WHERE b.id=?', (book_id,)).fetchone()
+    row = db.execute(BOOK_SELECT + ' WHERE b.id=?', (book_id,)).fetchone()
     if not row:
         raise HTTPException(404, 'Không tìm thấy sách trong tủ.')
-    return dict(row)
+    return book_record(row)
 
 
 @router.get('')
 def list_books(q: str = Query(default='', max_length=160)):
     with conn() as db:
-        rows = [dict(row) for row in db.execute('SELECT b.id,b.title,b.author,b.subject,b.description,b.url,b.created_at,b.updated_at, EXISTS(SELECT 1 FROM online_book_packages p WHERE p.book_id=b.id) AS offline FROM online_books b ORDER BY b.created_at DESC,b.id')]
+        rows = [book_record(row) for row in db.execute(BOOK_SELECT + ' ORDER BY b.created_at DESC,b.id')]
     needle = fold(q.strip())
     return [row for row in rows if needle in fold(' '.join(row[k] for k in ('title', 'author', 'subject', 'description')))]
 
