@@ -12,7 +12,8 @@ async function api(path='',body,method='GET'){
 }
 function card(book){
  const href='/book.html?id='+encodeURIComponent(book.id);
- return `<article class="book-card"><a class="book-cover" href="${href}" aria-label="Đọc ${esc(book.title)}"><span class="cover-pawn" aria-hidden="true">♞</span><div class="book-cover-text"><small>${book.offline?'ĐÃ LƯU TRÊN MÁY · NGOẠI TUYẾN':'LIÊN KẾT · CẦN KẾT NỐI MẠNG'}</small><h2>${esc(book.title)}</h2></div></a><div class="book-details"><p class="book-author">${esc(book.author||'Chưa ghi tác giả')}</p>${book.subject?`<span class="book-subject">${esc(book.subject)}</span>`:''}<p class="book-description">${esc(book.description||'Mở sách để xem nội dung và bắt đầu học.')}</p><div class="book-actions"><a class="primary" href="${href}">${book.offline?'Đọc ngoại tuyến':'Mở liên kết'} →</a><button type="button" data-book-edit="${esc(book.id)}" aria-label="Sửa ${esc(book.title)}">Sửa</button><button type="button" class="delete" data-book-delete="${esc(book.id)}" aria-label="Gỡ ${esc(book.title)} khỏi tủ sách">Gỡ</button></div></div></article>`;
+ const cover=book.offline&&book.cover_url,availability=book.offline?'ĐÃ LƯU TRÊN MÁY · NGOẠI TUYẾN':'LIÊN KẾT · CẦN KẾT NỐI MẠNG';
+ return `<article class="book-card"><a class="book-cover${cover?' has-cover':''}" href="${href}" aria-label="Đọc ${esc(book.title)}">${cover?`<img class="book-cover-image" src="${esc(cover)}" alt="Bìa sách ${esc(book.title)}" loading="lazy" decoding="async">`:''}<span class="cover-pawn" aria-hidden="true">♞</span><div class="book-cover-text"><small>${availability}</small><h2>${esc(book.title)}</h2></div></a><div class="book-details">${cover?`<div class="book-cover-caption"><small>${availability}</small><h2>${esc(book.title)}</h2></div>`:''}<p class="book-author">${esc(book.author||'Chưa ghi tác giả')}</p>${book.subject?`<span class="book-subject">${esc(book.subject)}</span>`:''}<p class="book-description">${esc(book.description||'Mở sách để xem nội dung và bắt đầu học.')}</p><div class="book-actions"><a class="primary" href="${href}">${book.offline?'Đọc ngoại tuyến':'Mở liên kết'} →</a><button type="button" data-book-edit="${esc(book.id)}" aria-label="Sửa ${esc(book.title)}">Sửa</button><button type="button" class="delete" data-book-delete="${esc(book.id)}" aria-label="Gỡ ${esc(book.title)} khỏi tủ sách">Gỡ</button></div></div></article>`;
 }
 function render(){
  const needle=fold($('book-search').value.trim()),subject=$('book-subject').value;
@@ -67,6 +68,11 @@ function openForm(book=null){
 }
 $('books-retry').onclick=load;
 if(!reader){
+ // Image errors do not bubble; capture them so every rendered/filter result has a fallback.
+ $('books-grid').addEventListener('error',event=>{
+  const image=event.target;if(!image.classList?.contains('book-cover-image'))return;
+  image.hidden=true;image.closest('.book-cover').classList.remove('has-cover');
+ },true);
  $('book-import').onclick=()=>{if(!busy)$('book-package').click();};
  $('book-package').onchange=async()=>{
   const file=$('book-package').files?.[0];if(!file||busy)return;
